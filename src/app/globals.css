@@ -1,0 +1,255 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/*
+  DECISION ARENA — design tokens
+  ------------------------------------------------------------------
+  The visual language is a founder's notebook that has been argued in:
+  white paper, black ink, a red pen for the agent's objections, a blue
+  pen for the founder's defense, and an ochre marker for what is still
+  unresolved. Nothing is decorative — every colour carries a meaning
+  that the product also encodes in data.
+*/
+
+:root {
+  --radius: 0.25rem;
+
+  /* Surfaces */
+  --paper: #ffffff;
+  --leaf: #fbfaf8;
+  --tape: #f4f1ec;
+
+  /* Ink */
+  --ink: #14110f;
+  --graphite: #6e6862;
+  --pencil: #a49d95;
+  --rule: #e5e1da;
+  --rule-strong: #cfc9c0;
+
+  /* Meaningful pens */
+  --oxblood: #8a2015; /* the agent's objection */
+  --oxblood-wash: #fdf1ef;
+  --indigo: #23407f; /* the founder's defense */
+  --indigo-wash: #eef1f9;
+  --ochre: #a9741a; /* unresolved / at risk */
+  --ochre-wash: #fbf4e4;
+  --moss: #2f5d43; /* resolved / verified fact */
+  --moss-wash: #eef4ef;
+
+  /* shadcn surface mapping */
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: var(--paper);
+  --card-foreground: var(--ink);
+  --popover: var(--paper);
+  --popover-foreground: var(--ink);
+  --primary: var(--ink);
+  --primary-foreground: var(--paper);
+  --secondary: var(--tape);
+  --secondary-foreground: var(--ink);
+  --muted: var(--leaf);
+  --muted-foreground: var(--graphite);
+  --accent: var(--tape);
+  --accent-foreground: var(--ink);
+  --destructive: var(--oxblood);
+  --border: var(--rule);
+  --input: var(--rule-strong);
+  --ring: var(--ink);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-paper: var(--paper);
+  --color-leaf: var(--leaf);
+  --color-tape: var(--tape);
+  --color-ink: var(--ink);
+  --color-graphite: var(--graphite);
+  --color-pencil: var(--pencil);
+  --color-rule: var(--rule);
+  --color-rule-strong: var(--rule-strong);
+  --color-oxblood: var(--oxblood);
+  --color-oxblood-wash: var(--oxblood-wash);
+  --color-indigo: var(--indigo);
+  --color-indigo-wash: var(--indigo-wash);
+  --color-ochre: var(--ochre);
+  --color-ochre-wash: var(--ochre-wash);
+  --color-moss: var(--moss);
+  --color-moss-wash: var(--moss-wash);
+
+  --font-display: var(--font-fraunces), Georgia, serif;
+  --font-sans: var(--font-instrument-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
+  --radius-xl: calc(var(--radius) + 6px);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/40;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "ss01", "cv05";
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: #f5e6b8;
+    color: var(--ink);
+  }
+}
+
+@layer utilities {
+  /* The display face is set tight and optically dark — it should read
+     like a question written by hand at the top of a page. */
+  .type-display {
+    font-family: var(--font-display);
+    font-variation-settings: "SOFT" 12, "WONK" 1;
+    letter-spacing: -0.022em;
+    line-height: 1.04;
+  }
+
+  .type-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--graphite);
+  }
+
+  .type-figure {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+
+  /* Ruled paper: the faint horizontal lines of a notebook. */
+  .paper-ruled {
+    background-image: linear-gradient(
+      to bottom,
+      transparent calc(2rem - 1px),
+      var(--rule) calc(2rem - 1px),
+      var(--rule) 2rem
+    );
+    background-size: 100% 2rem;
+  }
+
+  .paper-grid {
+    background-image:
+      linear-gradient(to right, var(--rule) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--rule) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+
+  /* Marker highlight used sparingly on the single most important phrase. */
+  .ink-highlight {
+    background-image: linear-gradient(
+      to bottom,
+      transparent 58%,
+      #f7e7b4 58%,
+      #f7e7b4 94%,
+      transparent 94%
+    );
+  }
+
+  .ink-strike {
+    text-decoration: line-through;
+    text-decoration-color: var(--oxblood);
+    text-decoration-thickness: 1.5px;
+  }
+
+  /* Hand-inked stroke reveal, used for underlines and circled contradictions. */
+  .ink-draw path,
+  .ink-draw line,
+  .ink-draw ellipse,
+  .ink-draw polyline {
+    stroke-dasharray: var(--dash, 400);
+    stroke-dashoffset: var(--dash, 400);
+    animation: ink-draw 900ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+  }
+
+  @keyframes ink-draw {
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  .rise-in {
+    animation: rise-in 460ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  }
+
+  @keyframes rise-in {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .writing-caret::after {
+    content: "";
+    display: inline-block;
+    width: 1.5px;
+    height: 0.85em;
+    margin-left: 0.35em;
+    background: currentColor;
+    animation: caret-blink 1s step-end infinite;
+    vertical-align: -0.08em;
+  }
+
+  @keyframes caret-blink {
+    50% {
+      opacity: 0;
+    }
+  }
+
+  .stamp-in {
+    animation: stamp-in 320ms cubic-bezier(0.2, 1.3, 0.4, 1) both;
+  }
+
+  @keyframes stamp-in {
+    from {
+      opacity: 0;
+      transform: scale(1.06) rotate(-1.2deg);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

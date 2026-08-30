@@ -1,0 +1,246 @@
+"use client";
+
+import { calibrationSnapshot, decisionHistory, decisionSnapshot, openRisksFor, activeDecision } from "@/lib/selectors";
+import { useArena } from "@/lib/store";
+import { toolError, toolResult } from "@/webmcp/spec";
+import type { ArenaTool } from "@/webmcp/registry";
+
+/**
+ * Context tools — everything an agent needs to understand the workspace
+ * before it says anything.
+ *
+ * These are the tools that make Decision Arena worth building on WebMCP. An
+ * agent without them can only read rendered text; with them it reads the same
+ * structured decision record the founder is looking at, including provenance,
+ * argument strengths and measured calibration history.
+ */
+
+function state() {
+  return useArena.getState();
+}
+
+function requireDecision(decisionId?: unknown) {
+  const s = state();
+  if (typeof decisionId === "string" && decisionId) {
+    const found = s.decisions.find((d) => d.id === decisionId);
+    return found ?? null;
+  }
+  return activeDecision(s);
+}
+
+export const contextTools: ArenaTool[] = [
+  {
+    name: "get_company_brain",
+    group: "context",
+    humanLabel: "Read the Company Brain",
+    description:
+      "Read the Company Brain: what this company builds, who it sells to, its stack, and — critically — the separation between FACTS drawn from the founder's website and repository, and ASSUMPTIONS the company is betting on without proof. Call this before making any argument, so your reasoning is about this company rather than startups in general. Facts carry source quotes; assumptions carry ids you can cite when you challenge them.",
+    annotations: { readOnlyHint: true },
+    inputSchema: {
+      type: "object",
+      properties: {
+        section: {
+          type: "string",
+          enum: ["all", "product", "market", "technical", "facts", "assumptions"],
+          description: "Narrow the response to one section. Defaults to all.",
+        },
+      },
+    },
+    execute: ({ section }) => {
+      const company = state().company;
+      if (!company) {
+        return toolError(
+          "No Company Brain exists yet. The founder has not completed onboarding.",
+        );
+      }
+
+      const { brain } = company;
+      const sections: Record<string, unknown> = {
+        product: brain.product,
+        market: brain.market,
+        technical: brain.technical,
+        facts: brain.facts,
+        assumptions: brain.assumptions,
+      };
+
+      if (typeof section === "string" && section !== "all" && sections[section]) {
+        return toolResult(
+          `Company Brain — ${section} for ${company.name}.`,
+          sections[section],
+        );
+      }
+
+      return toolResult(`Company Brain for ${company.name}.`, {
+        company: company.name,
+        website: company.website,
+        github: company.github,
+        headline: brain.headline,
+        summary: brain.summary,
+        ...sections,
+        openQuestions: brain.openQuestions,
+        degraded: brain.degraded,
+        gaps: brain.gaps,
+      });
+    },
+  },
+
+  {
+    name: "get_current_decision",
+    group: "context",
+    humanLabel: "Read the open decision",
+    description:
+      "Read the decision currently open in the Arena: the question, the options, every argument with its perspective, stance, strength and status, the founder's defenses, the Arena's reassessments of those defenses, plus risks, evidence requests and contradictions. Use the returned ids when you challenge an argument or add to the record. The confidence gap between founder and Arena is usually the most useful thing in the response.",
+    annotations: { readOnlyHint: true },
+    inputSchema: {
+      type: "object",
+      properties: {
+        decision_id: {
+          type: "string",
+          description: "Defaults to the decision the founder currently has open.",
+        },
+      },
+    },
+    execute: ({ decision_id }) => {
+      const decision = requireDecision(decision_id);
+      if (!decision) {
+        return toolError("There is no decision open in the Arena right now.");
+      }
+      const snapshot = decisionSnapshot(state(), decision.id);
+      return toolResult(`Decision: ${decision.question}`, snapshot);
+    },
+  },
+
+  {
+    name: "get_decision_history",
+    group: "context",
+    humanLabel: "Read past decisions",
+    description:
+      "Read every decision this founder has previously worked through, with what they chose, what they predicted, what actually happened and the lesson recorded afterwards. Use this to find repetition: a decision that resembles one already made, a rationale already used, or a prediction already missed. Naming a specific past decision is far more persuasive than generic caution.",
+    annotations: { readOnlyHint: true },
+    inputSchema: {
+      type: "object",
+      properties: {
+        only_with_outcomes: {
+          type: "boolean",
+          description: "Return only decisions whose real outcome is known.",
+        },
+      },
+    },
+    execute: ({ only_with_outcomes }) => {
+      const history = decisionHistory(state());
+      const filtered = only_with_outcomes
+        ? history.filter((h) => h.outcome !== null)
+        : history;
+      if (filtered.length === 0) {
+        return toolResult(
+          "No decisions on record yet. Do not infer past behaviour you cannot see.",
+          [],
+        );
+      }
+      return toolResult(`${filtered.length} decisions on record.`, filtered);
+    },
+  },
+
+  {
+    name: "get_founder_patterns",
+    group: "context",
+    humanLabel: "Read founder calibration patterns",
+    description:
+      "Read the founder's measured decision patterns — for example a tendency to overestimate growth by 2.1x across five predictions, or to defer commitment. Each pattern is arithmetic over recorded predictions and real outcomes, not an opinion, so you can quote the numbers. Use these to challenge a specific claim the founder has just made, not as a general character assessment.",
+    annotations: { readOnlyHint: true },
+    inputSchema: {
+      type: "object",
+      properties: {
+        domain: {
+          type: "string",
+          description:
+            "Filter to one domain: growth, revenue, timeline, technical, retention, distribution, commitment.",
+        },
+      },
+    },
+    execute: ({ domain }) => {
+      const patterns = state().patterns;
+      const filtered =
+        typeof domain === "string" && domain
+          ? patterns.filter((p) => p.domain === domain)
+          : patterns;
+      if (filtered.length === 0) {
+        return toolResult(
+          "No calibration patterns yet — this founder has too few evaluated predictions. Do not invent a track record.",
+          [],
+        );
+      }
+      return toolResult(`${filtered.length} measured patterns.`, filtered);
+    },
+  },
+
+  {
+    name: "get_open_risks",
+    group: "context",
+    humanLabel: "Read open risks",
+    description:
+      "Read the risks still open on a decision, ordered by severity. A risk stays open until the founder mitigates or explicitly accepts it. Check this before adding a risk of your own so you sharpen an existing one instead of duplicating it.",
+    annotations: { readOnlyHint: true },
+    inputSchema: {
+      type: "object",
+      properties: {
+        decision_id: { type: "string", description: "Defaults to the open decision." },
+      },
+    },
+    execute: ({ decision_id }) => {
+      const decision = requireDecision(decision_id);
+      if (!decision) return toolError("There is no decision open in the Arena.");
+      const risks = openRisksFor(state(), decision.id);
+      return toolResult(
+        `${risks.length} open risks on "${decision.question}".`,
+        risks.map((r) => ({
+          id: r.id,
+          title: r.title,
+          detail: r.detail,
+          severity: r.severity,
+          likelihood: r.likelihood,
+          raisedBy: r.createdBy,
+        })),
+      );
+    },
+  },
+
+  {
+    name: "get_predictions",
+    group: "context",
+    humanLabel: "Read predictions",
+    description:
+      "Read the founder's measurable predictions: what they expected, by when, how confident they were, and — where the deadline has passed and an outcome was recorded — what actually happened. Pending predictions show what the founder is currently on the hook for.",
+    annotations: { readOnlyHint: true },
+    inputSchema: {
+      type: "object",
+      properties: {
+        status: {
+          type: "string",
+          enum: ["all", "pending", "hit", "missed", "partial"],
+          description: "Defaults to all.",
+        },
+      },
+    },
+    execute: ({ status }) => {
+      const predictions = state().predictions;
+      const filtered =
+        typeof status === "string" && status !== "all" && status
+          ? predictions.filter((p) => p.status === status)
+          : predictions;
+      return toolResult(`${filtered.length} predictions.`, filtered);
+    },
+  },
+
+  {
+    name: "get_calibration",
+    group: "context",
+    humanLabel: "Read the calibration profile",
+    description:
+      "Read the founder's calibration profile: accuracy per estimate domain, the mean ratio between what they expected and what happened, and how many outcomes each score rests on. If `reliable` is false the sample is too small to argue from — say so rather than overstating it.",
+    annotations: { readOnlyHint: true },
+    inputSchema: { type: "object", properties: {} },
+    execute: () =>
+      toolResult("Founder calibration profile.", calibrationSnapshot(state())),
+  },
+];
