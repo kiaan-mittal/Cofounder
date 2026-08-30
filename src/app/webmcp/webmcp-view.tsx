@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { InkRule } from "@/components/ink/marks";
 import { HydrateWorkspace } from "@/components/shell/require-company";
 import { Button } from "@/components/ui/button";
+import { demoSnapshot } from "@/lib/demo-seed";
 import { useArena } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { readToolOutput } from "@/webmcp/compat";
@@ -22,6 +23,7 @@ export function WebMCPView({
   const { support, registered, ready, error } = useWebMCP();
   const toolCalls = useArena((state) => state.toolCalls);
   const company = useArena((state) => state.company);
+  const importWorkspace = useArena((state) => state.importWorkspace);
   const [discovered, setDiscovered] = useState<RegisteredTool[] | null>(null);
 
   useEffect(() => {
@@ -124,16 +126,33 @@ export function WebMCPView({
           </Link>{" "}
           first so a judge can read a company and a live decision.
         </p>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <Button
+            type="button"
+            onClick={() => importWorkspace(demoSnapshot())}
+            className="h-10 px-4"
+          >
+            Load worked example
+          </Button>
+          <Button asChild variant="outline" className="h-10 px-4">
+            <Link href="/arena">Open Arena</Link>
+          </Button>
+        </div>
       </div>
 
       {!company ? (
-        <p className="mt-6 max-w-[62ch] text-[14.5px] leading-relaxed text-graphite">
-          Sign in and open the Arena once so{" "}
-          <code className="type-figure text-[13px] text-ink">get_company_brain</code>{" "}
-          and{" "}
-          <code className="type-figure text-[13px] text-ink">get_current_decision</code>{" "}
-          have something to read. Or use the worked example.
-        </p>
+        <div className="mt-6 max-w-[62ch] border border-rule bg-paper px-5 py-4">
+          <p className="type-eyebrow text-oxblood">Judge quickstart</p>
+          <p className="mt-2 text-[14.5px] leading-relaxed text-graphite">
+            Load the worked example here, then run{" "}
+            <code className="type-figure text-[13px] text-ink">get_company_brain</code>
+            ,{" "}
+            <code className="type-figure text-[13px] text-ink">get_current_decision</code>{" "}
+            and{" "}
+            <code className="type-figure text-[13px] text-ink">get_founder_patterns</code>
+            . The tools will read a real decision record immediately.
+          </p>
+        </div>
       ) : null}
 
       {error ? (
