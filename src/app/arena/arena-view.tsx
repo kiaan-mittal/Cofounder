@@ -3,11 +3,9 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { toast } from "sonner";
 import { useShallow } from "zustand/react/shallow";
 
 import { CommitFlow } from "@/components/arena/commit-flow";
-import { DecisionReady } from "@/components/arena/decision-ready";
 import {
   BriefingWrite,
   FloorBar,
@@ -414,7 +412,6 @@ function Workspace({
         )
       : false,
   );
-  const [readyOpen, setReadyOpen] = useState(false);
 
   const committed = decision.status === "committed";
 
@@ -448,26 +445,11 @@ function Workspace({
     await defend(decision.id, text, targetId);
   }
 
-  async function openReady() {
-    setReadyOpen(true);
+  async function openWeighUp() {
+    setCommitOpen(true);
     setSummary(null);
     const result = await summarise(decision.id);
     setSummary(result);
-  }
-
-  function investigate() {
-    updateDecision(decision.id, { status: "investigating" });
-    setReadyOpen(false);
-    toast("Marked for investigation", {
-      description: "Back on the floor. Deferral is on the record.",
-    });
-  }
-
-  function kill() {
-    updateDecision(decision.id, { status: "abandoned" });
-    setReadyOpen(false);
-    setFloorOpen(false);
-    toast("Decision killed");
   }
 
   const commitBar = (
@@ -516,31 +498,13 @@ function Workspace({
             <Link href="/history">Open the record</Link>
           </Button>
         ) : (
-          <>
-            <Button
-              variant="outline"
-              onClick={investigate}
-              disabled={busy !== null}
-              className="h-10"
-            >
-              Investigate
-            </Button>
-            <Button
-              onClick={() => void openReady()}
-              disabled={busy !== null || args.length === 0}
-              className="h-10 px-6"
-            >
-              Decision ready
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={kill}
-              disabled={busy !== null}
-              className="type-eyebrow h-10 text-oxblood"
-            >
-              Kill
-            </Button>
-          </>
+          <Button
+            onClick={() => void openWeighUp()}
+            disabled={busy !== null || args.length === 0}
+            className="h-10 px-6"
+          >
+            Weigh it up
+          </Button>
         )}
       </div>
     </div>
@@ -555,20 +519,7 @@ function Workspace({
           status={decision.status}
           onLeave={() => setFloorOpen(false)}
         />
-        {readyOpen ? (
-          <DecisionReady
-            decision={decision}
-            args={args}
-            summary={summary}
-            loading={busy === "readiness"}
-            onBack={() => setReadyOpen(false)}
-            onCommitted={() => {
-              setReadyOpen(false);
-              setCommitOpen(true);
-            }}
-          />
-        ) : (
-          <div className="grid min-h-0 min-w-0 flex-1 lg:grid-cols-2">
+        <div className="grid min-h-0 min-w-0 flex-1 lg:grid-cols-2">
             <FloorTalk
               defenses={defenses}
               reassessments={reassessments}
@@ -602,13 +553,12 @@ function Workspace({
               }
             />
           </div>
-        )}
         {error ? (
           <div className="shrink-0 border-t border-rule bg-oxblood-wash px-4 py-2 text-sm text-ink">
             {error.message}
           </div>
         ) : null}
-        {readyOpen ? null : commitBar}
+        {commitBar}
         <CommitFlow
           decision={decision}
           summary={summary}

@@ -128,7 +128,7 @@ export function CommitFlow({
 
   function abandon() {
     useArena.getState().updateDecision(decision.id, { status: "abandoned" });
-    toast("Decision abandoned");
+    toast("Decision killed");
     onOpenChange(false);
   }
 
@@ -212,13 +212,19 @@ function ReadinessStage({
   return (
     <>
       <DialogHeader className="text-left">
-        <p className="type-eyebrow">Decision ready</p>
+        <p className="type-eyebrow">
+          Weigh it up · Round {decision.round} · {decision.status}
+        </p>
         <DialogTitle className="type-display mt-2 text-[28px] font-semibold leading-tight">
           {decision.question}
         </DialogTitle>
+        <p className="mt-3 text-[14px] leading-relaxed text-graphite">
+          Status is {decision.status}. Commit it, mark it for investigation, or
+          kill it. A prediction follows a commit.
+        </p>
         <DialogDescription className="sr-only">
           Review the strongest arguments and unresolved risks, then commit,
-          investigate or abandon this decision.
+          investigate or kill this decision.
         </DialogDescription>
       </DialogHeader>
 
@@ -381,14 +387,14 @@ function ReadinessStage({
           Commit
         </Button>
         <Button variant="outline" onClick={onInvestigate} className="h-10">
-          Investigate first
+          Investigate
         </Button>
         <Button
           variant="ghost"
           onClick={onAbandon}
-          className="type-eyebrow ml-auto text-graphite"
+          className="type-eyebrow ml-auto text-oxblood"
         >
-          Abandon
+          Kill
         </Button>
       </div>
     </>

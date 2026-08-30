@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Fraunces, Instrument_Sans, JetBrains_Mono } from "next/font/google";
+import localFont from "next/font/local";
 
 import { InkFilters } from "@/components/ink/ink-filters";
 import { AccountGate } from "@/components/shell/account-gate";
@@ -7,23 +7,25 @@ import { AppChrome } from "@/components/shell/app-chrome";
 
 import "./globals.css";
 
-const fraunces = Fraunces({
-  subsets: ["latin"],
+const fraunces = localFont({
+  src: "./fonts/Fraunces-Variable.woff2",
   variable: "--font-fraunces",
-  axes: ["SOFT", "WONK", "opsz"],
   display: "swap",
+  weight: "100 900",
 });
 
-const instrumentSans = Instrument_Sans({
-  subsets: ["latin"],
+const instrumentSans = localFont({
+  src: "./fonts/InstrumentSans-Variable.woff2",
   variable: "--font-instrument-sans",
   display: "swap",
+  weight: "400 700",
 });
 
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ["latin"],
+const jetbrainsMono = localFont({
+  src: "./fonts/JetBrainsMono-Variable.woff2",
   variable: "--font-jetbrains-mono",
   display: "swap",
+  weight: "100 800",
 });
 
 export const metadata: Metadata = {
