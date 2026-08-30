@@ -1,14 +1,22 @@
 import {
+  readArenaDraft,
   readOnboardingDraft,
+  writeArenaDraft,
   writeOnboardingDraft,
+  type ArenaDraft,
   type OnboardingDraft,
 } from "@/lib/drafts";
 import {
   getWorkspaceSnapshot,
   snapshotIsEmpty,
+  snapshotWeight,
   useArena,
   type WorkspaceSnapshot,
 } from "@/lib/store";
+
+type PersistedSnapshot = WorkspaceSnapshot & {
+  arenaDraft?: ArenaDraft;
+};
 
 type RemoteWorkspace = {
   configured: boolean;
@@ -16,7 +24,8 @@ type RemoteWorkspace = {
     website: string;
     github: string;
     docs_url: string;
-    snapshot: WorkspaceSnapshot | Record<string, never> | null;
+    snapshot: PersistedSnapshot | Record<string, never> | null;
+    updated_at?: string;
   } | null;
 };
 
@@ -40,6 +49,26 @@ async function request(
   }
 }
 
+export function shouldAdoptRemote(
+  local: Partial<WorkspaceSnapshot>,
+  remote: Partial<WorkspaceSnapshot> | null | undefined,
+) {
+  if (!remote || snapshotIsEmpty(remote)) return false;
+  if (snapshotIsEmpty(local)) return true;
+  return snapshotWeight(remote) > snapshotWeight(local);
+}
+
+function applySnapshot(snapshot: PersistedSnapshot) {
+  const { arenaDraft, ...workspace } = snapshot;
+  useArena.getState().importWorkspace(workspace);
+  if (arenaDraft && (arenaDraft.question || arenaDraft.context)) {
+    const current = readArenaDraft();
+    if (!current.question && !current.context) {
+      writeArenaDraft(arenaDraft);
+    }
+  }
+}
+
 export async function pullRemoteWorkspace() {
   const remote = await request("GET");
   if (!remote?.configured || !remote.workspace) return remote;
@@ -52,17 +81,24 @@ export async function pullRemoteWorkspace() {
     building: readOnboardingDraft().building,
   });
 
-  const snapshot = row.snapshot;
+  const snapshot = row.snapshot as PersistedSnapshot | null;
   if (
     snapshot &&
     typeof snapshot === "object" &&
-    !snapshotIsEmpty(snapshot as WorkspaceSnapshot) &&
-    snapshotIsEmpty(getWorkspaceSnapshot())
+    shouldAdoptRemote(getWorkspaceSnapshot(), snapshot)
   ) {
-    useArena.getState().importWorkspace(snapshot as WorkspaceSnapshot);
+    applySnapshot(snapshot);
   }
 
   return remote;
+}
+
+export function adoptSnapshotIfRicher(
+  snapshot: Partial<WorkspaceSnapshot> | null | undefined,
+) {
+  if (!snapshot || snapshotIsEmpty(snapshot)) return;
+  if (!shouldAdoptRemote(getWorkspaceSnapshot(), snapshot)) return;
+  applySnapshot(snapshot as PersistedSnapshot);
 }
 
 export function scheduleWorkspaceSave(draft?: OnboardingDraft) {
@@ -71,7 +107,10 @@ export function scheduleWorkspaceSave(draft?: OnboardingDraft) {
   saveTimer = window.setTimeout(() => {
     void request("PUT", {
       draft: draft ?? readOnboardingDraft(),
-      snapshot: getWorkspaceSnapshot(),
+      snapshot: {
+        ...getWorkspaceSnapshot(),
+        arenaDraft: readArenaDraft(),
+      },
     });
   }, 500);
 }

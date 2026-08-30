@@ -1,222 +1,176 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 
-import { Button } from "@/components/ui/button";
-import { useArena } from "@/lib/store";
-import { runSparringAgent, WebMCPUnavailableError, type AgentStep } from "@/webmcp/agent";
-import { useWebMCP } from "@/webmcp/provider";
+import { PromptComposer } from "@/components/arena/prompt-composer";
 import { cn } from "@/lib/utils";
+import {
+  AGENT_PROMPTS,
+  useSparringChat,
+  type ChatMessage,
+  type ChatTool,
+} from "@/lib/use-sparring";
+import { useWebMCP } from "@/webmcp/provider";
 
-/**
- * Let an agent onto the same table.
- *
- * It does not chat beside the board. It discovers WebMCP tools and writes
- * arguments, risks and evidence onto the same objects the founder is using.
- */
-
-const PROMPTS = [
-  {
-    label: "Find my blind spot",
-    goal: "Read get_canvas and the Company Brain. Add one claim or assumption I am missing with add_canvas_node, then connect_nodes to the decision-root. I should see a node appear.",
-  },
-  {
-    label: "Check this against my history",
-    goal: "Read my decision history. If I am repeating a failed rationale, add_canvas_node as an assumption and connect_nodes with kind counters to my current claim.",
-  },
-  {
-    label: "Attack my weakest assumption",
-    goal: "Find the weakest assumption in the Company Brain. Put it on the canvas as an assumption, connect it to the claim it underwrites, and add a risk if it fails.",
-  },
-];
-
-export function AgentConsole() {
+export function AgentConsole({
+  embedded = false,
+  hideComposer = false,
+  chat,
+}: {
+  embedded?: boolean;
+  hideComposer?: boolean;
+  chat?: ReturnType<typeof useSparringChat>;
+}) {
   const { support, registered, ready } = useWebMCP();
-  const toolCalls = useArena((state) => state.toolCalls);
+  const local = useSparringChat();
+  const sparring = chat ?? local;
+  const endRef = useRef<HTMLDivElement | null>(null);
 
-  const [steps, setSteps] = useState<AgentStep[]>([]);
-  const [running, setRunning] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const abortRef = useRef<AbortController | null>(null);
-
-  const run = useCallback(async (goal: string) => {
-    setError(null);
-    setSteps([]);
-    setRunning(true);
-
-    const controller = new AbortController();
-    abortRef.current = controller;
-
-    try {
-      await runSparringAgent({
-        goal,
-        signal: controller.signal,
-        onStep: (step) => setSteps((previous) => [...previous, step]),
-      });
-    } catch (caught) {
-      if (caught instanceof DOMException && caught.name === "AbortError") {
-        setError("Stopped.");
-      } else if (caught instanceof WebMCPUnavailableError) {
-        setError(caught.message);
-      } else {
-        setError(
-          caught instanceof Error
-            ? caught.message
-            : "The agent could not complete its turn.",
-        );
-      }
-    } finally {
-      setRunning(false);
-      abortRef.current = null;
-    }
-  }, []);
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ block: "end" });
+  }, [sparring.messages]);
 
   const unavailable = ready && support === "unavailable";
 
   return (
-    <section className="border border-rule bg-leaf">
-      <header className="border-b border-rule px-5 py-4">
-        <div className="flex items-baseline justify-between gap-3">
-          <h2 className="type-display text-[19px] font-semibold">
-            Let an agent onto the table
-          </h2>
-          <span className="type-eyebrow shrink-0">
-            {registered.length} tools
-          </span>
-        </div>
-        <p className="mt-2 text-[13.5px] leading-relaxed text-graphite">
-          It discovers this page&rsquo;s tools with{" "}
-          <code className="type-figure text-[12px] text-ink">getTools()</code>{" "}
-          and runs them with{" "}
-          <code className="type-figure text-[12px] text-ink">executeTool()</code>
-          . Whatever it adds lands as a node or a mark on the same canvas.
-        </p>
-      </header>
-
-      {unavailable ? (
-        <div className="px-5 py-5">
-          <p className="text-[14px] leading-relaxed text-ink">
-            This browser exposes no WebMCP entry point, so the agent has nothing
-            to connect to. Every other part of the Arena still works.
-          </p>
-        </div>
+    <div
+      className={
+        embedded
+          ? "flex flex-col"
+          : "flex flex-col bg-oxblood-wash/40 md:h-[min(52vh,500px)] md:border-r md:border-rule"
+      }
+    >
+      {embedded ? (
+        hideComposer ? null : (
+          <p className="type-eyebrow text-oxblood">Ask the agent</p>
+        )
       ) : (
-        <>
-          <div className="flex flex-wrap gap-2 px-5 py-4">
-            {PROMPTS.map((prompt) => (
-              <Button
-                key={prompt.label}
-                variant="outline"
-                size="sm"
-                disabled={running}
-                onClick={() => run(prompt.goal)}
-                className="type-eyebrow bg-paper"
-              >
-                {prompt.label}
-              </Button>
-            ))}
-            {running ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="type-eyebrow text-oxblood"
-                onClick={() => abortRef.current?.abort()}
-              >
-                Stop
-              </Button>
-            ) : null}
+        <header className="border-b border-rule bg-paper px-4 py-3">
+          <div className="flex items-baseline justify-between gap-3">
+            <p className="type-eyebrow text-oxblood">Agent</p>
+            <span className="type-eyebrow shrink-0">
+              {registered.length} tools
+            </span>
           </div>
-
-          {error ? (
-            <p className="border-t border-rule px-5 py-3 text-[13.5px] text-oxblood">
-              {error}
-            </p>
-          ) : null}
-
-          {steps.length ? (
-            <ol className="space-y-4 border-t border-rule px-5 py-5">
-              {steps.map((step, index) => (
-                <li key={index} className="rise-in">
-                  {step.kind === "tool" ? (
-                    <div>
-                      <p className="text-[14px] leading-relaxed text-ink">
-                        {step.text}
-                      </p>
-                      <div className="mt-2 border border-rule bg-leaf px-3 py-2">
-                        <p className="type-figure text-[12px] text-ink">
-                          {step.tool}(
-                          <span className="text-graphite">
-                            {compactArgs(step.args)}
-                          </span>
-                          )
-                        </p>
-                        <p
-                          className={cn(
-                            "type-figure mt-1 line-clamp-3 text-[11.5px] leading-relaxed",
-                            step.ok ? "text-graphite" : "text-oxblood",
-                          )}
-                        >
-                          {step.result?.split("\n")[0]}
-                        </p>
-                      </div>
-                    </div>
-                  ) : step.kind === "message" ? (
-                    <p className="text-[15px] leading-relaxed text-ink">
-                      {step.text}
-                    </p>
-                  ) : step.kind === "error" ? (
-                    <p className="text-[13.5px] text-oxblood">{step.text}</p>
-                  ) : (
-                    <p className="text-[14px] leading-relaxed text-graphite">
-                      {step.text}
-                    </p>
-                  )}
-                </li>
-              ))}
-              {running ? (
-                <li className="type-eyebrow animate-pulse">working…</li>
-              ) : null}
-            </ol>
-          ) : null}
-        </>
+          <p className="mt-1 text-[13.5px] text-graphite">
+            Speaks to you. Writes into the same record through WebMCP.
+          </p>
+        </header>
       )}
 
-      {toolCalls.length ? (
-        <div className="border-t border-rule px-5 py-4">
-          <p className="type-eyebrow">Tool traffic</p>
-          <ul className="mt-3 space-y-1.5">
-            {toolCalls.slice(0, 8).map((call) => (
-              <li
-                key={call.id}
-                className="type-figure flex items-baseline gap-2 text-[11.5px]"
-              >
-                <span
-                  className={cn(
-                    "size-1.5 shrink-0 translate-y-[-1px] rounded-full",
-                    call.ok ? "bg-moss" : "bg-oxblood",
-                  )}
-                />
-                <span className="shrink-0 text-ink">{call.tool}</span>
-                <span className="truncate text-pencil">{call.summary}</span>
-                <span className="ml-auto shrink-0 text-pencil">
-                  {call.channel === "in-page-agent" ? "in-page" : "browser"} ·{" "}
-                  {call.durationMs}ms
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-    </section>
+      <div
+        className={
+          embedded
+            ? "px-0 py-3"
+            : "min-h-0 flex-1 overflow-y-auto px-4 py-4 max-md:max-h-[220px]"
+        }
+      >
+        {unavailable ? (
+          <p className="text-[14px] leading-relaxed text-ink">
+            This browser exposes no WebMCP entry point, so the agent has
+            nothing to connect to. Your side of the desk still works.
+          </p>
+        ) : (
+          <AgentTranscript
+            messages={sparring.messages}
+            empty={
+              embedded
+                ? null
+                : "Ask it something. It will answer here, and show every tool it used."
+            }
+          />
+        )}
+        <div ref={endRef} />
+      </div>
+
+      {unavailable || hideComposer || embedded ? null : (
+        <PromptComposer
+          value=""
+          onChange={() => undefined}
+          onSubmit={() => undefined}
+          agentOnly
+          onAgentSubmit={(goal, display) => void sparring.run(goal, display)}
+          agentBusy={sparring.running}
+          onAgentStop={sparring.stop}
+          agentSuggestions={AGENT_PROMPTS}
+          placeholder="Ask the agent. It answers here."
+          submitLabel="Ask"
+          busyLabel="Working…"
+          disabled={unavailable}
+        />
+      )}
+    </div>
   );
 }
 
-function compactArgs(args?: Record<string, unknown>): string {
-  if (!args || Object.keys(args).length === 0) return "";
-  return Object.entries(args)
-    .map(([key, value]) => {
-      const text = typeof value === "string" ? value : JSON.stringify(value);
-      return `${key}: ${text.length > 34 ? `${text.slice(0, 34)}…` : text}`;
-    })
-    .join(", ");
+export function AgentTranscript({
+  messages,
+  empty,
+}: {
+  messages: ChatMessage[];
+  empty?: string | null;
+}) {
+  if (messages.length === 0) {
+    return empty ? (
+      <p className="text-[15px] leading-relaxed text-graphite">{empty}</p>
+    ) : null;
+  }
+
+  return (
+    <ol className="space-y-5">
+      {messages.map((message) =>
+        message.role === "you" ? (
+          <li key={message.id}>
+            <p className="type-eyebrow text-indigo">You · agent</p>
+            <p className="mt-2 max-w-[52ch] text-[17px] leading-relaxed text-ink">
+              {message.text}
+            </p>
+          </li>
+        ) : (
+          <li key={message.id}>
+            <p className="type-eyebrow text-oxblood">Agent</p>
+            {message.tools.length ? (
+              <ul className="mt-2 space-y-1.5">
+                {message.tools.map((tool, index) => (
+                  <ToolStamp key={`${tool.name}-${index}`} tool={tool} />
+                ))}
+              </ul>
+            ) : null}
+            {message.pending && !message.text ? (
+              <p className="mt-2 text-[14px] leading-relaxed text-graphite">
+                {message.thinking || "Working…"}
+              </p>
+            ) : null}
+            {message.text ? (
+              <p className="mt-2 max-w-[54ch] whitespace-pre-wrap text-[16px] leading-[1.55] text-ink">
+                {message.text}
+              </p>
+            ) : null}
+            {message.error ? (
+              <p className="mt-2 text-[13.5px] text-oxblood">{message.error}</p>
+            ) : null}
+          </li>
+        ),
+      )}
+    </ol>
+  );
+}
+
+function ToolStamp({ tool }: { tool: ChatTool }) {
+  const result = tool.result?.split("\n")[0]?.trim() ?? "";
+  return (
+    <li className="border border-rule bg-paper px-3 py-2">
+      <p className="type-figure text-[12px] text-ink">{tool.name}</p>
+      {result ? (
+        <p
+          className={cn(
+            "mt-0.5 line-clamp-2 text-[12.5px] leading-snug",
+            tool.ok === false ? "text-oxblood" : "text-graphite",
+          )}
+        >
+          {result}
+        </p>
+      ) : null}
+    </li>
+  );
 }

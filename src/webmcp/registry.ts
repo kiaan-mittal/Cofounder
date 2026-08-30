@@ -2,7 +2,7 @@
 
 import { useArena } from "@/lib/store";
 import type { AgentChannel } from "@/lib/types";
-import { ensureModelContext } from "@/webmcp/polyfill";
+import { ensureModelContext, isPolyfilled } from "@/webmcp/polyfill";
 import {
   nativeModelContext,
   toolError,
@@ -98,6 +98,12 @@ function instrument(tool: ArenaTool): ToolDefinition {
         durationMs: Math.round(performance.now() - startedAt),
       });
 
+      // Chrome / ChatGPT native WebMCP wants execute() to return a DOMString.
+      // The page shim still speaks the richer ToolResult shape.
+      const native = Boolean(nativeModelContext()) && !isPolyfilled();
+      if (native) {
+        return result.content.map((part) => part.text).join("\n");
+      }
       return result;
     },
   };

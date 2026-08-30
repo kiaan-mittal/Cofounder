@@ -33,6 +33,7 @@ interface DefenseResponse {
     verdict: Reassessment["verdict"];
     addressed: string;
     unaddressed: string;
+    reply?: string;
     strengthDelta: number;
   }>;
   newArguments: Array<{
@@ -388,6 +389,7 @@ export function useDebate() {
               verdict: item.verdict,
               addressed: item.addressed,
               unaddressed: item.unaddressed,
+              reply: item.reply,
               strengthDelta: item.strengthDelta,
               createdAt: now(),
             })),

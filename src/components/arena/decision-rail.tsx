@@ -6,6 +6,14 @@ import { cn } from "@/lib/utils";
 import type { Decision } from "@/lib/types";
 
 const STATUS_TONE: Record<Decision["status"], string> = {
+  framing: "text-graphite",
+  open: "text-indigo",
+  investigating: "text-ochre",
+  committed: "text-moss",
+  abandoned: "text-oxblood",
+};
+
+const STATUS_WASH: Record<Decision["status"], string> = {
   framing: "bg-tape text-graphite",
   open: "bg-indigo-wash text-indigo",
   investigating: "bg-ochre-wash text-ochre",
@@ -13,8 +21,15 @@ const STATUS_TONE: Record<Decision["status"], string> = {
   abandoned: "bg-oxblood-wash text-oxblood",
 };
 
-export function DecisionRail({ currentId }: { currentId?: string | null }) {
-  const decisions = useArena((state) => state.decisions);
+export function DecisionRail({
+  currentId,
+  seed,
+}: {
+  currentId?: string | null;
+  seed?: Decision[];
+}) {
+  const storeDecisions = useArena((state) => state.decisions);
+  const decisions = storeDecisions.length ? storeDecisions : (seed ?? []);
   const setActiveDecision = useArena((state) => state.setActiveDecision);
 
   function startNew() {
@@ -23,13 +38,13 @@ export function DecisionRail({ currentId }: { currentId?: string | null }) {
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
       <button
         type="button"
         onClick={startNew}
-        className="inline-flex h-9 items-center gap-2 border border-ink bg-ink px-3 text-[13px] text-paper transition-colors hover:bg-ink/90"
+        className="inline-flex h-8 shrink-0 items-center gap-1.5 bg-ink px-3 text-[13px] text-paper transition-colors hover:bg-ink/90"
       >
-        <span aria-hidden className="type-figure text-[15px] leading-none">
+        <span aria-hidden className="type-figure text-[14px] leading-none">
           +
         </span>
         New arena
@@ -43,23 +58,23 @@ export function DecisionRail({ currentId }: { currentId?: string | null }) {
             type="button"
             onClick={() => setActiveDecision(decision.id)}
             className={cn(
-              "max-w-[220px] border px-3 py-1.5 text-left transition-colors",
+              "inline-flex h-8 max-w-[280px] items-center gap-2 border px-2.5 text-left transition-colors",
               active
-                ? "border-ink bg-tape"
-                : "border-rule bg-paper hover:border-ink",
+                ? "border-ink bg-paper"
+                : "border-rule bg-paper text-graphite hover:border-ink hover:text-ink",
             )}
           >
-            <p className="truncate text-[13px] leading-snug text-ink">
+            <span className="truncate text-[13px] leading-none">
               {decision.question}
-            </p>
-            <p
+            </span>
+            <span
               className={cn(
-                "type-eyebrow mt-1 inline-block px-1.5 py-0.5",
+                "type-eyebrow shrink-0",
                 STATUS_TONE[decision.status],
               )}
             >
               {decision.status}
-            </p>
+            </span>
           </button>
         );
       })}
@@ -94,7 +109,7 @@ export function DecisionGallery({
                 <span
                   className={cn(
                     "type-eyebrow px-1.5 py-0.5",
-                    STATUS_TONE[decision.status],
+                    STATUS_WASH[decision.status],
                   )}
                 >
                   {decision.status}

@@ -229,6 +229,17 @@ export function snapshotIsEmpty(snapshot: Partial<WorkspaceSnapshot>) {
   return !snapshot.company && !(snapshot.decisions && snapshot.decisions.length);
 }
 
+/** How much of a workspace is in a snapshot. Used to avoid a stale remote wipe. */
+export function snapshotWeight(snapshot: Partial<WorkspaceSnapshot>) {
+  return (
+    (snapshot.company ? 8 : 0) +
+    (snapshot.decisions?.length ?? 0) * 10 +
+    (snapshot.argumentList?.length ?? 0) * 2 +
+    (snapshot.predictions?.length ?? 0) +
+    (snapshot.outcomes?.length ?? 0)
+  );
+}
+
 const emptyWorkspace = (): WorkspaceData => ({
   company: null,
   decisions: [],

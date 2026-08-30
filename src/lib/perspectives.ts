@@ -7,7 +7,7 @@ export interface PerspectiveMeta {
   /** One line the founder reads before the argument. */
   remit: string;
   focus: string[];
-  /** Two-letter mark used in the margin next to an argument. */
+  /** Short form for tight chrome: TECH, PRODUCT, GTM, CFO, CONTRA. */
   mark: string;
 }
 
@@ -23,7 +23,7 @@ export const PERSPECTIVES: PerspectiveMeta[] = [
       "implementation risk",
       "opportunity cost",
     ],
-    mark: "TE",
+    mark: "TECH",
   },
   {
     id: "product",
@@ -36,7 +36,7 @@ export const PERSPECTIVES: PerspectiveMeta[] = [
       "experience",
       "product quality",
     ],
-    mark: "PR",
+    mark: "PRODUCT",
   },
   {
     id: "gtm",
@@ -49,14 +49,14 @@ export const PERSPECTIVES: PerspectiveMeta[] = [
       "sales motion",
       "market demand",
     ],
-    mark: "GT",
+    mark: "GTM",
   },
   {
     id: "financial",
-    name: "CFO",
+    name: "Financial Co-Founder",
     remit: "Argues about what this costs you in money and in time.",
     focus: ["revenue", "costs", "runway", "unit economics", "expected value"],
-    mark: "FI",
+    mark: "CFO",
   },
   {
     id: "contrarian",
@@ -69,7 +69,7 @@ export const PERSPECTIVES: PerspectiveMeta[] = [
       "alternative explanations",
       "uncomfortable possibilities",
     ],
-    mark: "CO",
+    mark: "CONTRA",
   },
 ];
 
@@ -83,24 +83,45 @@ export function perspectiveName(perspectiveId: PerspectiveId): string {
   return PERSPECTIVE_MAP[perspectiveId]?.name ?? perspectiveId;
 }
 
-/** The word on a canvas card. Not the job title. */
+/** Short form for keys and canvas chips. */
 export function perspectiveSeat(perspectiveId: PerspectiveId): string {
-  if (perspectiveId === "technical") return "Tech";
-  if (perspectiveId === "product") return "Product";
-  if (perspectiveId === "gtm") return "GTM";
-  if (perspectiveId === "financial") return "CFO";
-  return "Contra";
+  return PERSPECTIVE_MAP[perspectiveId]?.mark ?? perspectiveId;
 }
 
 export function seatToPerspective(seat?: string): PerspectiveId | null {
   if (!seat) return null;
-  const key = seat.toLowerCase();
-  if (key === "tech" || key === "technical") return "technical";
-  if (key === "product") return "product";
-  if (key === "gtm") return "gtm";
-  if (key === "cfo" || key === "finance" || key === "money" || key === "financial") {
+  const key = seat.toLowerCase().replace(/[_-]+/g, " ").trim();
+  if (
+    key === "tech" ||
+    key === "technical" ||
+    key === "technical co founder" ||
+    key === "technical cofounder"
+  ) {
+    return "technical";
+  }
+  if (
+    key === "product" ||
+    key === "product co founder" ||
+    key === "product cofounder"
+  ) {
+    return "product";
+  }
+  if (key === "gtm" || key === "gtm co founder" || key === "gtm cofounder") {
+    return "gtm";
+  }
+  if (
+    key === "cfo" ||
+    key === "fi" ||
+    key === "finance" ||
+    key === "money" ||
+    key === "financial" ||
+    key === "financial co founder" ||
+    key === "financial cofounder"
+  ) {
     return "financial";
   }
-  if (key === "contra" || key === "contrarian") return "contrarian";
+  if (key === "contra" || key === "contrarian" || key === "the contrarian") {
+    return "contrarian";
+  }
   return null;
 }

@@ -76,9 +76,9 @@ class PolyfilledModelContext extends EventTarget implements ModelContext {
 
   async executeTool(
     tool: RegisteredTool,
-    args: Record<string, unknown> = {},
+    args: Record<string, unknown> | string = {},
     options?: ToolExecuteOptions,
-  ): Promise<ToolResult> {
+  ): Promise<ToolResult | string> {
     const entry = this.#tools.get(tool.name);
     if (!entry) {
       throw new DOMException(
@@ -89,7 +89,20 @@ class PolyfilledModelContext extends EventTarget implements ModelContext {
     if (options?.signal?.aborted) {
       throw new DOMException("Tool execution was aborted.", "AbortError");
     }
-    return entry.tool.execute(args, { signal: options?.signal });
+    let parsed: Record<string, unknown> = {};
+    if (typeof args === "string") {
+      try {
+        const value = JSON.parse(args);
+        if (value && typeof value === "object") {
+          parsed = value as Record<string, unknown>;
+        }
+      } catch {
+        parsed = {};
+      }
+    } else {
+      parsed = args ?? {};
+    }
+    return entry.tool.execute(parsed, { signal: options?.signal });
   }
 
   #notify() {

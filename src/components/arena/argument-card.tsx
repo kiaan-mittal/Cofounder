@@ -12,7 +12,7 @@ import type { Argument, Reassessment } from "@/lib/types";
 const STANCE_COPY: Record<Argument["stance"], string> = {
   for: "for",
   against: "against",
-  conditional: "if",
+  conditional: "only if",
 };
 
 const STATUS_COPY: Record<Argument["status"], { label: string; tone: string }> = {
@@ -56,7 +56,7 @@ export function ArgumentCard({
   return (
     <article
       className={cn(
-        "relative bg-paper p-4 transition-colors",
+        "relative min-w-0 w-full bg-paper p-4 transition-colors",
         spotlit && "bg-oxblood-wash",
         selected && !spotlit && "bg-indigo-wash",
         conceded && "opacity-60",
@@ -72,20 +72,24 @@ export function ArgumentCard({
         type="button"
         onClick={onAnswer}
         disabled={disabled || conceded}
-        className="flex w-full items-start gap-3 text-left"
+        className="flex min-w-0 w-full items-start gap-3 text-left"
       >
         <PerspectiveEmblem
           perspective={argument.perspective}
           className="mt-0.5 size-14 shrink-0"
         />
         <div className="min-w-0 flex-1">
-          <p className="type-eyebrow">
-            {meta?.mark} · {STANCE_COPY[argument.stance]}
-            {argument.createdBy === "agent" ? " · agent" : ""}
+          <p className="type-eyebrow [overflow-wrap:anywhere]">
+            {meta?.name ?? argument.perspective}
+            <span className="text-pencil">
+              {" "}
+              · {STANCE_COPY[argument.stance]}
+              {argument.createdBy === "agent" ? " · agent" : ""}
+            </span>
           </p>
           <p
             className={cn(
-              "type-display mt-1.5 text-[18px] leading-snug",
+              "type-display mt-1.5 text-[18px] leading-snug [overflow-wrap:anywhere]",
               conceded && "ink-strike",
               !open && "line-clamp-3",
             )}
