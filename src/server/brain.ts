@@ -96,7 +96,7 @@ export function buildBrainPrompt(sources: {
         ? site.pages
             .map(
               (page) =>
-                `--- ${page.role.toUpperCase()} ${page.url} ---\nTitle: ${page.title}\nHeadings: ${page.headings.slice(0, 12).join(" | ")}\n${page.text.slice(0, 2800)}`,
+                `--- ${page.role.toUpperCase()} ${page.url} ---\nTitle: ${page.title}\nHeadings: ${page.headings.slice(0, 12).join(" | ")}\n${page.text.slice(0, page.role === "pricing" ? 6_000 : 2_800)}`,
             )
             .join("\n\n")
         : `Page copy: ${site.text.slice(0, 5000)}`;

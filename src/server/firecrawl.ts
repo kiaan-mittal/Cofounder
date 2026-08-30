@@ -3,10 +3,9 @@ import "server-only";
 /**
  * Optional Firecrawl path for Company Brain ingestion.
  *
- * When FIRECRAWL_API_KEY is set, the Brain can read JavaScript-rendered
- * sites and discover more pages than a single HTML fetch. When it is not,
- * ingest falls back to the built-in crawler. Either way the founder only
- * sees pages, never the vendor.
+ * When FIRECRAWL_API_KEY is set, the Brain maps the public site and scrapes
+ * the pages that matter — homepage, pricing, docs — including JavaScript
+ * rendered copy. When it is not, ingest falls back to the built-in reader.
  */
 
 const DEFAULT_API = "https://api.firecrawl.dev";
@@ -34,7 +33,7 @@ export interface FirecrawlPage {
 async function firecrawlPost<T>(
   path: string,
   body: Record<string, unknown>,
-  timeoutMs = 22_000,
+  timeoutMs = 28_000,
 ): Promise<T | null> {
   const key = process.env.FIRECRAWL_API_KEY?.trim();
   if (!key) return null;
@@ -61,10 +60,47 @@ async function firecrawlPost<T>(
   }
 }
 
+function asPage(
+  url: string,
+  data:
+    | {
+        markdown?: string;
+        links?: string[];
+        metadata?: {
+          title?: string;
+          description?: string;
+          sourceURL?: string;
+        };
+      }
+    | undefined,
+): FirecrawlPage | null {
+  const markdown = data?.markdown?.trim() ?? "";
+  if (!markdown) return null;
+  return {
+    url: data?.metadata?.sourceURL || url,
+    title: data?.metadata?.title ?? "",
+    description: data?.metadata?.description ?? "",
+    markdown,
+    links: Array.isArray(data?.links) ? data.links : [],
+  };
+}
+
 export async function firecrawlScrape(
   url: string,
+  options: { onlyMainContent?: boolean; waitFor?: number } = {},
 ): Promise<FirecrawlPage | null> {
-  const payload = await firecrawlPost<{
+  const onlyMainContent = options.onlyMainContent ?? false;
+  const waitFor = options.waitFor ?? 2_000;
+  const body = {
+    url,
+    formats: ["markdown", "links"],
+    onlyMainContent,
+    waitFor,
+    timeout: 25_000,
+    blockAds: true,
+  };
+
+  const v1 = await firecrawlPost<{
     success?: boolean;
     data?: {
       markdown?: string;
@@ -75,33 +111,66 @@ export async function firecrawlScrape(
         sourceURL?: string;
       };
     };
-  }>("/v1/scrape", {
-    url,
-    formats: ["markdown", "links"],
-    onlyMainContent: true,
-  });
+  }>("/v1/scrape", body);
 
-  const data = payload?.data;
-  const markdown = data?.markdown?.trim() ?? "";
-  if (!markdown) return null;
+  const fromV1 = asPage(url, v1?.data);
+  if (fromV1) return fromV1;
 
-  return {
-    url: data?.metadata?.sourceURL || url,
-    title: data?.metadata?.title ?? "",
-    description: data?.metadata?.description ?? "",
-    markdown,
-    links: Array.isArray(data?.links) ? data.links : [],
-  };
+  const v2 = await firecrawlPost<{
+    markdown?: string;
+    links?: string[];
+    metadata?: {
+      title?: string;
+      description?: string;
+      sourceURL?: string;
+    };
+    data?: {
+      markdown?: string;
+      links?: string[];
+      metadata?: {
+        title?: string;
+        description?: string;
+        sourceURL?: string;
+      };
+    };
+  }>("/v2/scrape", body);
+
+  return asPage(url, v2?.data ?? v2 ?? undefined);
 }
 
-export async function firecrawlMap(url: string, limit = 40): Promise<string[]> {
+export async function firecrawlMap(
+  url: string,
+  options: { limit?: number; search?: string } | number = 80,
+): Promise<string[]> {
+  const limit = typeof options === "number" ? options : (options.limit ?? 80);
+  const search = typeof options === "number" ? undefined : options.search;
+  const body: Record<string, unknown> = {
+    url,
+    limit,
+    includeSubdomains: false,
+  };
+  if (search) body.search = search;
+
   const payload = await firecrawlPost<{
     success?: boolean;
     links?: Array<string | { url?: string }>;
-  }>("/v1/map", { url, limit });
+  }>("/v1/map", body);
 
-  if (!payload?.links) return [];
-  return payload.links
+  const links = payload?.links;
+  if (!links?.length) {
+    const v2 = await firecrawlPost<{
+      links?: Array<string | { url?: string }>;
+    }>("/v2/map", body);
+    return readMapLinks(v2?.links);
+  }
+  return readMapLinks(links);
+}
+
+function readMapLinks(
+  links: Array<string | { url?: string }> | undefined,
+): string[] {
+  if (!links) return [];
+  return links
     .map((item) => (typeof item === "string" ? item : item.url ?? ""))
     .filter(Boolean);
 }

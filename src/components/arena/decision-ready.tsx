@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import { toast } from "sonner";
+import { useShallow } from "zustand/react/shallow";
 
 import { HatchMeter } from "@/components/ink/marks";
 import { Button } from "@/components/ui/button";
@@ -29,7 +30,9 @@ export function DecisionReady({
   onCommitted: () => void;
 }) {
   const updateDecision = useArena((state) => state.updateDecision);
-  const blockers = useArena((state) => readiness(state, decision.id).blockers);
+  const blockers = useArena(
+    useShallow((state) => readiness(state, decision.id).blockers),
+  );
   const [optionId, setOptionId] = useState(decision.options[0]?.id ?? "");
   const [rationale, setRationale] = useState("");
   const [acknowledged, setAcknowledged] = useState(false);

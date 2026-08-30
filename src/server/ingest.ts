@@ -20,7 +20,7 @@ import {
 
 const FETCH_TIMEOUT_MS = 12_000;
 const MAX_BYTES = 600_000;
-const MAX_SITE_PAGES = 9;
+const MAX_SITE_PAGES = 18;
 const USER_AGENT =
   "DecisionArena/1.0 (+https://github.com/decision-arena; WebMCP Challenge entry)";
 
@@ -28,6 +28,9 @@ const PRIORITY_PATHS = [
   "/pricing",
   "/plans",
   "/price",
+  "/pricing/",
+  "/subscribe",
+  "/billing",
   "/about",
   "/about-us",
   "/company",
@@ -45,6 +48,19 @@ const PRIORITY_PATHS = [
   "/security",
   "/trust",
   "/faq",
+];
+
+/** Always attempt these even when the homepage HTML has almost no links. */
+const MUST_READ_PATHS = [
+  "/pricing",
+  "/plans",
+  "/price",
+  "/about",
+  "/product",
+  "/features",
+  "/docs",
+  "/changelog",
+  "/customers",
 ];
 
 const SKIP_PATH =
@@ -407,7 +423,10 @@ function asWebsitePage(
   return {
     ...parsed,
     role: classifyPageRole(parsed.url),
-    text: parsed.text.slice(0, 8_000),
+    text: parsed.text.slice(
+      0,
+      classifyPageRole(parsed.url) === "pricing" ? 16_000 : 8_000,
+    ),
   };
 }
 
@@ -434,14 +453,43 @@ async function fetchHtmlPage(url: string): Promise<{
   }
 }
 
-async function discoverSiteUrls(homeUrl: string, html: string): Promise<string[]> {
+function sameHost(link: string, homeUrl: string): boolean {
+  try {
+    const origin = new URL(homeUrl);
+    const parsed = new URL(link, origin);
+    return (
+      (parsed.protocol === "http:" || parsed.protocol === "https:") &&
+      parsed.hostname === origin.hostname &&
+      !SKIP_PATH.test(parsed.pathname)
+    );
+  } catch {
+    return false;
+  }
+}
+
+function addDiscovered(
+  into: Set<string>,
+  link: string,
+  homeUrl: string,
+) {
+  if (!sameHost(link, homeUrl)) return;
+  into.add(canonicalUrl(new URL(link, homeUrl).toString()));
+}
+
+async function discoverSiteUrls(
+  homeUrl: string,
+  html: string,
+  extraLinks: string[] = [],
+): Promise<string[]> {
   const origin = new URL(homeUrl);
   const discovered = new Set<string>([canonicalUrl(homeUrl)]);
 
   for (const link of extractLinks(html, homeUrl)) {
-    discovered.add(canonicalUrl(link));
+    addDiscovered(discovered, link, homeUrl);
   }
-
+  for (const link of extraLinks) {
+    addDiscovered(discovered, link, homeUrl);
+  }
   for (const path of PRIORITY_PATHS) {
     discovered.add(canonicalUrl(new URL(path, origin).toString()));
   }
@@ -452,15 +500,7 @@ async function discoverSiteUrls(homeUrl: string, html: string): Promise<string[]
       const xml = await readCapped(sitemap);
       for (const match of xml.matchAll(/<loc>\s*([^<]+)\s*<\/loc>/gi)) {
         const loc = match[1]?.trim();
-        if (!loc) continue;
-        try {
-          const parsed = new URL(loc);
-          if (parsed.hostname === origin.hostname && !SKIP_PATH.test(parsed.pathname)) {
-            discovered.add(canonicalUrl(parsed.toString()));
-          }
-        } catch {
-          // ignore
-        }
+        if (loc) addDiscovered(discovered, loc, homeUrl);
       }
     }
   } catch {
@@ -468,26 +508,34 @@ async function discoverSiteUrls(homeUrl: string, html: string): Promise<string[]
   }
 
   if (firecrawlConfigured()) {
-    for (const link of await firecrawlMap(homeUrl, 40)) {
-      try {
-        const parsed = new URL(link);
-        if (parsed.hostname === origin.hostname && !SKIP_PATH.test(parsed.pathname)) {
-          discovered.add(canonicalUrl(parsed.toString()));
-        }
-      } catch {
-        // ignore
-      }
+    const [mapped, pricingHits] = await Promise.all([
+      firecrawlMap(homeUrl, { limit: 80 }),
+      firecrawlMap(homeUrl, { limit: 20, search: "pricing" }),
+    ]);
+    for (const link of [...mapped, ...pricingHits]) {
+      addDiscovered(discovered, link, homeUrl);
     }
   }
 
-  return [...discovered]
-    .sort((a, b) => pageScore(b) - pageScore(a))
-    .slice(0, MAX_SITE_PAGES);
+  const ranked = [...discovered].sort((a, b) => pageScore(b) - pageScore(a));
+  const must = MUST_READ_PATHS.map((path) =>
+    canonicalUrl(new URL(path, origin).toString()),
+  );
+  const selected = new Set<string>([canonicalUrl(homeUrl), ...must]);
+  for (const url of ranked) {
+    if (selected.size >= MAX_SITE_PAGES) break;
+    selected.add(url);
+  }
+  return [...selected].sort((a, b) => pageScore(b) - pageScore(a));
 }
 
 async function readSitePage(url: string): Promise<WebsitePage | null> {
+  const pricing = classifyPageRole(url) === "pricing";
   if (firecrawlConfigured()) {
-    const scraped = await firecrawlScrape(url);
+    const scraped = await firecrawlScrape(url, {
+      onlyMainContent: !pricing,
+      waitFor: pricing ? 3_000 : 2_000,
+    });
     if (scraped?.markdown) {
       return asWebsitePage(
         pageFromMarkdown(
@@ -525,10 +573,9 @@ export async function ingestWebsite(
 
   try {
     const home = await fetchHtmlPage(url);
-    const firecrawlHome =
-      firecrawlConfigured() && (!home || stripToText(home.html).length < 160)
-        ? await firecrawlScrape(url)
-        : null;
+    const firecrawlHome = firecrawlConfigured()
+      ? await firecrawlScrape(url, { onlyMainContent: false, waitFor: 2_500 })
+      : null;
 
     if (!home && !firecrawlHome) {
       return {
@@ -570,15 +617,10 @@ export async function ingestWebsite(
     const homePage = asWebsitePage({
       url: homeUrl,
       title: homeParsed.title || firecrawlHome?.title || "",
-      headings: homeParsed.headings.length
-        ? homeParsed.headings
-        : firecrawlHome
-          ? headingsFromMarkdown(firecrawlHome.markdown)
-          : [],
-      text:
-        firecrawlHome && homeParsed.text.length < 160
-          ? firecrawlHome.markdown
-          : homeParsed.text,
+      headings: firecrawlHome
+        ? headingsFromMarkdown(firecrawlHome.markdown)
+        : homeParsed.headings,
+      text: firecrawlHome?.markdown || homeParsed.text,
     });
 
     const pages = new Map<string, WebsitePage>();
@@ -588,12 +630,13 @@ export async function ingestWebsite(
     const candidates = await discoverSiteUrls(
       homeUrl,
       home?.html ?? "",
+      firecrawlHome?.links ?? [],
     );
     const extras = candidates.filter(
       (candidate) => canonicalUrl(candidate) !== canonicalUrl(homePage.url),
     );
 
-    await mapPool(extras, 4, async (candidate) => {
+    await mapPool(extras, 5, async (candidate) => {
       const page = await readSitePage(candidate);
       if (!page) return null;
       const key = canonicalUrl(page.url);
@@ -616,8 +659,8 @@ export async function ingestWebsite(
       .toLowerCase()
       .search(/\bpricing\b|\bper month\b|\/mo\b|\$\d+/);
     const pricingText =
-      pricingPage?.text.slice(0, 1_200) ??
-      (pricingIndex >= 0 ? combinedText.slice(pricingIndex, pricingIndex + 900) : null);
+      pricingPage?.text.slice(0, 4_000) ??
+      (pricingIndex >= 0 ? combinedText.slice(pricingIndex, pricingIndex + 2_000) : null);
 
     const source: WebsiteSource = {
       url: homeUrl,
@@ -625,7 +668,7 @@ export async function ingestWebsite(
       description: homeParsed.description || firecrawlHome?.description || "",
       headings: uniquePages.flatMap((page) => page.headings).slice(0, 60),
       ctas: [...new Set(homeParsed.ctas)],
-      text: combinedText.slice(0, 36_000),
+      text: combinedText.slice(0, 52_000),
       pricingText,
       pages: uniquePages,
     };
