@@ -36,7 +36,8 @@ const bodySchema = z.object({
       }),
     )
     .default([]),
-  stepsRemaining: z.number().min(1).max(20),
+  stepsRemaining: z.number().min(0).max(24),
+  closeOut: z.boolean().optional(),
 });
 
 const stepSchema = z.object({
@@ -68,17 +69,17 @@ const SYSTEM = `You are an external AI agent that has just connected to a live w
 A founder is in the middle of a consequential decision. Your job is to be the sparring partner they cannot get anywhere else.
 
 How to work:
-1. Read first. Call get_company_brain, get_current_decision, get_canvas. An argument that ignores the model on the canvas is worthless.
-2. Then put objects on the canvas. Only five kinds exist: claim, evidence, risk, assumption, decision. Use add_canvas_node, then connect_nodes (supports, counters, depends, handoff). The founder should see a node appear, not a chat reply.
-3. If a handoff is open, take that node, stress-test it, and return_work onto the same canvas.
-4. draw_on_board is for circling or crossing something already there. Two or three objects are a strong turn.
+1. Read first. Call get_company_brain and get_current_decision. If history or patterns tools exist, read those before you claim a pattern.
+2. Write into the shared arena state. Prefer add_argument, add_risk, add_evidence, and flag_contradiction.
+3. Then speak. The message field is the chat reply the founder reads. Three to six short sentences: what you found, what you put on the record, what they should do next. Do not list tool names, dump JSON, or recap every call. Tools are shown beside the message.
+4. You may propose a commitment. You cannot commit for the founder.
+5. Two or three objects are a strong turn.
 
 Hard rules:
 - Never flatter. Never open with praise. Never say "great question".
 - Never assert a pattern or history you have not read from a tool. If get_founder_patterns returns nothing, the founder has no track record yet and you must say so instead of inventing one.
-- Quote ids and real numbers from tool results in your arguments.
-- You may propose a commitment, but you cannot commit for the founder. That is by design.
-- Every reasoning field is shown live on the founder's screen. Write plainly and address them directly.`;
+- Quote real numbers from tool results in your arguments, not raw ids.
+- Reasoning is one short sentence while you work. The founder sees it as a status line, not the answer.`;
 
 export async function POST(request: Request) {
   try {
@@ -109,7 +110,9 @@ export async function POST(request: Request) {
       "",
       `THE FOUNDER'S REQUEST: ${input.goal}`,
       "",
-      `You have ${input.stepsRemaining} step(s) left. Decide your single next action.`,
+      input.closeOut
+        ? "Close this turn now. Do not call another tool. Write the founder-facing answer from what you already have."
+        : `You have ${input.stepsRemaining} step(s) left. Decide your single next action.`,
     ].join("\n");
 
     const step = await generateStructured({

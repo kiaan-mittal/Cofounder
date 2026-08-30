@@ -207,6 +207,8 @@ export interface Reassessment {
   addressed: string;
   /** What it did not. This is the golden-demo sentence. */
   unaddressed: string;
+  /** The seat speaking to the founder. Full answer, not a caption. */
+  reply?: string;
   strengthDelta: number;
   createdAt: string;
 }
@@ -371,7 +373,7 @@ export interface CanvasNode {
   y: number;
   author: Actor;
   stance?: "+" | "-" | "~";
-  /** Short seat name on the card: Product, GTM, Tech, CFO. */
+  /** Short seat name on the card: TECH, PRODUCT, GTM, CFO, CONTRA. */
   seat?: string;
   perspective?: PerspectiveId;
   sourceId?: string;

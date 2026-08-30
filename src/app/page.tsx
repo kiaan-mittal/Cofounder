@@ -9,11 +9,12 @@ import { readGithubSession } from "@/server/github-oauth";
 import { pathAfterLogin } from "@/server/login-path";
 
 const LOOP = [
-  { step: "Brain", detail: "Your site and repo become checkable context." },
-  { step: "Debate", detail: "Five specialists argue about your decision." },
-  { step: "Defense", detail: "You push back. They reassess — partially." },
-  { step: "Commit", detail: "You choose, and say what would prove you right." },
-  { step: "Reality", detail: "The number lands. Your calibration updates." },
+  { step: "Brain", detail: "The company you already have — facts, assumptions, constraints." },
+  { step: "Decision", detail: "One question with more than one honest answer." },
+  { step: "Arena", detail: "You defend. An agent uses this page's WebMCP tools." },
+  { step: "State", detail: "Risks, contradictions, and evidence — one shared record." },
+  { step: "Commit", detail: "You choose, and attach a number that can be wrong." },
+  { step: "Calibrate", detail: "The number lands. The next decision gets sharper." },
 ];
 
 export default async function LandingPage() {
@@ -108,7 +109,7 @@ export default async function LandingPage() {
       {/* The loop — numbered because it genuinely is a sequence */}
       <section className="border-t border-rule py-16">
         <h2 className="type-eyebrow">The loop</h2>
-        <div className="mt-8 grid gap-px bg-rule sm:grid-cols-2 lg:grid-cols-5">
+        <div className="mt-8 grid gap-px bg-rule sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           {LOOP.map((item, index) => (
             <div key={item.step} className="bg-paper p-6">
               <span className="type-figure text-[11px] text-pencil">
@@ -124,7 +125,7 @@ export default async function LandingPage() {
           ))}
         </div>
         <p className="mt-6 max-w-[60ch] text-sm leading-relaxed text-graphite">
-          The fifth step is the one other tools skip. A decision you never
+          Calibration is the step other tools skip. A decision you never
           measured is a story you told yourself afterwards.
         </p>
       </section>

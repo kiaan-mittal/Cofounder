@@ -67,6 +67,12 @@ const SHEETS = [
   { id: "l", label: "L", extent: 2.2, frame: "min(90vh,960px)" },
 ] as const;
 
+const COMPACT_SHEETS = [
+  { id: "s", label: "S", extent: 1, frame: "min(42vh,380px)" },
+  { id: "m", label: "M", extent: 1.45, frame: "min(52vh,480px)" },
+  { id: "l", label: "L", extent: 2, frame: "min(64vh,600px)" },
+] as const;
+
 export function DecisionCanvas({
   boardIds,
   writeId,
@@ -74,6 +80,7 @@ export function DecisionCanvas({
   confidence,
   onHandoff,
   onTitleChange,
+  compact = false,
 }: {
   boardIds: string[];
   writeId: string;
@@ -81,6 +88,7 @@ export function DecisionCanvas({
   confidence: number | null;
   onHandoff?: (node: CanvasNode) => void;
   onTitleChange?: (title: string) => void;
+  compact?: boolean;
 }) {
   const nodes = useArena(
     useShallow((state) =>
@@ -142,8 +150,9 @@ export function DecisionCanvas({
   cameraRef.current = camera;
   viewRef.current = view;
 
+  const sheets = compact ? COMPACT_SHEETS : SHEETS;
   const measured = view.w > 8 && view.h > 8;
-  const extent = SHEETS[sheet].extent;
+  const extent = sheets[sheet].extent;
   const size = {
     w: Math.max(1, measured ? view.w * extent : view.w),
     h: Math.max(1, measured ? view.h * extent : view.h),
@@ -190,7 +199,7 @@ export function DecisionCanvas({
     lastSheet.current = sheet;
     setCamera((cam) => ({
       ...cam,
-      x: (view.w - view.w * SHEETS[sheet].extent * cam.zoom) / 2,
+      x: (view.w - view.w * sheets[sheet].extent * cam.zoom) / 2,
       y: 0,
     }));
   }, [sheet, view.w]);
@@ -642,7 +651,7 @@ export function DecisionCanvas({
           tool === "connect" && "cursor-alias",
         )}
         style={{
-          minHeight: SHEETS[sheet].frame,
+          minHeight: sheets[sheet].frame,
           touchAction: "none",
         }}
         onPointerEnter={() => {

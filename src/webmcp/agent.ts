@@ -1,7 +1,7 @@
 "use client";
 
 import { getModelContext, withChannel } from "@/webmcp/registry";
-import type { RegisteredTool } from "@/webmcp/spec";
+import type { RegisteredTool, ToolResult } from "@/webmcp/spec";
 
 /**
  * The in-page sparring agent.
@@ -65,40 +65,22 @@ export async function runSparringAgent({
   }
 
   const transcript: TranscriptEntry[] = [];
+  const catalog = tools.map((tool) => ({
+    name: tool.name,
+    description: tool.description,
+    inputSchema: tool.inputSchema ?? { type: "object", properties: {} },
+  }));
 
   for (let step = 0; step < maxSteps; step += 1) {
     if (signal?.aborted) return;
 
-    const response = await fetch("/api/sparring", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        goal,
-        tools: tools.map((tool) => ({
-          name: tool.name,
-          description: tool.description,
-          inputSchema: tool.inputSchema ?? { type: "object", properties: {} },
-        })),
-        transcript,
-        stepsRemaining: maxSteps - step,
-      }),
+    const plan = await planSparringStep({
+      goal,
+      tools: catalog,
+      transcript,
+      stepsRemaining: maxSteps - step,
       signal,
     });
-
-    if (!response.ok) {
-      const body = await response.json().catch(() => ({}));
-      throw new Error(
-        body.error ?? "The sparring agent could not reach its model.",
-      );
-    }
-
-    const plan = (await response.json()) as {
-      reasoning: string;
-      action: "call_tool" | "respond";
-      tool: string | null;
-      argsJson: string | null;
-      message: string | null;
-    };
 
     if (plan.reasoning) {
       onStep({ kind: "thought", text: plan.reasoning });
@@ -151,10 +133,11 @@ export async function runSparringAgent({
 
     try {
       // Execution — through WebMCP, attributed honestly in the tool log.
+      // Native Chrome / ChatGPT take a JSON string and return a DOMString.
       const result = await withChannel("in-page-agent", () =>
         modelContext.executeTool(target, args, { signal }),
       );
-      const text = result.content.map((part) => part.text).join("\n");
+      const { text, ok } = readToolResult(result);
 
       transcript.push({ tool: target.name, args, result: text.slice(0, 4000) });
       onStep({
@@ -163,7 +146,7 @@ export async function runSparringAgent({
         tool: target.name,
         args,
         result: text,
-        ok: result.isError !== true,
+        ok,
       });
     } catch (error) {
       const text =
@@ -173,8 +156,85 @@ export async function runSparringAgent({
     }
   }
 
+  if (signal?.aborted) return;
+
+  const close = await planSparringStep({
+    goal,
+    tools: catalog,
+    transcript,
+    stepsRemaining: 0,
+    closeOut: true,
+    signal,
+  });
   onStep({
     kind: "message",
-    text: "The agent reached its step limit. Run it again to continue.",
+    text:
+      close.message?.trim() ||
+      close.reasoning?.trim() ||
+      "I wrote what I could onto the board from this pass.",
   });
+}
+
+async function planSparringStep({
+  goal,
+  tools,
+  transcript,
+  stepsRemaining,
+  closeOut = false,
+  signal,
+}: {
+  goal: string;
+  tools: Array<{
+    name: string;
+    description: string;
+    inputSchema: unknown;
+  }>;
+  transcript: TranscriptEntry[];
+  stepsRemaining: number;
+  closeOut?: boolean;
+  signal?: AbortSignal;
+}) {
+  const response = await fetch("/api/sparring", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      goal,
+      tools,
+      transcript,
+      stepsRemaining,
+      closeOut,
+    }),
+    signal,
+  });
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(
+      body.error ?? "The sparring agent could not reach its model.",
+    );
+  }
+
+  return (await response.json()) as {
+    reasoning: string;
+    action: "call_tool" | "respond";
+    tool: string | null;
+    argsJson: string | null;
+    message: string | null;
+  };
+}
+
+function readToolResult(result: ToolResult | string): {
+  text: string;
+  ok: boolean;
+} {
+  if (typeof result === "string") {
+    return { text: result, ok: true };
+  }
+  if (result && typeof result === "object" && Array.isArray(result.content)) {
+    return {
+      text: result.content.map((part) => part.text).join("\n"),
+      ok: result.isError !== true,
+    };
+  }
+  return { text: String(result ?? ""), ok: true };
 }

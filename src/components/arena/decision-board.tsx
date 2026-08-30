@@ -7,8 +7,8 @@ import {
   ObjectMark,
   TableSketch,
 } from "@/components/ink/table-drawings";
+import { PromptComposer } from "@/components/arena/prompt-composer";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { PERSPECTIVES } from "@/lib/perspectives";
 import { useArena } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -41,6 +41,7 @@ export function DecisionBoard({
   onTarget,
   onSubmitDefense,
   onOpenRound,
+  cardsOnly = false,
 }: {
   decision: Decision;
   companyName: string;
@@ -59,6 +60,7 @@ export function DecisionBoard({
   onTarget: (argumentId: string | null) => void;
   onSubmitDefense: () => void;
   onOpenRound: () => void;
+  cardsOnly?: boolean;
 }) {
   const challengesByTarget = new Map<string, Argument[]>();
   for (const argument of args) {
@@ -78,39 +80,59 @@ export function DecisionBoard({
   );
 
   return (
-    <section className="border border-rule bg-leaf">
-      <PresenceStrip
-        companyName={companyName}
-        busy={busy}
-        spotlightId={spotlightId}
-        agentWriting={opening}
-      />
-
-      <div className="paper-grid border-b border-rule px-4 pb-2 pt-4">
-        <TableSketch
-          writing={writing}
-          ready={openingReady}
-          filled={filled}
-        />
-        <ul className="mt-1 flex justify-between px-2 sm:px-8">
-          {PERSPECTIVES.map((perspective) => (
-            <li key={perspective.id} className="flex flex-col items-center gap-1">
-              <PerspectiveEmblem
-                perspective={perspective.id}
-                className="size-8 sm:size-10"
-              />
-              <span className="type-eyebrow hidden sm:block">{perspective.mark}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
+    <section className="min-w-0 overflow-hidden border border-rule bg-leaf">
+      {cardsOnly ? (
+        <div className="flex flex-wrap items-center gap-3 border-b border-rule bg-paper px-4 py-3">
+          <p className="type-eyebrow mr-auto">What the seats wrote</p>
+          <p className="text-[13px] text-graphite">
+            Technical, Product, GTM, Financial, Contrarian — five seats, one
+            board.
+          </p>
+        </div>
+      ) : (
+        <>
+          <PresenceStrip
+            companyName={companyName}
+            busy={busy}
+            spotlightId={spotlightId}
+            agentWriting={opening}
+          />
+          <div className="paper-grid border-b border-rule px-4 pb-2 pt-4">
+            <TableSketch
+              writing={writing}
+              ready={openingReady}
+              filled={filled}
+            />
+            <ul className="mt-1 flex justify-between px-2 sm:px-8">
+              {PERSPECTIVES.map((perspective) => (
+                <li key={perspective.id} className="flex flex-col items-center gap-1">
+                  <PerspectiveEmblem
+                    perspective={perspective.id}
+                    className="size-8 sm:size-10"
+                  />
+                  <span className="type-eyebrow hidden sm:block">
+                    {perspective.mark}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </>
+      )}
 
       <TensionScale arguments={primary} />
 
       {empty ? (
         <EmptyTable busy={busy} onOpenRound={onOpenRound} />
       ) : (
-        <div className="grid gap-px bg-rule sm:grid-cols-2 xl:grid-cols-3">
+        <div
+          className={cn(
+            "grid gap-px bg-rule",
+            cardsOnly
+              ? "grid-cols-1"
+              : "sm:grid-cols-2 xl:grid-cols-3",
+          )}
+        >
           {primary.map((argument) => (
             <ArgumentCard
               key={argument.id}
@@ -126,7 +148,7 @@ export function DecisionBoard({
               }
               disabled={busy !== null || committed}
               composer={
-                target === argument.id && !committed
+                !cardsOnly && target === argument.id && !committed
                   ? {
                       value: defense,
                       busy: busy === "defending",
@@ -141,22 +163,25 @@ export function DecisionBoard({
         </div>
       )}
 
-      <TableObjects
-        contradictions={contradictions}
-        risks={risks}
-        evidence={evidence}
-        actionItems={actionItems}
-        spotlightId={spotlightId}
-      />
-
-      {!committed && !empty && target === null ? (
-        <RoundComposer
-          value={defense}
-          busy={busy === "defending"}
-          onChange={onDefenseChange}
-          onSubmit={onSubmitDefense}
-        />
-      ) : null}
+      {cardsOnly ? null : (
+        <>
+          <TableObjects
+            contradictions={contradictions}
+            risks={risks}
+            evidence={evidence}
+            actionItems={actionItems}
+            spotlightId={spotlightId}
+          />
+          {!committed && !empty && target === null ? (
+            <RoundComposer
+              value={defense}
+              busy={busy === "defending"}
+              onChange={onDefenseChange}
+              onSubmit={onSubmitDefense}
+            />
+          ) : null}
+        </>
+      )}
     </section>
   );
 }
@@ -384,38 +409,26 @@ export function RoundComposer({
   busy,
   onChange,
   onSubmit,
+  standalone = false,
 }: {
   value: string;
   busy: boolean;
   onChange: (value: string) => void;
   onSubmit: () => void;
+  standalone?: boolean;
 }) {
   return (
-    <form
-      className="border-t border-rule bg-indigo-wash px-4 py-3"
-      onSubmit={(event) => {
-        event.preventDefault();
-        onSubmit();
-      }}
-    >
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <Textarea
-          name="defense"
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          placeholder="Answer the table. This goes to the Arena as your defense — and as indigo ink."
-          rows={2}
-          disabled={busy}
-          className="min-h-[64px] flex-1 resize-none rounded-none border-0 bg-paper px-3 py-2 text-[16px] shadow-none focus-visible:ring-0"
-        />
-        <Button
-          type="submit"
-          disabled={busy || value.trim().length < 3}
-          className="h-10 shrink-0 self-end px-5"
-        >
-          {busy ? "Reassessing…" : "Write"}
-        </Button>
-      </div>
-    </form>
+    <div className={standalone ? "border border-rule" : "border-t border-rule"}>
+      <PromptComposer
+        value={value}
+        onChange={onChange}
+        onSubmit={onSubmit}
+        busy={busy}
+        placeholder="Your judgment. What do you say back?"
+        submitLabel="Write"
+        busyLabel="Reassessing…"
+        hint="The seats reassess from this."
+      />
+    </div>
   );
 }

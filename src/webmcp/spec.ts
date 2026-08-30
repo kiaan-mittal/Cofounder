@@ -42,7 +42,7 @@ export interface ToolDefinition {
   execute: (
     args: Record<string, unknown>,
     options?: ToolExecuteOptions,
-  ) => ToolResult | Promise<ToolResult>;
+  ) => ToolResult | string | Promise<ToolResult | string>;
 }
 
 export interface RegisterToolOptions {
@@ -72,9 +72,9 @@ export interface ModelContext extends EventTarget {
   getTools(options?: GetToolsOptions): Promise<RegisteredTool[]>;
   executeTool(
     tool: RegisteredTool,
-    args?: Record<string, unknown>,
+    args?: Record<string, unknown> | string,
     options?: ToolExecuteOptions,
-  ): Promise<ToolResult>;
+  ): Promise<ToolResult | string>;
 }
 
 declare global {

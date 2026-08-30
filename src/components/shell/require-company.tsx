@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -9,7 +9,11 @@ import {
   useArena,
   type WorkspaceSnapshot,
 } from "@/lib/store";
-import { scheduleWorkspaceSave } from "@/lib/supabase/sync";
+import {
+  adoptSnapshotIfRicher,
+  pullRemoteWorkspace,
+  scheduleWorkspaceSave,
+} from "@/lib/supabase/sync";
 import type { Company } from "@/lib/types";
 
 /**
@@ -33,29 +37,14 @@ export function RequireCompany({
       : null;
   const company = storeCompany ?? snapshotCompany;
 
-  useEffect(() => {
-    if (
-      initialSnapshot &&
-      !snapshotIsEmpty(initialSnapshot as WorkspaceSnapshot) &&
-      snapshotIsEmpty(useArena.getState())
-    ) {
-      useArena.getState().importWorkspace(initialSnapshot as WorkspaceSnapshot);
-    }
-
-    void fetch("/api/workspace", { cache: "no-store" })
-      .then((response) => (response.ok ? response.json() : null))
-      .then((remote) => {
-        const snapshot = remote?.workspace?.snapshot as
-          | WorkspaceSnapshot
-          | undefined;
-        if (snapshot && !snapshotIsEmpty(snapshot)) {
-          useArena.getState().importWorkspace(snapshot);
-        }
-      })
-      .catch(() => undefined);
-
-    return useArena.subscribe(() => scheduleWorkspaceSave());
+  useLayoutEffect(() => {
+    adoptSnapshotIfRicher(initialSnapshot as WorkspaceSnapshot | null);
   }, [initialSnapshot]);
+
+  useEffect(() => {
+    void pullRemoteWorkspace();
+    return useArena.subscribe(() => scheduleWorkspaceSave());
+  }, []);
 
   if (!company) {
     return (
@@ -79,4 +68,25 @@ export function RequireCompany({
   }
 
   return <>{children(company)}</>;
+}
+
+export function HydrateWorkspace({
+  initialSnapshot,
+}: {
+  initialSnapshot?: Record<string, unknown> | null;
+}) {
+  useLayoutEffect(() => {
+    if (
+      initialSnapshot &&
+      !snapshotIsEmpty(initialSnapshot as WorkspaceSnapshot)
+    ) {
+      adoptSnapshotIfRicher(initialSnapshot as WorkspaceSnapshot);
+    }
+  }, [initialSnapshot]);
+
+  useEffect(() => {
+    void pullRemoteWorkspace();
+    return useArena.subscribe(() => scheduleWorkspaceSave());
+  }, []);
+  return null;
 }

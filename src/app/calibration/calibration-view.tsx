@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect } from "react";
 
+import { ArenaPath } from "@/components/arena/the-loop";
 import { HatchMeter, InkRule } from "@/components/ink/marks";
 import { RequireCompany } from "@/components/shell/require-company";
 import { Button } from "@/components/ui/button";
-import { DOMAIN_LABEL, calibrationBands } from "@/lib/calibration";
+import { DOMAIN_LABEL, calibrationBands, detectPatterns } from "@/lib/calibration";
 import { useArena } from "@/lib/store";
 
 export function CalibrationView({
@@ -15,39 +17,98 @@ export function CalibrationView({
 }) {
   return (
     <RequireCompany initialSnapshot={initialSnapshot}>
-      {() => <Calibration />}
+      {() => <Calibration initialSnapshot={initialSnapshot} />}
     </RequireCompany>
   );
 }
 
-function Calibration() {
-  const predictions = useArena((state) => state.predictions);
+function Calibration({
+  initialSnapshot,
+}: {
+  initialSnapshot?: Record<string, unknown> | null;
+}) {
+  const company = useArena((state) => state.company);
+  const storePredictions = useArena((state) => state.predictions);
+  const storeDecisions = useArena((state) => state.decisions);
+  const predictions = storePredictions.length
+    ? storePredictions
+    : Array.isArray(initialSnapshot?.predictions)
+      ? (initialSnapshot.predictions as typeof storePredictions)
+      : [];
+  const decisions = storeDecisions.length
+    ? storeDecisions
+    : Array.isArray(initialSnapshot?.decisions)
+      ? (initialSnapshot.decisions as typeof storeDecisions)
+      : [];
   const patterns = useArena((state) => state.patterns);
+  const setPatterns = useArena((state) => state.setPatterns);
+
+  useEffect(() => {
+    if (!company) return;
+    setPatterns(detectPatterns(company.id, predictions, decisions));
+  }, [company, decisions, predictions, setPatterns]);
 
   const bands = calibrationBands(predictions);
   const evaluated = predictions.filter((p) => p.status !== "pending");
+  const pending = predictions.filter((p) => p.status === "pending");
   const reliable = evaluated.length >= 3;
 
   return (
     <div className="mx-auto max-w-[1400px] px-5 py-12 lg:py-16">
-      <header className="max-w-[52ch]">
+      <ArenaPath here="calibrate" />
+      <header className="mt-8 max-w-[52ch]">
         <p className="type-eyebrow">Founder calibration</p>
         <h1 className="type-display mt-5 text-[clamp(2rem,4.4vw,3rem)] font-semibold">
           Where your judgement is reliable, and where it isn&rsquo;t.
         </h1>
         <p className="mt-6 text-[17px] leading-relaxed text-graphite">
-          {`Measured from ${evaluated.length} prediction${evaluated.length === 1 ? "" : "s"} that ${evaluated.length === 1 ? "has" : "have"} met reality.`}{" "}
-          Nothing here is an opinion about you — it is arithmetic on numbers you
-          wrote down before the fact.
+          {evaluated.length === 0
+            ? pending.length
+              ? `${pending.length} prediction${pending.length === 1 ? " is" : "s are"} waiting on reality. Record the real number on History when the deadline lands.`
+              : "No predictions have met reality yet. Commit a decision, attach a number, then come back."
+            : `Measured from ${evaluated.length} prediction${evaluated.length === 1 ? "" : "s"} that ${evaluated.length === 1 ? "has" : "have"} met reality. Nothing here is an opinion — it is arithmetic on numbers you wrote down before the fact.`}
         </p>
       </header>
 
-      {!reliable ? (
+      {pending.length ? (
+        <section className="mt-10 max-w-[720px] border border-rule bg-leaf px-5 py-4">
+          <p className="type-eyebrow">Waiting on reality</p>
+          <ul className="mt-3 space-y-3">
+            {pending.map((prediction) => (
+              <li key={prediction.id}>
+                <p className="text-[15px] leading-snug text-ink">
+                  {prediction.statement}
+                </p>
+                <p className="type-eyebrow mt-1">
+                  {prediction.expectedValue} {prediction.unit} · due{" "}
+                  {new Date(prediction.deadline).toLocaleDateString(undefined, {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      {!reliable && evaluated.length === 0 && pending.length === 0 ? (
         <div className="mt-8 max-w-[62ch] border border-rule bg-ochre-wash px-4 py-3">
           <p className="text-[14.5px] leading-relaxed text-ink">
-            {evaluated.length === 0
-              ? "No predictions have been evaluated yet, so there is no profile to show. Commit a decision, attach a prediction, and record the real number when the deadline lands."
-              : `Only ${evaluated.length} outcome${evaluated.length === 1 ? " has" : "s have"} been recorded. The Arena will not argue from this sample until there are at least three.`}
+            Three scored outcomes are enough for the Arena to argue from your
+            record. Until then it will say the sample is too small rather than
+            invent a profile.
+          </p>
+        </div>
+      ) : null}
+
+      {evaluated.length > 0 && evaluated.length < 3 ? (
+        <div className="mt-8 max-w-[62ch] border border-rule bg-ochre-wash px-4 py-3">
+          <p className="text-[14.5px] leading-relaxed text-ink">
+            {evaluated.length} outcome{evaluated.length === 1 ? " has" : "s have"}{" "}
+            been recorded. The Arena will not argue from this sample until there
+            are at least three.
           </p>
         </div>
       ) : null}
@@ -59,6 +120,7 @@ function Calibration() {
             <h2 className="type-eyebrow">Accuracy by kind of estimate</h2>
             <ul className="mt-8 max-w-[720px] space-y-7">
               {bands
+                .slice()
                 .sort((a, b) => b.accuracy - a.accuracy)
                 .map((band) => (
                   <li key={band.domain}>
@@ -123,15 +185,28 @@ function Calibration() {
                 </li>
               ))}
             </ul>
-            <p className="mt-10 max-w-[62ch] text-[15px] leading-relaxed text-graphite">
-              These are read by the Arena at the start of every round, and by any
-              agent that calls{" "}
-              <code className="type-figure text-[13px] text-ink">
-                get_founder_patterns
-              </code>
-              . When you type a number that history says is optimistic, you will
-              be asked to defend it before you commit.
-            </p>
+          </section>
+        </>
+      ) : null}
+
+      {decisions.length ? (
+        <>
+          <InkRule className="my-12" />
+          <section>
+            <h2 className="type-eyebrow">Decisions on the record</h2>
+            <ul className="mt-6 max-w-[720px] divide-y divide-rule border border-rule">
+              {decisions.slice(0, 6).map((decision) => (
+                <li key={decision.id} className="px-4 py-3">
+                  <p className="text-[15px] leading-snug text-ink">
+                    {decision.question}
+                  </p>
+                  <p className="type-eyebrow mt-1">
+                    {decision.status} · your {decision.founderConfidence} · arena{" "}
+                    {decision.agentConfidence}
+                  </p>
+                </li>
+              ))}
+            </ul>
           </section>
         </>
       ) : null}

@@ -5,6 +5,8 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useShallow } from "zustand/react/shallow";
 
+import { ArenaPath } from "@/components/arena/the-loop";
+import { PerspectiveEmblem } from "@/components/ink/emblems";
 import { InkRule } from "@/components/ink/marks";
 import { RequireCompany } from "@/components/shell/require-company";
 import { Button } from "@/components/ui/button";
@@ -13,9 +15,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { detectPatterns } from "@/lib/calibration";
 import { id, now } from "@/lib/id";
+import { perspectiveName } from "@/lib/perspectives";
+import { argumentsFor } from "@/lib/selectors";
 import { useArena } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import type { Decision, Outcome, Prediction } from "@/lib/types";
+import type { Argument, Decision, Outcome, Prediction } from "@/lib/types";
 
 export function HistoryView({
   initialSnapshot,
@@ -24,19 +28,29 @@ export function HistoryView({
 }) {
   return (
     <RequireCompany initialSnapshot={initialSnapshot}>
-      {() => <History />}
+      {() => <History initialSnapshot={initialSnapshot} />}
     </RequireCompany>
   );
 }
 
-function History() {
-  const decisions = useArena((state) => state.decisions);
+function History({
+  initialSnapshot,
+}: {
+  initialSnapshot?: Record<string, unknown> | null;
+}) {
+  const storeDecisions = useArena((state) => state.decisions);
+  const seeded =
+    Array.isArray(initialSnapshot?.decisions)
+      ? (initialSnapshot.decisions as Decision[])
+      : [];
+  const decisions = storeDecisions.length ? storeDecisions : seeded;
   const setActiveDecision = useArena((state) => state.setActiveDecision);
 
   if (decisions.length === 0) {
     return (
       <div className="mx-auto max-w-[1400px] px-5 py-20">
-        <div className="max-w-[46ch]">
+        <ArenaPath here="outcome" />
+        <div className="mt-8 max-w-[46ch]">
           <p className="type-eyebrow">Decision history</p>
           <h1 className="type-display mt-5 text-[clamp(2rem,4vw,2.75rem)] font-semibold">
             Nothing on the record yet.
@@ -56,7 +70,8 @@ function History() {
 
   return (
     <div className="mx-auto max-w-[1400px] px-5 py-12 lg:py-16">
-      <header className="max-w-[52ch]">
+      <ArenaPath here="outcome" />
+      <header className="mt-8 max-w-[52ch]">
         <p className="type-eyebrow">Decision history</p>
         <h1 className="type-display mt-5 text-[clamp(2rem,4.4vw,3rem)] font-semibold">
           What you decided, and what reality said.
@@ -69,11 +84,21 @@ function History() {
 
       <InkRule className="my-12" />
 
-      <ul className="space-y-16">
+      <ul className="space-y-12">
         {decisions.map((decision) => (
-          <li key={decision.id}>
+          <li key={decision.id} className="border border-rule bg-paper">
             <DecisionRecord
               decision={decision}
+              fallbackArgs={
+                Array.isArray(initialSnapshot?.argumentList)
+                  ? (initialSnapshot.argumentList as Argument[])
+                  : []
+              }
+              fallbackPredictions={
+                Array.isArray(initialSnapshot?.predictions)
+                  ? (initialSnapshot.predictions as Prediction[])
+                  : []
+              }
               onReopen={() => setActiveDecision(decision.id)}
             />
           </li>
@@ -85,96 +110,166 @@ function History() {
 
 function DecisionRecord({
   decision,
+  fallbackArgs,
+  fallbackPredictions,
   onReopen,
 }: {
   decision: Decision;
+  fallbackArgs: Argument[];
+  fallbackPredictions: Prediction[];
   onReopen: () => void;
 }) {
-  const predictions = useArena(
+  const storePredictions = useArena(
     useShallow((state) =>
       state.predictions.filter((p) => p.decisionId === decision.id),
     ),
   );
+  const predictions = storePredictions.length
+    ? storePredictions
+    : fallbackPredictions.filter((item) => item.decisionId === decision.id);
   const outcome = useArena((state) =>
     state.outcomes.find((o) => o.decisionId === decision.id),
   );
   const chosen = decision.options.find((o) => o.id === decision.chosenOptionId);
 
   return (
-    <article className="grid gap-10 lg:grid-cols-[1.3fr_1fr] lg:gap-16">
-      <div>
-        <p className="type-eyebrow">
-          {new Date(decision.createdAt).toLocaleDateString(undefined, {
-            year: "numeric",
-            month: "short",
-            day: "numeric",
-          })}{" "}
-          · {decision.status}
-        </p>
-        <h2 className="type-display mt-3 text-[26px] font-semibold leading-tight">
-          {decision.question}
-        </h2>
-
-        {chosen ? (
-          <p className="mt-4 text-[15px] leading-relaxed text-ink">
-            <span className="type-eyebrow mr-2">chose</span>
-            {chosen.label}
+    <article className="p-5 sm:p-7">
+      <div className="grid gap-8 lg:grid-cols-[1.35fr_0.9fr] lg:gap-12">
+        <div>
+          <p className="type-eyebrow">
+            {new Date(decision.createdAt).toLocaleDateString(undefined, {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+            })}{" "}
+            · {decision.status}
           </p>
-        ) : null}
+          <h2 className="type-display mt-3 text-[24px] font-semibold leading-tight">
+            {decision.question}
+          </h2>
 
-        {decision.commitmentRationale ? (
-          <p className="mt-3 border border-rule bg-leaf px-4 py-3 text-[15px] leading-relaxed text-graphite">
-            {decision.commitmentRationale}
+          {chosen ? (
+            <p className="mt-4 text-[15px] leading-relaxed text-ink">
+              <span className="type-eyebrow mr-2">chose</span>
+              {chosen.label}
+            </p>
+          ) : null}
+
+          {decision.commitmentRationale ? (
+            <p className="mt-3 border border-rule bg-leaf px-4 py-3 text-[15px] leading-relaxed text-graphite">
+              {decision.commitmentRationale}
+            </p>
+          ) : null}
+
+          <p className="type-eyebrow mt-4">
+            your confidence {decision.founderConfidence} · arena{" "}
+            {decision.agentConfidence}
           </p>
-        ) : null}
 
-        <p className="type-eyebrow mt-4">
-          your confidence {decision.founderConfidence} · arena{" "}
-          {decision.agentConfidence}
-        </p>
+          <SeatVoices decisionId={decision.id} fallbackArgs={fallbackArgs} />
 
-        {outcome ? (
-          <div className="mt-6 border border-rule bg-moss-wash px-4 py-4">
-            <p className="type-eyebrow text-moss">outcome · {outcome.result}</p>
-            <p className="mt-2 text-[15px] leading-relaxed text-ink">
-              {outcome.summary}
-            </p>
-            <p className="mt-3 text-[15px] leading-relaxed text-ink">
-              <span className="type-eyebrow mr-2">lesson</span>
-              {outcome.lesson}
-            </p>
-          </div>
-        ) : (
-          <OutcomeForm decision={decision} />
-        )}
+          {outcome ? (
+            <div className="mt-6 border border-rule bg-moss-wash px-4 py-4">
+              <p className="type-eyebrow text-moss">outcome · {outcome.result}</p>
+              <p className="mt-2 text-[15px] leading-relaxed text-ink">
+                {outcome.summary}
+              </p>
+              <p className="mt-3 text-[15px] leading-relaxed text-ink">
+                <span className="type-eyebrow mr-2">lesson</span>
+                {outcome.lesson}
+              </p>
+            </div>
+          ) : decision.status === "committed" ? (
+            <OutcomeForm decision={decision} />
+          ) : null}
 
-        {decision.status !== "committed" ? (
           <Button
             asChild
-            variant="ghost"
-            className="type-eyebrow mt-4 -ml-3"
+            variant="outline"
+            className="mt-6 h-10"
             onClick={onReopen}
           >
-            <Link href="/arena">Reopen in the Arena</Link>
+            <Link href="/arena">
+              {decision.status === "committed"
+                ? "Review in the Arena"
+                : "Open in the Arena"}
+            </Link>
           </Button>
-        ) : null}
-      </div>
+        </div>
 
-      <div>
-        <p className="type-eyebrow">Predictions</p>
-        {predictions.length === 0 ? (
-          <p className="mt-3 text-[13.5px] leading-relaxed text-pencil">
-            No measurable prediction was attached to this decision.
-          </p>
-        ) : (
-          <ul className="mt-4 space-y-6">
-            {predictions.map((prediction) => (
-              <PredictionRow key={prediction.id} prediction={prediction} />
-            ))}
-          </ul>
-        )}
+        <div className="border-t border-rule pt-6 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
+          <p className="type-eyebrow">Predictions</p>
+          {predictions.length === 0 ? (
+            <p className="mt-3 text-[14px] leading-relaxed text-graphite">
+              No number was attached. Commit from the Arena and say what would
+              prove you right.
+            </p>
+          ) : (
+            <ul className="mt-4 space-y-4">
+              {predictions.map((prediction) => (
+                <PredictionRow key={prediction.id} prediction={prediction} />
+              ))}
+            </ul>
+          )}
+        </div>
       </div>
     </article>
+  );
+}
+
+function SeatVoices({
+  decisionId,
+  fallbackArgs,
+}: {
+  decisionId: string;
+  fallbackArgs: Argument[];
+}) {
+  const storeArgs = useArena(
+    useShallow((state) =>
+      argumentsFor(state, decisionId).filter((item) => !item.challengesId),
+    ),
+  );
+  const args = storeArgs.length
+    ? storeArgs
+    : fallbackArgs.filter(
+        (item) => item.decisionId === decisionId && !item.challengesId,
+      );
+
+  if (args.length === 0) {
+    return (
+      <p className="mt-5 text-[14px] leading-relaxed text-graphite">
+        The five seats have not written on this decision yet.
+      </p>
+    );
+  }
+
+  return (
+    <ul className="mt-5 grid gap-px bg-rule sm:grid-cols-2">
+      {args.map((argument) => (
+        <SeatVoice key={argument.id} argument={argument} />
+      ))}
+    </ul>
+  );
+}
+
+function SeatVoice({ argument }: { argument: Argument }) {
+  return (
+    <li className="bg-leaf px-3.5 py-3">
+      <div className="flex items-start gap-2">
+        <PerspectiveEmblem
+          perspective={argument.perspective}
+          className="size-8 shrink-0"
+        />
+        <div className="min-w-0">
+          <p className="type-eyebrow">
+            {perspectiveName(argument.perspective)} · {argument.stance}
+          </p>
+          <p className="mt-1 text-[14.5px] leading-snug text-ink">
+            {argument.claim}
+          </p>
+        </div>
+      </div>
+    </li>
   );
 }
 

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+import { ArenaPath } from "@/components/arena/the-loop";
 import { CompanyDna } from "@/components/brain/company-dna";
 import { InkRule } from "@/components/ink/marks";
 import { RequireCompany } from "@/components/shell/require-company";
@@ -38,13 +39,14 @@ function Brain({ company }: { company: Company }) {
 
   return (
     <div className="mx-auto max-w-[1400px] px-5 py-12 lg:py-16">
+      <ArenaPath here="brain" />
       {isDemo ? (
         <p className="type-eyebrow mb-8 inline-block border border-ochre bg-ochre-wash px-3 py-1.5 text-ochre">
           Sample data — a fictional company, for demonstration
         </p>
       ) : null}
 
-      <header className="flex flex-wrap items-end justify-between gap-6">
+      <header className="mt-8 flex flex-wrap items-end justify-between gap-6">
         <div className="max-w-[58ch]">
           <p className="type-eyebrow">Company Brain</p>
           <h1 className="type-display mt-4 text-[clamp(1.8rem,3.8vw,2.75rem)] font-semibold leading-[1.08]">

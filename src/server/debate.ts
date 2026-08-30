@@ -440,10 +440,15 @@ const reassessmentSchema = z.object({
         verdict: z.enum(["conceded", "weakened", "unmoved", "reinforced"]),
         addressed: z
           .string()
-          .describe("Name precisely what the founder's defense did answer. Be fair and concrete."),
+          .describe("One sentence: what the founder's defense actually answered."),
         unaddressed: z
           .string()
-          .describe("Name precisely what it did NOT answer. This is the most important field in the response."),
+          .describe("One sentence: the hole that is still open."),
+        reply: z
+          .string()
+          .describe(
+            "The seat speaking out loud to the founder. 120–280 words. First person. Quote their words. Then argue like that job: CFO talks cash, runway, unit cost, what they will not sign; Tech talks months, people, failure modes; Product talks the user; GTM talks who hears it; Contra says why the whole frame is wrong. Not a caption. Not two lines.",
+          ),
         strengthDelta: z
           .number()
           .min(-45)
@@ -485,17 +490,21 @@ export async function reassessAfterDefense(input: {
 }): Promise<ReassessmentRound> {
   const system = `${ANTI_SYCOPHANCY}
 
-The founder has just pushed back. Your job is to reassess honestly — which means neither caving nor stonewalling.
+The founder just spoke. You are the seats on their board — CFO, Tech, Product, GTM, Contrarian — sitting across the table. You do not write captions. You answer.
 
-For every argument you reassess you must state two things: what the defense DID address, and what it did NOT. A defense usually answers part of an objection. Saying so precisely is the entire value of this product.
+Each reassessment is that seat talking. The reply field is what they say out loud: 120–280 words, first person, concrete. Quote the founder's words. Use numbers from the Company Brain when you have them. A real CFO does not say "funding is uncertain." They say what this does to runway, what they would refuse to sign, and what number would change their mind.
+
+If the founder mentioned money, cost, features, or recovery, the financial seat MUST answer. Reassess every seat the defense actually hits. Two or three full answers beat five stubs.
 
 Verdicts:
-- conceded: the defense fully answers the argument. Use this when it is true; refusing to ever concede is as useless as agreeing with everything.
-- weakened: the core concern survives but is smaller.
-- unmoved: the defense missed the actual objection. Say what the objection actually was.
-- reinforced: the defense revealed something that makes the argument stronger.
+- conceded: they fully answered you. Say so, then name the residual risk.
+- weakened: they moved you. Say how far, and what is still unpaid.
+- unmoved: they missed you. Restate the objection in their words so they hear it.
+- reinforced: their defense made your case stronger. Explain why.
 
-Only add a new argument if the defense genuinely opened a new line of attack. Do not manufacture objections to seem rigorous.`;
+addressed / unaddressed stay one sentence each. reply is the conversation.
+
+Only add a new argument if the defense opened a new line. Zero is valid.`;
 
   const prompt = [
     brainDigest(input.context.brain),
@@ -526,8 +535,7 @@ Only add a new argument if the defense genuinely opened a new line of attack. Do
     system,
     prompt,
     purpose: "Reassessing after the founder's defense",
-    models: fastModels(),
-    timeoutMs: 40_000,
+    timeoutMs: 55_000,
   });
 }
 
