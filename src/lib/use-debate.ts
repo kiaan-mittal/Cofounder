@@ -3,6 +3,8 @@
 import { useCallback, useState } from "react";
 
 import { ApiError, post, readEventStream } from "@/lib/api";
+import { landArguments, makeNote, nextNoteSeat } from "@/lib/board";
+import { landRoundOnCanvas } from "@/lib/canvas-model";
 import { id, now } from "@/lib/id";
 import type { DebateOpenEvent, DebateOpeningRound } from "@/lib/reading";
 import { argumentsFor, decisionHistory } from "@/lib/selectors";
@@ -209,21 +211,31 @@ export function useDebate() {
         });
         store.setActiveDecision(decision.id);
 
-        store.addArguments(
-          round.arguments.map((argument) => ({
-            id: id("arg"),
-            decisionId: decision.id,
-            perspective: argument.perspective,
-            stance: argument.stance,
-            claim: argument.claim,
-            reasoning: argument.reasoning,
-            basis: toBasis(argument.basis),
-            strength: argument.strength,
-            status: "standing" as const,
-            round: 1,
-            createdBy: "arena" as const,
-            createdAt: now(),
-          })),
+        if (!existing && state.company) {
+          store.adoptBoardMarks(state.company.id, decision.id);
+          store.adoptCanvas(state.company.id, decision.id);
+        }
+
+        const created = round.arguments.map((argument) => ({
+          id: id("arg"),
+          decisionId: decision.id,
+          perspective: argument.perspective,
+          stance: argument.stance,
+          claim: argument.claim,
+          reasoning: argument.reasoning,
+          basis: toBasis(argument.basis),
+          strength: argument.strength,
+          status: "standing" as const,
+          round: 1,
+          createdBy: "arena" as const,
+          createdAt: now(),
+        }));
+        store.addArguments(created);
+        store.addBoardMarks(
+          landArguments(
+            created,
+            store.boardMarks.filter((mark) => mark.decisionId === decision.id),
+          ),
         );
 
         for (const risk of round.risks) {
@@ -264,6 +276,22 @@ export function useDebate() {
             createdAt: now(),
           });
         }
+
+        const live = useArena.getState();
+        const landed = landRoundOnCanvas({
+          decisionId: decision.id,
+          existing: (live.canvasNodes ?? []).filter(
+            (node) => node.decisionId === decision.id,
+          ),
+          arguments: created,
+          risks: live.risks.filter((risk) => risk.decisionId === decision.id),
+          evidence: live.evidence.filter((item) => item.decisionId === decision.id),
+          contradictions: live.contradictions.filter(
+            (item) => item.decisionId === decision.id,
+          ),
+        });
+        live.addCanvasNodes(landed.nodes);
+        live.addCanvasLinks(landed.links);
 
         return decision;
       } catch (caught) {
@@ -313,6 +341,18 @@ export function useDebate() {
         round,
         createdAt: now(),
       });
+      const seat = nextNoteSeat(
+        state.boardMarks.filter((mark) => mark.decisionId === decisionId),
+      );
+      state.addBoardMark(
+        makeNote({
+          decisionId,
+          text,
+          x: seat.x,
+          y: seat.y,
+          author: "founder",
+        }),
+      );
 
       try {
         const response = await post<DefenseResponse>("/api/debate/defend", {
@@ -353,22 +393,27 @@ export function useDebate() {
             })),
         );
 
-        store.addArguments(
-          response.newArguments.map((argument) => ({
-            id: id("arg"),
-            decisionId,
-            perspective: argument.perspective,
-            stance: argument.stance,
-            claim: argument.claim,
-            reasoning: argument.reasoning,
-            basis: toBasis(argument.basis),
-            strength: argument.strength,
-            status: "standing" as const,
-            round,
-            createdBy: "arena" as const,
-            challengesId: argument.challengesId,
-            createdAt: now(),
-          })),
+        const created = response.newArguments.map((argument) => ({
+          id: id("arg"),
+          decisionId,
+          perspective: argument.perspective,
+          stance: argument.stance,
+          claim: argument.claim,
+          reasoning: argument.reasoning,
+          basis: toBasis(argument.basis),
+          strength: argument.strength,
+          status: "standing" as const,
+          round,
+          createdBy: "arena" as const,
+          challengesId: argument.challengesId,
+          createdAt: now(),
+        }));
+        store.addArguments(created);
+        store.addBoardMarks(
+          landArguments(
+            created,
+            store.boardMarks.filter((mark) => mark.decisionId === decisionId),
+          ),
         );
 
         for (const risk of response.newRisks) {
@@ -398,6 +443,22 @@ export function useDebate() {
             createdAt: now(),
           });
         }
+
+        const after = useArena.getState();
+        const landed = landRoundOnCanvas({
+          decisionId,
+          existing: (after.canvasNodes ?? []).filter(
+            (node) => node.decisionId === decisionId,
+          ),
+          arguments: created,
+          risks: after.risks.filter((risk) => risk.decisionId === decisionId),
+          evidence: after.evidence.filter((item) => item.decisionId === decisionId),
+          contradictions: after.contradictions.filter(
+            (item) => item.decisionId === decisionId,
+          ),
+        });
+        after.addCanvasNodes(landed.nodes);
+        after.addCanvasLinks(landed.links);
 
         store.updateDecision(decisionId, {
           round,

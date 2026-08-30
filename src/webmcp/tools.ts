@@ -1,5 +1,7 @@
 "use client";
 
+import { boardTools } from "@/webmcp/board-tools";
+import { canvasTools } from "@/webmcp/canvas-tools";
 import { contextTools } from "@/webmcp/context-tools";
 import { debateTools } from "@/webmcp/debate-tools";
 import { decisionTools } from "@/webmcp/decision-tools";
@@ -16,12 +18,14 @@ import type { ArenaTool } from "@/webmcp/registry";
  * the workspace rather than a puppeteer of its buttons.
  *
  *   context — understand the workspace       (read-only)
- *   debate  — participate in the reasoning   (writes arguments, risks, evidence)
+ *   debate  — participate in the reasoning   (writes and draws on the table)
  *   action  — turn reasoning into commitment (predictions, proposals)
  *   outcome — feed reality back in           (results, calibration)
  */
 export const ARENA_TOOLS: ArenaTool[] = [
   ...contextTools,
+  ...boardTools,
+  ...canvasTools,
   ...debateTools,
   ...decisionTools,
   ...outcomeTools,
@@ -50,4 +54,11 @@ export const TOOL_GROUPS = [
   },
 ];
 
-export { contextTools, debateTools, decisionTools, outcomeTools };
+export {
+  boardTools,
+  canvasTools,
+  contextTools,
+  debateTools,
+  decisionTools,
+  outcomeTools,
+};

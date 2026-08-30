@@ -8,6 +8,10 @@ import type {
   Actor,
   AgentChannel,
   Argument,
+  BoardMark,
+  CanvasHandoff,
+  CanvasLink,
+  CanvasNode,
   Company,
   Contradiction,
   Decision,
@@ -52,6 +56,10 @@ export interface ArenaState {
   outcomes: Outcome[];
   patterns: FounderPattern[];
   toolCalls: ToolCall[];
+  boardMarks: BoardMark[];
+  canvasNodes: CanvasNode[];
+  canvasLinks: CanvasLink[];
+  handoff: CanvasHandoff | null;
 
   activeDecisionId: string | null;
   /** Highlighted by an agent tool call so the founder can see what changed. */
@@ -100,6 +108,22 @@ export interface ArenaState {
   addOutcome: (outcome: Outcome) => void;
   setPatterns: (patterns: FounderPattern[]) => void;
 
+  addBoardMark: (mark: BoardMark) => void;
+  addBoardMarks: (marks: BoardMark[]) => void;
+  updateBoardMark: (markId: string, patch: Partial<BoardMark>) => void;
+  removeBoardMark: (markId: string) => void;
+  adoptBoardMarks: (fromId: string, toId: string) => void;
+
+  addCanvasNode: (node: CanvasNode) => void;
+  addCanvasNodes: (nodes: CanvasNode[]) => void;
+  updateCanvasNode: (nodeId: string, patch: Partial<CanvasNode>) => void;
+  removeCanvasNode: (nodeId: string) => void;
+  addCanvasLink: (link: CanvasLink) => void;
+  addCanvasLinks: (links: CanvasLink[]) => void;
+  removeCanvasLink: (linkId: string) => void;
+  adoptCanvas: (fromId: string, toId: string) => void;
+  setHandoff: (handoff: CanvasHandoff | null) => void;
+
   logToolCall: (call: Omit<ToolCall, "id" | "at">) => void;
   spotlight: (targetId: string | null) => void;
   proposeCommit: (proposal: PendingCommit | null) => void;
@@ -132,6 +156,20 @@ type WorkspaceData = Omit<
   | "recordActual"
   | "addOutcome"
   | "setPatterns"
+  | "addBoardMark"
+  | "addBoardMarks"
+  | "updateBoardMark"
+  | "removeBoardMark"
+  | "adoptBoardMarks"
+  | "addCanvasNode"
+  | "addCanvasNodes"
+  | "updateCanvasNode"
+  | "removeCanvasNode"
+  | "addCanvasLink"
+  | "addCanvasLinks"
+  | "removeCanvasLink"
+  | "adoptCanvas"
+  | "setHandoff"
   | "logToolCall"
   | "spotlight"
   | "proposeCommit"
@@ -155,6 +193,10 @@ export function getWorkspaceSnapshot(): WorkspaceSnapshot {
     outcomes,
     patterns,
     toolCalls,
+    boardMarks,
+    canvasNodes,
+    canvasLinks,
+    handoff,
     activeDecisionId,
     spotlightId,
     pendingCommit,
@@ -173,6 +215,10 @@ export function getWorkspaceSnapshot(): WorkspaceSnapshot {
     outcomes,
     patterns,
     toolCalls,
+    boardMarks,
+    canvasNodes,
+    canvasLinks,
+    handoff,
     activeDecisionId,
     spotlightId,
     pendingCommit,
@@ -197,6 +243,10 @@ const emptyWorkspace = (): WorkspaceData => ({
   outcomes: [],
   patterns: [],
   toolCalls: [],
+  boardMarks: [],
+  canvasNodes: [],
+  canvasLinks: [],
+  handoff: null,
   activeDecisionId: null,
   spotlightId: null,
   pendingCommit: null,
@@ -367,6 +417,93 @@ function createArenaStore() {
 
       setPatterns: (patterns) => set({ patterns }),
 
+      addBoardMark: (mark) =>
+        set((state) => ({
+          boardMarks: [...(state.boardMarks ?? []), mark],
+        })),
+
+      addBoardMarks: (marks) =>
+        set((state) => ({
+          boardMarks: [...(state.boardMarks ?? []), ...marks],
+        })),
+
+      updateBoardMark: (markId, patch) =>
+        set((state) => ({
+          boardMarks: (state.boardMarks ?? []).map((mark) =>
+            mark.id === markId ? { ...mark, ...patch } : mark,
+          ),
+        })),
+
+      removeBoardMark: (markId) =>
+        set((state) => ({
+          boardMarks: (state.boardMarks ?? []).filter(
+            (mark) => mark.id !== markId,
+          ),
+        })),
+
+      adoptBoardMarks: (fromId, toId) =>
+        set((state) => ({
+          boardMarks: (state.boardMarks ?? []).map((mark) =>
+            mark.decisionId === fromId ? { ...mark, decisionId: toId } : mark,
+          ),
+        })),
+
+      addCanvasNode: (node) =>
+        set((state) => ({
+          canvasNodes: [...(state.canvasNodes ?? []), node],
+        })),
+
+      addCanvasNodes: (nodes) =>
+        set((state) => ({
+          canvasNodes: [...(state.canvasNodes ?? []), ...nodes],
+        })),
+
+      updateCanvasNode: (nodeId, patch) =>
+        set((state) => ({
+          canvasNodes: (state.canvasNodes ?? []).map((node) =>
+            node.id === nodeId ? { ...node, ...patch } : node,
+          ),
+        })),
+
+      removeCanvasNode: (nodeId) =>
+        set((state) => ({
+          canvasNodes: (state.canvasNodes ?? []).filter(
+            (node) => node.id !== nodeId,
+          ),
+          canvasLinks: (state.canvasLinks ?? []).filter(
+            (link) => link.fromId !== nodeId && link.toId !== nodeId,
+          ),
+        })),
+
+      addCanvasLink: (link) =>
+        set((state) => ({
+          canvasLinks: [...(state.canvasLinks ?? []), link],
+        })),
+
+      addCanvasLinks: (links) =>
+        set((state) => ({
+          canvasLinks: [...(state.canvasLinks ?? []), ...links],
+        })),
+
+      removeCanvasLink: (linkId) =>
+        set((state) => ({
+          canvasLinks: (state.canvasLinks ?? []).filter(
+            (link) => link.id !== linkId,
+          ),
+        })),
+
+      adoptCanvas: (fromId, toId) =>
+        set((state) => ({
+          canvasNodes: (state.canvasNodes ?? []).map((node) =>
+            node.decisionId === fromId ? { ...node, decisionId: toId } : node,
+          ),
+          canvasLinks: (state.canvasLinks ?? []).map((link) =>
+            link.decisionId === fromId ? { ...link, decisionId: toId } : link,
+          ),
+        })),
+
+      setHandoff: (handoff) => set({ handoff }),
+
       logToolCall: (call) =>
         set((state) => ({
           toolCalls: [
@@ -384,12 +521,55 @@ function createArenaStore() {
 }
 
 type ArenaStore = ReturnType<typeof createArenaStore>;
+type ArenaGlobal = typeof globalThis & { __decisionArena?: ArenaStore };
 
-export const useArena: ArenaStore =
-  typeof window === "undefined"
-    ? createArenaStore()
-    : ((globalThis as typeof globalThis & { __decisionArena?: ArenaStore })
-        .__decisionArena ??= createArenaStore());
+function bindArenaStore(): ArenaStore {
+  if (typeof window === "undefined") return createArenaStore();
+  const root = globalThis as ArenaGlobal;
+  const existing = root.__decisionArena;
+  if (existing && typeof existing.getState().addCanvasNode === "function") {
+    const state = existing.getState();
+    const patch: Record<string, unknown> = {};
+    if (!Array.isArray(state.boardMarks)) patch.boardMarks = [];
+    if (!Array.isArray(state.canvasNodes)) patch.canvasNodes = [];
+    if (!Array.isArray(state.canvasLinks)) patch.canvasLinks = [];
+    if (Object.keys(patch).length) existing.setState(patch);
+    return existing;
+  }
+  if (existing) {
+    const snap = existing.getState();
+    const created = createArenaStore();
+    created.getState().importWorkspace({
+      company: snap.company,
+      decisions: snap.decisions,
+      argumentList: snap.argumentList,
+      defenses: snap.defenses,
+      reassessments: snap.reassessments,
+      risks: snap.risks,
+      evidence: snap.evidence,
+      contradictions: snap.contradictions,
+      actionItems: snap.actionItems,
+      predictions: snap.predictions,
+      outcomes: snap.outcomes,
+      patterns: snap.patterns,
+      toolCalls: snap.toolCalls,
+      boardMarks: snap.boardMarks ?? [],
+      canvasNodes: snap.canvasNodes ?? [],
+      canvasLinks: snap.canvasLinks ?? [],
+      handoff: snap.handoff ?? null,
+      activeDecisionId: snap.activeDecisionId,
+      spotlightId: snap.spotlightId,
+      pendingCommit: snap.pendingCommit,
+    });
+    root.__decisionArena = created;
+    return created;
+  }
+  const created = createArenaStore();
+  root.__decisionArena = created;
+  return created;
+}
+
+export const useArena: ArenaStore = bindArenaStore();
 
 function clamp(value: number, min = 0, max = 100): number {
   return Math.max(min, Math.min(max, Math.round(value)));

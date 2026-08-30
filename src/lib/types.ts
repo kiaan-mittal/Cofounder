@@ -334,6 +334,85 @@ export interface CalibrationBand {
 /* WebMCP tool traffic                                                 */
 /* ------------------------------------------------------------------ */
 
+/* ------------------------------------------------------------------ */
+/* Shared table — ink both sides can leave                             */
+/* ------------------------------------------------------------------ */
+
+export interface BoardPoint {
+  x: number;
+  y: number;
+}
+
+export type BoardShape =
+  | "circle"
+  | "box"
+  | "underline"
+  | "cross"
+  | "check"
+  | "arrow"
+  | "scribble";
+
+/** The five objects on the Decision Canvas. Nothing else. */
+export type CanvasKind =
+  | "decision"
+  | "claim"
+  | "evidence"
+  | "risk"
+  | "assumption";
+
+export type CanvasLinkKind = "supports" | "counters" | "depends" | "handoff";
+
+export interface CanvasNode {
+  id: string;
+  decisionId: string;
+  kind: CanvasKind;
+  text: string;
+  x: number;
+  y: number;
+  author: Actor;
+  stance?: "+" | "-" | "~";
+  /** Short seat name on the card: Product, GTM, Tech, CFO. */
+  seat?: string;
+  perspective?: PerspectiveId;
+  sourceId?: string;
+  channel?: AgentChannel;
+  createdAt: string;
+}
+
+export interface CanvasLink {
+  id: string;
+  decisionId: string;
+  fromId: string;
+  toId: string;
+  kind: CanvasLinkKind;
+  author: Actor;
+  createdAt: string;
+}
+
+export interface CanvasHandoff {
+  nodeId: string;
+  instruction: string;
+  status: "open" | "working" | "returned";
+  returnedText?: string;
+}
+
+export interface BoardMark {
+  id: string;
+  /** Decision id, or the company id when writing before a round is open. */
+  decisionId: string;
+  kind: "note" | "stroke" | "drawing";
+  x: number;
+  y: number;
+  w?: number;
+  h?: number;
+  text?: string;
+  points?: BoardPoint[];
+  shape?: BoardShape;
+  author: Actor;
+  channel?: AgentChannel;
+  createdAt: string;
+}
+
 export interface ToolCall {
   id: string;
   tool: string;

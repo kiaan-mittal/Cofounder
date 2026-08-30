@@ -58,9 +58,9 @@ export default function WebMCPPage() {
           <code className="type-figure text-[14px] text-ink">
             document.modelContext
           </code>
-          . Each one is a decision primitive — read the Company Brain, challenge
-          an argument, flag a contradiction, record what reality did. None of
-          them are wrappers around buttons.
+          . Each one is a decision primitive — read the Company Brain, write or
+          draw on the shared table, challenge an argument, record what reality
+          did. None of them are wrappers around buttons.
         </p>
       </header>
 

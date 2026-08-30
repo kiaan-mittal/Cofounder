@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+import { CompanyDna } from "@/components/brain/company-dna";
 import { InkRule } from "@/components/ink/marks";
 import { RequireCompany } from "@/components/shell/require-company";
 import { Button } from "@/components/ui/button";
@@ -43,77 +44,69 @@ function Brain({ company }: { company: Company }) {
         </p>
       ) : null}
 
-      <header className="grid gap-10 lg:grid-cols-[1.4fr_1fr] lg:gap-20">
-        <div>
+      <header className="flex flex-wrap items-end justify-between gap-6">
+        <div className="max-w-[58ch]">
           <p className="type-eyebrow">Company Brain</p>
-          <h1 className="type-display mt-5 text-[clamp(2rem,4.4vw,3.25rem)] font-semibold">
+          <h1 className="type-display mt-4 text-[clamp(1.8rem,3.8vw,2.75rem)] font-semibold leading-[1.08]">
             {brain.headline}
           </h1>
-          <p className="mt-7 max-w-[62ch] text-[17px] leading-relaxed text-graphite">
+          <p className="mt-4 text-[16px] leading-relaxed text-graphite">
             {brain.summary}
           </p>
-          <Button asChild size="lg" className="mt-9 h-11 px-6 text-[15px]">
-            <Link href="/arena">Take a decision into the Arena</Link>
-          </Button>
         </div>
+        <Button asChild size="lg" className="h-11 px-6 text-[15px]">
+          <Link href="/arena">Take a decision into the Arena</Link>
+        </Button>
+      </header>
 
-        <aside className="space-y-6 lg:pt-11">
-          <div>
-            <p className="type-eyebrow">
-              Coverage · {coverage.length || company.sources.length} sources
+      <div className="mt-8">
+        <CompanyDna company={company} onOpen={takeToArena} />
+      </div>
+
+      <div className="mt-4 grid gap-px bg-rule sm:grid-cols-2 lg:grid-cols-4">
+        {company.sources.map((source) => (
+          <article key={`${source.kind}-${source.url}`} className="bg-paper px-4 py-4">
+            <p
+              className={
+                source.ok ? "type-eyebrow text-moss" : "type-eyebrow text-oxblood"
+              }
+            >
+              {source.ok ? "read" : "failed"}
             </p>
-            <ul className="mt-3 space-y-3">
-              {company.sources.map((source) => (
-                <li key={`${source.kind}-${source.url}`} className="flex gap-3">
-                  <span
-                    className={
-                      source.ok
-                        ? "type-eyebrow shrink-0 text-moss"
-                        : "type-eyebrow shrink-0 text-oxblood"
-                    }
-                  >
-                    {source.ok ? "read" : "failed"}
-                  </span>
-                  <span className="min-w-0">
-                    <span className="type-figure block truncate text-[12px] text-ink">
-                      {source.url}
-                    </span>
-                    <span className="text-[13px] leading-relaxed text-graphite">
-                      {source.detail}
-                    </span>
-                  </span>
+            <p className="type-figure mt-2 truncate text-[12px] text-ink">
+              {source.url}
+            </p>
+            <p className="mt-1.5 line-clamp-2 text-[13px] leading-snug text-graphite">
+              {source.detail}
+            </p>
+          </article>
+        ))}
+        {brain.gaps.length ? (
+          <article className="bg-ochre-wash px-4 py-4">
+            <p className="type-eyebrow text-ochre">Not known</p>
+            <ul className="mt-2 space-y-1.5">
+              {brain.gaps.slice(0, 3).map((gap) => (
+                <li key={gap} className="line-clamp-2 text-[13px] leading-snug text-ink">
+                  {gap}
                 </li>
               ))}
             </ul>
-            {coverage.length ? (
-              <ul className="mt-4 flex flex-wrap gap-2">
-                {coverage.map((page) => (
-                  <li
-                    key={page.url}
-                    className="border border-rule bg-leaf px-2 py-1"
-                  >
-                    <span className="type-eyebrow text-ink">{page.role}</span>
-                    <span className="mt-0.5 block max-w-[22ch] truncate text-[12px] text-graphite">
-                      {page.title}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-          </div>
-
-          {brain.gaps.length ? (
-            <div className="border border-rule bg-ochre-wash px-4 py-3">
-              <p className="type-eyebrow text-ochre">What is not known</p>
-              <ul className="mt-2 space-y-1.5 text-[13px] leading-relaxed text-ink">
-                {brain.gaps.map((gap) => (
-                  <li key={gap}>{gap}</li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-        </aside>
-      </header>
+          </article>
+        ) : coverage.length ? (
+          <article className="bg-paper px-4 py-4">
+            <p className="type-eyebrow">
+              Coverage · {coverage.length}
+            </p>
+            <p className="mt-2 text-[13px] leading-snug text-graphite">
+              {coverage
+                .map((page) => page.title)
+                .filter(Boolean)
+                .slice(0, 3)
+                .join(" · ")}
+            </p>
+          </article>
+        ) : null}
+      </div>
 
       <InkRule className="my-14" />
 
