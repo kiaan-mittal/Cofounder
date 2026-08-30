@@ -18,15 +18,15 @@ import { cn } from "@/lib/utils";
 const PROMPTS = [
   {
     label: "Find my blind spot",
-    goal: "Read the Company Brain, the current decision and my measured calibration patterns. Find the single most important thing I am missing and put it into the workspace where I have to answer it.",
+    goal: "Read get_canvas and the Company Brain. Add one claim or assumption I am missing with add_canvas_node, then connect_nodes to the decision-root. I should see a node appear.",
   },
   {
     label: "Check this against my history",
-    goal: "Read my decision history and calibration patterns, then check whether I am repeating a decision or a rationale that has already failed. If I am, flag it as a contradiction with both sides quoted.",
+    goal: "Read my decision history. If I am repeating a failed rationale, add_canvas_node as an assumption and connect_nodes with kind counters to my current claim.",
   },
   {
     label: "Attack my weakest assumption",
-    goal: "Find the assumption in the Company Brain that this decision most depends on and that is least supported, then argue against it from the perspective best placed to do so, and request the specific evidence that would settle it.",
+    goal: "Find the weakest assumption in the Company Brain. Put it on the canvas as an assumption, connect it to the claim it underwrites, and add a risk if it fails.",
   },
 ];
 
@@ -89,7 +89,7 @@ export function AgentConsole() {
           <code className="type-figure text-[12px] text-ink">getTools()</code>{" "}
           and runs them with{" "}
           <code className="type-figure text-[12px] text-ink">executeTool()</code>
-          . Whatever it changes lands on the same cards you are writing on.
+          . Whatever it adds lands as a node or a mark on the same canvas.
         </p>
       </header>
 

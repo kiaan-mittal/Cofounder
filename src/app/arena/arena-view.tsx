@@ -6,9 +6,12 @@ import { useEffect, useMemo, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 
 import { AgentConsole } from "@/components/arena/agent-console";
+import { CanvasSummary } from "@/components/arena/canvas-summary";
 import { CommitFlow } from "@/components/arena/commit-flow";
-import { DecisionBoard } from "@/components/arena/decision-board";
+import { DecisionCanvas } from "@/components/arena/decision-canvas";
+import { CanvasTurn } from "@/components/arena/canvas-turn";
 import { DecisionGallery, DecisionRail } from "@/components/arena/decision-rail";
+import { DecisionTimeline } from "@/components/arena/decision-timeline";
 import { PerspectiveEmblem } from "@/components/ink/emblems";
 import { TableSketch } from "@/components/ink/table-drawings";
 import { HatchMeter } from "@/components/ink/marks";
@@ -17,18 +20,19 @@ import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Textarea } from "@/components/ui/textarea";
 import { PERSPECTIVES } from "@/lib/perspectives";
+import { argumentsFor, contradictionsFor } from "@/lib/selectors";
 import {
-  actionItemsFor,
-  argumentsFor,
-  contradictionsFor,
-  evidenceFor,
-  reassessmentsFor,
-  risksFor,
-} from "@/lib/selectors";
+  CANVAS_ROOT,
+  landRoundOnCanvas,
+  makeCanvasLink,
+  makeCanvasNode,
+  nextClaimSeat,
+} from "@/lib/canvas-model";
 import { readArenaDraft, writeArenaDraft } from "@/lib/drafts";
 import { useArena } from "@/lib/store";
 import { useDebate, type ReadinessResponse } from "@/lib/use-debate";
-import type { Company, Decision } from "@/lib/types";
+import type { CanvasNode, Company, Decision } from "@/lib/types";
+import { runSparringAgent } from "@/webmcp/agent";
 
 export function ArenaView({
   initialSnapshot,
@@ -98,6 +102,11 @@ function DecisionStart({ company }: { company: Company }) {
   });
   const setActiveDecision = useArena((state) => state.setActiveDecision);
   const decisions = useArena((state) => state.decisions);
+  const canvasNodes = useArena(
+    useShallow((state) =>
+      (state.canvasNodes ?? []).filter((node) => node.decisionId === company.id),
+    ),
+  );
 
   useEffect(() => {
     const fromQuery = queryQuestion(searchParams);
@@ -125,8 +134,8 @@ function DecisionStart({ company }: { company: Company }) {
           {question}
         </p>
         <p className="mt-3 max-w-[52ch] text-[14px] leading-relaxed text-graphite">
-          They read the Company Brain, your record, and then place cards you
-          cannot dismiss by scrolling.
+          They read the Company Brain, your record, and then write onto the
+          same table you have been using.
         </p>
         <div className="mt-10 border border-rule bg-leaf paper-grid px-4 py-4">
           <TableSketch
@@ -164,105 +173,100 @@ function DecisionStart({ company }: { company: Company }) {
   }
 
   return (
-    <div className="mx-auto max-w-[1400px] px-5 py-14 lg:py-20">
+    <div className="mx-auto max-w-[1400px] px-5 py-6 lg:py-8">
       <DecisionRail />
-      <div className="mt-10 grid gap-14 lg:grid-cols-[1.2fr_1fr] lg:gap-24">
+      <div className="mt-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="type-eyebrow">The Arena · {company.name}</p>
-          <h1 className="type-display mt-5 text-[clamp(2.25rem,5.5vw,4rem)] font-semibold leading-[1.02]">
-            What are you deciding?
+          <h1 className="type-display mt-2 text-[clamp(1.6rem,3.4vw,2.2rem)] font-semibold leading-[1.08]">
+            Build the decision on the canvas.
           </h1>
-
-          <form
-            onSubmit={start}
-            action="#"
-            className="mt-10 max-w-[54ch] space-y-6"
-          >
-            <Field
-              id="question"
-              label="The decision"
-              hint="A question with more than one honest answer."
-            >
-              <Textarea
-                id="question"
-                name="question"
-                value={question}
-                onChange={(event) => {
-                  const value = event.target.value;
-                  setQuestion(value);
-                  writeArenaDraft({ question: value, context });
-                }}
-                placeholder="Should I launch now or spend another month polishing?"
-                rows={3}
-                className="type-display min-h-[108px] text-[22px] leading-snug"
-              />
-            </Field>
-
-            <Field
-              id="context"
-              label="What the sources cannot see"
-              hint="Runway, a conversation last week, a constraint that is not public."
-              optional
-            >
-              <Textarea
-                id="context"
-                name="context"
-                value={context}
-                onChange={(event) => {
-                  const value = event.target.value;
-                  setContext(value);
-                  writeArenaDraft({ question, context: value });
-                }}
-                placeholder="Nine months of runway. The waitlist has gone cold."
-                rows={3}
-              />
-            </Field>
-
-            {error ? (
-              <div className="mt-6 border border-rule bg-oxblood-wash px-4 py-3">
-                <p className="text-sm text-ink">{error.message}</p>
-                {error.hint ? (
-                  <p className="mt-1.5 text-[13px] text-graphite">{error.hint}</p>
-                ) : null}
-              </div>
-            ) : null}
-
-            <Button
-              type="submit"
-              size="lg"
-              disabled={question.trim().length < 8}
-              className="mt-8 h-11 px-6 text-[15px]"
-            >
-              Open the round
-            </Button>
-          </form>
-
-          {decisions.length ? (
-            <div className="mt-14 border-t border-rule pt-8">
-              <DecisionGallery
-                decisions={decisions}
-                onOpen={setActiveDecision}
-              />
-            </div>
-          ) : null}
         </div>
-
-        <aside className="border border-rule bg-leaf paper-grid px-4 pb-5 pt-4">
-          <p className="type-eyebrow">Who sits opposite you</p>
-          <TableSketch writing={[]} ready={[]} filled={[]} />
-          <ul className="mt-2 flex justify-between px-1">
-            {PERSPECTIVES.map((perspective) => (
-              <li key={perspective.id} className="flex flex-col items-center gap-1">
-                <PerspectiveEmblem
-                  perspective={perspective.id}
-                  className="size-10"
-                />
-                <span className="type-eyebrow">{perspective.mark}</span>
-              </li>
-            ))}
-          </ul>
-        </aside>
+        <p className="max-w-[42ch] text-[13.5px] leading-relaxed text-graphite">
+          Five objects only. You write in indigo. They write in red. Same map.
+        </p>
       </div>
+
+      <div className="mt-5">
+        <DecisionTimeline
+          current={null}
+          history={decisions}
+          predictions={[]}
+        />
+      </div>
+
+      <div className="mt-4">
+        <DecisionCanvas
+          boardIds={[company.id]}
+          writeId={company.id}
+          title={question}
+          confidence={null}
+          onTitleChange={(value) => {
+            setQuestion(value);
+            writeArenaDraft({ question: value, context });
+          }}
+        />
+      </div>
+
+      <div className="mt-4">
+        <CanvasSummary nodes={canvasNodes} contradictions={[]} />
+      </div>
+
+      <form id="open-round" onSubmit={start} action="#" className="mt-4">
+        <Field
+          id="context"
+          label="What the sources cannot see"
+          hint="Runway, a conversation last week, a constraint that is not public."
+          optional
+        >
+          <Textarea
+            id="context"
+            name="context"
+            value={context}
+            onChange={(event) => {
+              const value = event.target.value;
+              setContext(value);
+              writeArenaDraft({ question, context: value });
+            }}
+            placeholder="Nine months of runway. The waitlist has gone cold."
+            rows={2}
+          />
+        </Field>
+        <input type="hidden" name="question" value={question} />
+        {error ? (
+          <div className="mt-4 border border-rule bg-oxblood-wash px-4 py-3">
+            <p className="text-sm text-ink">{error.message}</p>
+            {error.hint ? (
+              <p className="mt-1.5 text-[13px] text-graphite">{error.hint}</p>
+            ) : null}
+          </div>
+        ) : null}
+      </form>
+
+      <div className="mt-5 flex flex-wrap items-center gap-4">
+        <Button
+          type="submit"
+          form="open-round"
+          size="lg"
+          disabled={question.trim().length < 8}
+          className="h-11 px-6 text-[15px]"
+        >
+          Open the round
+        </Button>
+        <p className="text-[13.5px] text-graphite">
+          Drop a claim. Hand work across. Then open the round and they write on
+          the same map.
+        </p>
+      </div>
+
+      {decisions.length ? (
+        <div className="mt-14 border-t border-rule pt-8">
+          <DecisionGallery
+            decisions={decisions}
+            onOpen={setActiveDecision}
+          />
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -285,25 +289,25 @@ function Workspace({
   // Zustand v5 re-runs the selector on each render and requires a stable
   // snapshot, and an unwrapped filter here loops forever.
   const args = useArena(useShallow((state) => argumentsFor(state, decision.id)));
-  const reassessments = useArena(
-    useShallow((state) => reassessmentsFor(state, decision.id)),
-  );
-  const risks = useArena(useShallow((state) => risksFor(state, decision.id)));
-  const evidence = useArena(
-    useShallow((state) => evidenceFor(state, decision.id)),
-  );
   const contradictions = useArena(
     useShallow((state) => contradictionsFor(state, decision.id)),
   );
-  const actionItems = useArena(
-    useShallow((state) => actionItemsFor(state, decision.id)),
-  );
-  const spotlightId = useArena((state) => state.spotlightId);
   const pendingCommit = useArena((state) => state.pendingCommit);
+  const handoff = useArena((state) => state.handoff);
   const updateDecision = useArena((state) => state.updateDecision);
+  const canvasNodes = useArena(
+    useShallow((state) =>
+      (state.canvasNodes ?? []).filter((node) => node.decisionId === decision.id),
+    ),
+  );
+  const predictions = useArena(
+    useShallow((state) =>
+      state.predictions.filter((item) => item.decisionId === decision.id),
+    ),
+  );
+  const decisions = useArena((state) => state.decisions);
 
   const [defense, setDefense] = useState("");
-  const [target, setTarget] = useState<string | null>(null);
   const [commitOpen, setCommitOpen] = useState(false);
   const [summary, setSummary] = useState<ReadinessResponse | null>(null);
 
@@ -317,13 +321,100 @@ function Workspace({
     }
   }, [pendingCommit, decision.id, committed]);
 
+  useEffect(() => {
+    const store = useArena.getState();
+    const existing = (store.canvasNodes ?? []).filter(
+      (node) => node.decisionId === decision.id,
+    );
+    if (args.length === 0) return;
+    const landed = landRoundOnCanvas({
+      decisionId: decision.id,
+      existing,
+      arguments: args,
+      risks: store.risks.filter((risk) => risk.decisionId === decision.id),
+      evidence: store.evidence.filter((item) => item.decisionId === decision.id),
+      contradictions: store.contradictions.filter(
+        (item) => item.decisionId === decision.id,
+      ),
+    });
+    store.addCanvasNodes(landed.nodes);
+    store.addCanvasLinks(landed.links);
+  }, [decision.id, args]);
+
   async function submitDefense() {
     if (defense.trim().length < 3) return;
     const text = defense.trim();
     setDefense("");
-    const targetId = target;
-    setTarget(null);
-    await defend(decision.id, text, targetId);
+    const store = useArena.getState();
+    const existing = (store.canvasNodes ?? []).filter(
+      (node) => node.decisionId === decision.id,
+    );
+    const seat = nextClaimSeat(existing);
+    const node = makeCanvasNode({
+      decisionId: decision.id,
+      kind: "claim",
+      text,
+      x: seat.x,
+      y: seat.y,
+      author: "founder",
+      stance: "+",
+      seat: "You",
+    });
+    store.addCanvasNode(node);
+    store.addCanvasLink(
+      makeCanvasLink({
+        decisionId: decision.id,
+        fromId: CANVAS_ROOT,
+        toId: node.id,
+        kind: "supports",
+        author: "founder",
+      }),
+    );
+    store.spotlight(node.id);
+    store.setHandoff({
+      nodeId: node.id,
+      instruction: text,
+      status: "working",
+    });
+    try {
+      await runSparringAgent({
+        goal: `The founder just wrote this claim onto the canvas: "${text}" (id ${node.id}). Read get_canvas first. Then add_canvas_node as a challenge, risk, or evidence, and connect_nodes to that claim. They must see your work appear on the same map. Do not only talk — write on the canvas.`,
+        onStep: () => undefined,
+      });
+    } catch {
+      await defend(decision.id, text, null);
+    } finally {
+      const current = useArena.getState().handoff;
+      if (current?.status === "working") {
+        useArena.getState().setHandoff({
+          ...current,
+          status: "returned",
+        });
+      }
+      setTimeout(() => useArena.getState().spotlight(null), 4000);
+    }
+  }
+
+  async function handOff(node: CanvasNode) {
+    const store = useArena.getState();
+    store.setHandoff({
+      nodeId: node.id,
+      instruction: node.text,
+      status: "working",
+    });
+    try {
+      await runSparringAgent({
+        goal: `The founder handed you this ${node.kind}: "${node.text}" (id ${node.id}). Read get_canvas first. Stress-test it. Then return_work as a new evidence, risk, or claim linked to that node. They should see your work appear on the canvas.`,
+        onStep: () => undefined,
+      });
+    } catch {
+      /* Agent console still shows tool traffic. */
+    } finally {
+      const current = useArena.getState().handoff;
+      if (current?.status === "working") {
+        useArena.getState().setHandoff({ ...current, status: "returned" });
+      }
+    }
   }
 
   async function openCommit() {
@@ -365,28 +456,56 @@ function Workspace({
         ) : null}
       </header>
 
-      <div className="mt-10">
-        <DecisionBoard
-          decision={decision}
-          companyName={company.name}
-          args={args}
-          reassessments={reassessments}
-          risks={risks}
-          evidence={evidence}
-          contradictions={contradictions}
-          actionItems={actionItems}
-          spotlightId={spotlightId}
-          busy={busy}
-          openingReady={openingReady}
-          defense={defense}
-          target={target}
-          onDefenseChange={setDefense}
-          onTarget={setTarget}
-          onSubmitDefense={submitDefense}
-          onOpenRound={() =>
-            openRound(decision.question, decision.context, decision.id)
-          }
+      <div className="mt-6">
+        <DecisionTimeline
+          current={decision}
+          history={decisions}
+          predictions={predictions}
         />
+      </div>
+
+      <div className="mt-4">
+        <DecisionCanvas
+          boardIds={[decision.id, company.id]}
+          writeId={decision.id}
+          title={decision.question}
+          confidence={decision.agentConfidence}
+          onHandoff={(node) => void handOff(node)}
+        />
+      </div>
+
+      {!committed ? (
+        <div className="mt-4">
+          <CanvasTurn
+            value={defense}
+            busy={handoff?.status === "working"}
+            onChange={setDefense}
+            onSubmit={() => void submitDefense()}
+          />
+        </div>
+      ) : null}
+
+      {args.length === 0 && !committed ? (
+        <div className="mt-4 flex flex-wrap items-center gap-4">
+          <Button
+            type="button"
+            disabled={busy !== null}
+            onClick={() =>
+              void openRound(decision.question, decision.context, decision.id)
+            }
+          >
+            {busy === "opening" ? "Writing…" : "Let them write"}
+          </Button>
+          {busy === "opening" && openingReady.length ? (
+            <p className="type-eyebrow">
+              {openingReady.length} of {PERSPECTIVES.length} seats
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
+      <div className="mt-4">
+        <CanvasSummary nodes={canvasNodes} contradictions={contradictions} />
       </div>
 
       {error ? (

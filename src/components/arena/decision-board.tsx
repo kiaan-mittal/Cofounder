@@ -278,7 +278,7 @@ function EmptyTable({
   );
 }
 
-function TableObjects({
+export function TableObjects({
   contradictions,
   risks,
   evidence,
@@ -379,7 +379,7 @@ function TableObjects({
   );
 }
 
-function RoundComposer({
+export function RoundComposer({
   value,
   busy,
   onChange,
@@ -403,7 +403,7 @@ function RoundComposer({
           name="defense"
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          placeholder="Or write on the whole table. Click a card to answer one seat."
+          placeholder="Answer the table. This goes to the Arena as your defense — and as indigo ink."
           rows={2}
           disabled={busy}
           className="min-h-[64px] flex-1 resize-none rounded-none border-0 bg-paper px-3 py-2 text-[16px] shadow-none focus-visible:ring-0"

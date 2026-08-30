@@ -1,5 +1,7 @@
 "use client";
 
+import { makeDrawing, makeNote, marksForArgument, nextNoteSeat } from "@/lib/board";
+import { landRoundOnCanvas } from "@/lib/canvas-model";
 import { id, now } from "@/lib/id";
 import { activeDecision } from "@/lib/selectors";
 import { useArena } from "@/lib/store";
@@ -68,7 +70,7 @@ export const debateTools: ArenaTool[] = [
     group: "debate",
     humanLabel: "Add an argument",
     description:
-      "Add a new argument to the open decision, attributed to one of the five Arena perspectives. Use this when you have found something the current round missed — grounded in the Company Brain or the founder's decision history, not in general startup advice. State the claim in one sentence and put the support in reasoning. Set strength honestly: an argument resting on an unverified assumption should not be a 90.",
+      "Write a structured argument onto the shared table, attributed to one of the five Arena seats. The founder sees this as ink, not a chat reply. Use it when you have found something the current round missed — grounded in the Company Brain or the founder's history. Prefer write_on_board and draw_on_board when you just need them to see a sentence or a mark. State the claim in one sentence and put the support in reasoning.",
     inputSchema: {
       type: "object",
       properties: {
@@ -140,10 +142,28 @@ export const debateTools: ArenaTool[] = [
       };
 
       state().addArgument(argument);
+      state().addBoardMarks(
+        marksForArgument(
+          argument,
+          state().boardMarks.filter((mark) => mark.decisionId === decision.id),
+        ),
+      );
+      const landed = landRoundOnCanvas({
+        decisionId: decision.id,
+        existing: (state().canvasNodes ?? []).filter(
+          (node) => node.decisionId === decision.id,
+        ),
+        arguments: [argument],
+        risks: [],
+        evidence: [],
+        contradictions: [],
+      });
+      state().addCanvasNodes(landed.nodes);
+      state().addCanvasLinks(landed.links);
       spotlight(argument.id);
 
       return toolResult(
-        `Added a ${argument.stance} argument from the ${argument.perspective} seat.`,
+        `Wrote a ${argument.stance} argument from the ${argument.perspective} seat onto the table.`,
         { argumentId: argument.id, claim: argument.claim },
       );
     },
@@ -205,6 +225,12 @@ export const debateTools: ArenaTool[] = [
       };
 
       s.addArgument(counter);
+      s.addBoardMarks(
+        marksForArgument(
+          counter,
+          s.boardMarks.filter((mark) => mark.decisionId === target.decisionId),
+        ),
+      );
       s.updateArgument(target.id, {
         status: "unresolved",
         strength: Math.max(0, target.strength - weakensBy),
@@ -289,7 +315,8 @@ export const debateTools: ArenaTool[] = [
       }
 
       const contradictionId = id("con");
-      state().addContradiction({
+      const s = state();
+      s.addContradiction({
         id: contradictionId,
         decisionId: decision.id,
         summary,
@@ -300,6 +327,31 @@ export const debateTools: ArenaTool[] = [
         channel: currentChannel(),
         createdAt: now(),
       });
+      const seat = nextNoteSeat(
+        s.boardMarks.filter((mark) => mark.decisionId === decision.id),
+      );
+      s.addBoardMark(
+        makeNote({
+          decisionId: decision.id,
+          text: `${summary}\n${sideA} / ${sideB}`,
+          x: seat.x,
+          y: seat.y,
+          author: "agent",
+          channel: currentChannel(),
+        }),
+      );
+      s.addBoardMark(
+        makeDrawing({
+          decisionId: decision.id,
+          shape: "cross",
+          x: Math.min(86, seat.x + 16),
+          y: Math.max(2, seat.y - 3),
+          w: 12,
+          h: 12,
+          author: "agent",
+          channel: currentChannel(),
+        }),
+      );
       spotlight(contradictionId);
 
       return toolResult(
@@ -334,7 +386,8 @@ export const debateTools: ArenaTool[] = [
       if (!title) return toolError("A risk needs a title.");
 
       const riskId = id("risk");
-      state().addRisk({
+      const s = state();
+      s.addRisk({
         id: riskId,
         decisionId: decision.id,
         title,
@@ -352,6 +405,31 @@ export const debateTools: ArenaTool[] = [
         channel: currentChannel(),
         createdAt: now(),
       });
+      const seat = nextNoteSeat(
+        s.boardMarks.filter((mark) => mark.decisionId === decision.id),
+      );
+      s.addBoardMark(
+        makeNote({
+          decisionId: decision.id,
+          text: `${title} — ${str(args.detail, title)}`,
+          x: seat.x,
+          y: seat.y,
+          author: "agent",
+          channel: currentChannel(),
+        }),
+      );
+      s.addBoardMark(
+        makeDrawing({
+          decisionId: decision.id,
+          shape: "circle",
+          x: Math.max(1, seat.x - 2),
+          y: Math.max(1, seat.y - 2),
+          w: 22,
+          h: 16,
+          author: "agent",
+          channel: currentChannel(),
+        }),
+      );
       spotlight(riskId);
 
       return toolResult(`Risk added: ${title}`, { riskId });

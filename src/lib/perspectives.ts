@@ -53,7 +53,7 @@ export const PERSPECTIVES: PerspectiveMeta[] = [
   },
   {
     id: "financial",
-    name: "Financial Co-Founder",
+    name: "CFO",
     remit: "Argues about what this costs you in money and in time.",
     focus: ["revenue", "costs", "runway", "unit economics", "expected value"],
     mark: "FI",
@@ -81,4 +81,26 @@ export const PERSPECTIVE_MAP: Record<PerspectiveId, PerspectiveMeta> =
 
 export function perspectiveName(perspectiveId: PerspectiveId): string {
   return PERSPECTIVE_MAP[perspectiveId]?.name ?? perspectiveId;
+}
+
+/** The word on a canvas card. Not the job title. */
+export function perspectiveSeat(perspectiveId: PerspectiveId): string {
+  if (perspectiveId === "technical") return "Tech";
+  if (perspectiveId === "product") return "Product";
+  if (perspectiveId === "gtm") return "GTM";
+  if (perspectiveId === "financial") return "CFO";
+  return "Contra";
+}
+
+export function seatToPerspective(seat?: string): PerspectiveId | null {
+  if (!seat) return null;
+  const key = seat.toLowerCase();
+  if (key === "tech" || key === "technical") return "technical";
+  if (key === "product") return "product";
+  if (key === "gtm") return "gtm";
+  if (key === "cfo" || key === "finance" || key === "money" || key === "financial") {
+    return "financial";
+  }
+  if (key === "contra" || key === "contrarian") return "contrarian";
+  return null;
 }
