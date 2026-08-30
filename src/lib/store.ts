@@ -1,0 +1,400 @@
+"use client";
+
+import { create } from "zustand";
+
+import { id, now } from "@/lib/id";
+import type {
+  ActionItem,
+  Actor,
+  AgentChannel,
+  Argument,
+  Company,
+  Contradiction,
+  Decision,
+  Defense,
+  Evidence,
+  FounderPattern,
+  Outcome,
+  Prediction,
+  Reassessment,
+  Risk,
+  ToolCall,
+} from "@/lib/types";
+
+/**
+ * The Arena keeps its workspace in the page. Persistence is Supabase, keyed
+ * by the GitHub account that signed in. WebMCP still mutates this live state
+ * so the founder and an agent are looking at the same record.
+ */
+
+export interface PendingCommit {
+  decisionId: string;
+  optionId: string;
+  optionLabel: string;
+  rationale: string;
+  proposedBy: AgentChannel;
+  proposedAt: string;
+}
+
+export interface ArenaState {
+  hydrated: boolean;
+
+  company: Company | null;
+  decisions: Decision[];
+  argumentList: Argument[];
+  defenses: Defense[];
+  reassessments: Reassessment[];
+  risks: Risk[];
+  evidence: Evidence[];
+  contradictions: Contradiction[];
+  actionItems: ActionItem[];
+  predictions: Prediction[];
+  outcomes: Outcome[];
+  patterns: FounderPattern[];
+  toolCalls: ToolCall[];
+
+  activeDecisionId: string | null;
+  /** Highlighted by an agent tool call so the founder can see what changed. */
+  spotlightId: string | null;
+  /**
+   * A commitment an agent has proposed but the founder has not confirmed.
+   * Committing is the one irreversible act in the Arena, so it stays human.
+   */
+  pendingCommit: PendingCommit | null;
+
+  setCompany: (company: Company) => void;
+  clearWorkspace: () => void;
+  importWorkspace: (snapshot: Partial<ArenaState>) => void;
+
+  createDecision: (
+    input: Pick<Decision, "question" | "context" | "options">,
+  ) => Decision;
+  setActiveDecision: (decisionId: string | null) => void;
+  updateDecision: (decisionId: string, patch: Partial<Decision>) => void;
+
+  addArgument: (argument: Argument) => void;
+  addArguments: (args: Argument[]) => void;
+  updateArgument: (argumentId: string, patch: Partial<Argument>) => void;
+
+  addDefense: (defense: Defense) => void;
+  addReassessments: (items: Reassessment[]) => void;
+
+  addRisk: (risk: Risk) => void;
+  updateRisk: (riskId: string, patch: Partial<Risk>) => void;
+
+  addEvidence: (item: Evidence) => void;
+  updateEvidence: (evidenceId: string, patch: Partial<Evidence>) => void;
+
+  addContradiction: (item: Contradiction) => void;
+  resolveContradiction: (contradictionId: string, resolution: string) => void;
+
+  addActionItem: (item: ActionItem) => void;
+  toggleActionItem: (actionItemId: string) => void;
+
+  addPrediction: (prediction: Prediction) => void;
+  recordActual: (
+    predictionId: string,
+    actualValue: number,
+  ) => Prediction | null;
+
+  addOutcome: (outcome: Outcome) => void;
+  setPatterns: (patterns: FounderPattern[]) => void;
+
+  logToolCall: (call: Omit<ToolCall, "id" | "at">) => void;
+  spotlight: (targetId: string | null) => void;
+  proposeCommit: (proposal: PendingCommit | null) => void;
+  markHydrated: () => void;
+}
+
+type WorkspaceData = Omit<
+  ArenaState,
+  | "hydrated"
+  | "setCompany"
+  | "clearWorkspace"
+  | "importWorkspace"
+  | "createDecision"
+  | "setActiveDecision"
+  | "updateDecision"
+  | "addArgument"
+  | "addArguments"
+  | "updateArgument"
+  | "addDefense"
+  | "addReassessments"
+  | "addRisk"
+  | "updateRisk"
+  | "addEvidence"
+  | "updateEvidence"
+  | "addContradiction"
+  | "resolveContradiction"
+  | "addActionItem"
+  | "toggleActionItem"
+  | "addPrediction"
+  | "recordActual"
+  | "addOutcome"
+  | "setPatterns"
+  | "logToolCall"
+  | "spotlight"
+  | "proposeCommit"
+  | "markHydrated"
+>;
+
+export type WorkspaceSnapshot = WorkspaceData;
+
+export function getWorkspaceSnapshot(): WorkspaceSnapshot {
+  const {
+    company,
+    decisions,
+    argumentList,
+    defenses,
+    reassessments,
+    risks,
+    evidence,
+    contradictions,
+    actionItems,
+    predictions,
+    outcomes,
+    patterns,
+    toolCalls,
+    activeDecisionId,
+    spotlightId,
+    pendingCommit,
+  } = useArena.getState();
+  return {
+    company,
+    decisions,
+    argumentList,
+    defenses,
+    reassessments,
+    risks,
+    evidence,
+    contradictions,
+    actionItems,
+    predictions,
+    outcomes,
+    patterns,
+    toolCalls,
+    activeDecisionId,
+    spotlightId,
+    pendingCommit,
+  };
+}
+
+export function snapshotIsEmpty(snapshot: Partial<WorkspaceSnapshot>) {
+  return !snapshot.company && !(snapshot.decisions && snapshot.decisions.length);
+}
+
+const emptyWorkspace = (): WorkspaceData => ({
+  company: null,
+  decisions: [],
+  argumentList: [],
+  defenses: [],
+  reassessments: [],
+  risks: [],
+  evidence: [],
+  contradictions: [],
+  actionItems: [],
+  predictions: [],
+  outcomes: [],
+  patterns: [],
+  toolCalls: [],
+  activeDecisionId: null,
+  spotlightId: null,
+  pendingCommit: null,
+});
+
+function createArenaStore() {
+  return create<ArenaState>()((set, get) => ({
+  hydrated: false,
+  ...emptyWorkspace(),
+
+      setCompany: (company) => set({ company }),
+
+      clearWorkspace: () => set(emptyWorkspace()),
+
+      importWorkspace: (snapshot) =>
+        set({ ...emptyWorkspace(), ...snapshot, hydrated: true }),
+
+      createDecision: ({ question, context, options }) => {
+        const company = get().company;
+        const decision: Decision = {
+          id: id("dec"),
+          companyId: company?.id ?? "unknown",
+          question,
+          context,
+          options,
+          status: "open",
+          founderConfidence: 50,
+          agentConfidence: 50,
+          round: 0,
+          createdAt: now(),
+        };
+        set((state) => ({
+          decisions: [decision, ...state.decisions],
+          activeDecisionId: decision.id,
+        }));
+        return decision;
+      },
+
+      setActiveDecision: (decisionId) => set({ activeDecisionId: decisionId }),
+
+      updateDecision: (decisionId, patch) =>
+        set((state) => ({
+          decisions: state.decisions.map((d) =>
+            d.id === decisionId ? { ...d, ...patch } : d,
+          ),
+        })),
+
+      addArgument: (argument) =>
+        set((state) => ({ argumentList: [...state.argumentList, argument] })),
+
+      addArguments: (args) =>
+        set((state) => ({ argumentList: [...state.argumentList, ...args] })),
+
+      updateArgument: (argumentId, patch) =>
+        set((state) => ({
+          argumentList: state.argumentList.map((a) =>
+            a.id === argumentId ? { ...a, ...patch } : a,
+          ),
+        })),
+
+      addDefense: (defense) =>
+        set((state) => ({ defenses: [...state.defenses, defense] })),
+
+      addReassessments: (items) =>
+        set((state) => {
+          const byArgument = new Map(items.map((r) => [r.argumentId, r]));
+          return {
+            reassessments: [...state.reassessments, ...items],
+            argumentList: state.argumentList.map((a) => {
+              const r = byArgument.get(a.id);
+              if (!r) return a;
+              const strength = clamp(a.strength + r.strengthDelta);
+              const status: Argument["status"] =
+                r.verdict === "conceded"
+                  ? "conceded"
+                  : r.verdict === "weakened"
+                    ? "weakened"
+                    : r.verdict === "reinforced"
+                      ? "reinforced"
+                      : "unresolved";
+              return { ...a, strength, status };
+            }),
+          };
+        }),
+
+      addRisk: (risk) => set((state) => ({ risks: [...state.risks, risk] })),
+
+      updateRisk: (riskId, patch) =>
+        set((state) => ({
+          risks: state.risks.map((r) =>
+            r.id === riskId ? { ...r, ...patch } : r,
+          ),
+        })),
+
+      addEvidence: (item) =>
+        set((state) => ({ evidence: [...state.evidence, item] })),
+
+      updateEvidence: (evidenceId, patch) =>
+        set((state) => ({
+          evidence: state.evidence.map((e) =>
+            e.id === evidenceId ? { ...e, ...patch } : e,
+          ),
+        })),
+
+      addContradiction: (item) =>
+        set((state) => ({ contradictions: [...state.contradictions, item] })),
+
+      resolveContradiction: (contradictionId, resolution) =>
+        set((state) => ({
+          contradictions: state.contradictions.map((c) =>
+            c.id === contradictionId
+              ? { ...c, resolved: true, resolution }
+              : c,
+          ),
+        })),
+
+      addActionItem: (item) =>
+        set((state) => ({ actionItems: [...state.actionItems, item] })),
+
+      toggleActionItem: (actionItemId) =>
+        set((state) => ({
+          actionItems: state.actionItems.map((a) =>
+            a.id === actionItemId ? { ...a, done: !a.done } : a,
+          ),
+        })),
+
+      addPrediction: (prediction) =>
+        set((state) => ({ predictions: [...state.predictions, prediction] })),
+
+      recordActual: (predictionId, actualValue) => {
+        const prediction = get().predictions.find((p) => p.id === predictionId);
+        if (!prediction) return null;
+
+        const ratio =
+          actualValue === 0
+            ? prediction.expectedValue === 0
+              ? 1
+              : Number.POSITIVE_INFINITY
+            : prediction.expectedValue / actualValue;
+
+        const hitRatio = Math.abs(ratio - 1);
+        const status: Prediction["status"] =
+          hitRatio <= 0.1 ? "hit" : hitRatio <= 0.35 ? "partial" : "missed";
+
+        const updated: Prediction = {
+          ...prediction,
+          actualValue,
+          ratio: Number.isFinite(ratio) ? ratio : 99,
+          status,
+          evaluatedAt: now(),
+        };
+
+        set((state) => ({
+          predictions: state.predictions.map((p) =>
+            p.id === predictionId ? updated : p,
+          ),
+        }));
+        return updated;
+      },
+
+      addOutcome: (outcome) =>
+        set((state) => ({
+          outcomes: [
+            ...state.outcomes.filter((o) => o.decisionId !== outcome.decisionId),
+            outcome,
+          ],
+        })),
+
+      setPatterns: (patterns) => set({ patterns }),
+
+      logToolCall: (call) =>
+        set((state) => ({
+          toolCalls: [
+            { ...call, id: id("call"), at: now() },
+            ...state.toolCalls,
+          ].slice(0, 60),
+        })),
+
+      spotlight: (targetId) => set({ spotlightId: targetId }),
+
+      proposeCommit: (proposal) => set({ pendingCommit: proposal }),
+
+      markHydrated: () => set({ hydrated: true }),
+}));
+}
+
+type ArenaStore = ReturnType<typeof createArenaStore>;
+
+export const useArena: ArenaStore =
+  typeof window === "undefined"
+    ? createArenaStore()
+    : ((globalThis as typeof globalThis & { __decisionArena?: ArenaStore })
+        .__decisionArena ??= createArenaStore());
+
+function clamp(value: number, min = 0, max = 100): number {
+  return Math.max(min, Math.min(max, Math.round(value)));
+}
+
+export function makeActorMeta(createdBy: Actor, channel?: AgentChannel) {
+  return { createdBy, channel, createdAt: now() };
+}
