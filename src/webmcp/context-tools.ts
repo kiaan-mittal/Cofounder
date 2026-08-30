@@ -1,5 +1,6 @@
 "use client";
 
+import { detectPatterns, warningsForDecision } from "@/lib/calibration";
 import { calibrationSnapshot, decisionHistory, decisionSnapshot, openRisksFor, activeDecision } from "@/lib/selectors";
 import { useArena } from "@/lib/store";
 import { toolError, toolResult } from "@/webmcp/spec";
@@ -35,7 +36,7 @@ export const contextTools: ArenaTool[] = [
     humanLabel: "Read the Company Brain",
     description:
       "Read the Company Brain: what this company builds, who it sells to, its stack, and — critically — the separation between FACTS drawn from the founder's website and repository, and ASSUMPTIONS the company is betting on without proof. Call this before making any argument, so your reasoning is about this company rather than startups in general. Facts carry source quotes; assumptions carry ids you can cite when you challenge them.",
-    annotations: { readOnlyHint: true },
+    annotations: { readOnlyHint: true, untrustedContentHint: true },
     inputSchema: {
       type: "object",
       properties: {
@@ -137,6 +138,7 @@ export const contextTools: ArenaTool[] = [
           [],
         );
       }
+      raiseHistoryAlert("get_decision_history", "history");
       return toolResult(`${filtered.length} decisions on record.`, filtered);
     },
   },
@@ -159,7 +161,7 @@ export const contextTools: ArenaTool[] = [
       },
     },
     execute: ({ domain }) => {
-      const patterns = state().patterns;
+      const patterns = livePatterns();
       const filtered =
         typeof domain === "string" && domain
           ? patterns.filter((p) => p.domain === domain)
@@ -170,6 +172,7 @@ export const contextTools: ArenaTool[] = [
           [],
         );
       }
+      raiseHistoryAlert("get_founder_patterns", "calibration", filtered);
       return toolResult(`${filtered.length} measured patterns.`, filtered);
     },
   },
@@ -244,3 +247,66 @@ export const contextTools: ArenaTool[] = [
       toolResult("Founder calibration profile.", calibrationSnapshot(state())),
   },
 ];
+
+function livePatterns() {
+  const s = state();
+  if (!s.company) return s.patterns;
+  const next = detectPatterns(s.company.id, s.predictions, s.decisions);
+  const same =
+    s.patterns.length === next.length &&
+    s.patterns.every((pattern, index) => pattern.insight === next[index]?.insight);
+  if (!same) s.setPatterns(next);
+  return same ? s.patterns : next;
+}
+
+function raiseHistoryAlert(
+  tool: string,
+  source: "history" | "calibration",
+  patterns = livePatterns(),
+) {
+  const s = state();
+  const current = activeDecision(s);
+  const warning = warningsForDecision(current?.question ?? "", patterns)[0];
+  if (warning) {
+    s.raisePatternAlert({
+      title: "Pattern detected",
+      body: warning.insight,
+      source,
+      tool,
+    });
+    return;
+  }
+  const history = decisionHistory(s);
+  const repeat = current
+    ? history.find(
+        (entry) =>
+          entry.question !== current.question &&
+          shareDecisionShape(entry.question, current.question),
+      )
+    : null;
+  if (repeat) {
+    s.raisePatternAlert({
+      title: "Pattern detected",
+      body: `You have been here before: “${repeat.question}” (${repeat.status}). Defend why this time is different.`,
+      source: "history",
+      tool,
+    });
+  }
+}
+
+function shareDecisionShape(a: string, b: string) {
+  const tokens = (value: string) =>
+    new Set(
+      value
+        .toLowerCase()
+        .split(/[^a-z0-9]+/)
+        .filter((token) => token.length > 3),
+    );
+  const left = tokens(a);
+  const right = tokens(b);
+  let overlap = 0;
+  left.forEach((token) => {
+    if (right.has(token)) overlap += 1;
+  });
+  return overlap >= 2;
+}

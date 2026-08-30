@@ -8,9 +8,10 @@ import { HydrateWorkspace } from "@/components/shell/require-company";
 import { Button } from "@/components/ui/button";
 import { useArena } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { readToolOutput } from "@/webmcp/compat";
 import { getModelContext } from "@/webmcp/registry";
 import { useWebMCP } from "@/webmcp/provider";
-import type { RegisteredTool } from "@/webmcp/spec";
+import { nativeModelContext, type RegisteredTool } from "@/webmcp/spec";
 import { ARENA_TOOLS, TOOL_GROUPS } from "@/webmcp/tools";
 
 export function WebMCPView({
@@ -100,6 +101,29 @@ export function WebMCPView({
           value={company ? company.name : "not loaded"}
           tone={company ? "moss" : "pencil"}
         />
+      </div>
+
+      <div className="mt-8 max-w-[70ch] border border-rule bg-leaf px-5 py-4">
+        <p className="type-eyebrow">ChatGPT desktop</p>
+        <p className="mt-2 text-[14.5px] leading-relaxed text-ink">
+          Open this HTTPS URL in ChatGPT desktop&rsquo;s in-app browser (Sol or
+          Terra). Luna and most Enterprise builds do not expose{" "}
+          <code className="type-figure text-[13px]">document.modelContext</code>
+          . Wait until the page finishes loading — tools register once per tab
+          and stay registered. Chrome 149+ with{" "}
+          <code className="type-figure text-[13px]">
+            chrome://flags/#enable-webmcp-testing
+          </code>{" "}
+          is the other supported path.
+        </p>
+        <p className="mt-3 text-[14.5px] leading-relaxed text-graphite">
+          If the workspace is empty, tools will say there is no brain. Sign in
+          and{" "}
+          <Link href="/onboarding" className="underline underline-offset-4">
+            open the worked example
+          </Link>{" "}
+          first so a judge can read a company and a live decision.
+        </p>
       </div>
 
       {!company ? (
@@ -290,8 +314,11 @@ function ReadOnlyRunner({ tool }: { tool: RegisteredTool | null }) {
 
     setRunning(true);
     try {
-      const result = await modelContext.executeTool(tool, {});
-      setOutput(result.content.map((part) => part.text).join("\n"));
+      const result = await modelContext.executeTool(
+        tool,
+        nativeModelContext() ? "{}" : {},
+      );
+      setOutput(readToolOutput(result).text);
     } catch (error) {
       setOutput(
         error instanceof Error ? error.message : "The tool call failed.",

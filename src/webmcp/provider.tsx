@@ -9,14 +9,10 @@ import type { WebMCPSupport } from "@/webmcp/spec";
 /**
  * Registers the Arena's tool surface for the lifetime of the tab.
  *
- * This is a boot component plus a module store — not a React tree wrapper —
- * so the root layout can keep `{children}` as a server slot. Wrapping the
- * page slot in a client provider is what trips Next 15.5's webpack
- * `clientReferenceManifest` invariant.
- *
- * Registration is scoped to an AbortController because the WebMCP spec has no
- * unregisterTool() — aborting the signal is the documented way to take tools
- * off the table.
+ * ChatGPT's desktop browser and Chrome look for document.modelContext as
+ * soon as the page's JS runs. Aborting on React Strict Mode unmount was
+ * unregistering every tool before a judge's agent could see them — so
+ * registration is started once per tab and never aborted from here.
  */
 
 interface WebMCPSnapshot extends RegistrationOutcome {
@@ -31,25 +27,30 @@ const idle: WebMCPSnapshot = {
 
 let snapshot: WebMCPSnapshot = idle;
 const listeners = new Set<() => void>();
+let started = false;
 
 function publish(next: WebMCPSnapshot) {
   snapshot = next;
   listeners.forEach((listener) => listener());
 }
 
+export function bootWebMCP() {
+  if (started || typeof window === "undefined") return;
+  started = true;
+  void registerArenaTools(ARENA_TOOLS, new AbortController().signal).then(
+    (result) => {
+      publish({ ...result, ready: true });
+    },
+  );
+}
+
+if (typeof window !== "undefined") {
+  bootWebMCP();
+}
+
 export function WebMCPBoot() {
   useEffect(() => {
-    const controller = new AbortController();
-    let cancelled = false;
-
-    registerArenaTools(ARENA_TOOLS, controller.signal).then((result) => {
-      if (!cancelled) publish({ ...result, ready: true });
-    });
-
-    return () => {
-      cancelled = true;
-      controller.abort();
-    };
+    bootWebMCP();
   }, []);
 
   return null;

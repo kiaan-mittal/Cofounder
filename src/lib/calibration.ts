@@ -150,7 +150,76 @@ export function detectPatterns(
     });
   }
 
+  const launchLike = decisions.filter((decision) =>
+    LAUNCH_RE.test(decision.question),
+  );
+  const delayedLaunch = launchLike.filter(
+    (decision) =>
+      decision.status === "investigating" ||
+      decision.status === "abandoned" ||
+      DELAY_RE.test(decision.commitmentRationale ?? ""),
+  );
+  if (delayedLaunch.length >= 2) {
+    patterns.push({
+      id: id("pat"),
+      companyId,
+      domain: "commitment",
+      insight: `You delayed launch in ${delayedLaunch.length} previous decisions. Speed-to-market was already on the table and you chose more time.`,
+      confidence: Math.min(94, 50 + delayedLaunch.length * 12),
+      sampleSize: delayedLaunch.length,
+      decisionIds: delayedLaunch.map((decision) => decision.id),
+      detectedAt: new Date().toISOString(),
+    });
+  }
+
   return patterns;
+}
+
+const LAUNCH_RE = /launch|ship\b|polish|release|go to market|go-to-market/i;
+const DELAY_RE = /later|polish|wait|another month|not yet|delay|hold/i;
+
+/** Patterns that belong on this decision, not the founder's whole life. */
+export function warningsForDecision(
+  question: string,
+  patterns: FounderPattern[],
+): FounderPattern[] {
+  if (patterns.length === 0) return [];
+  const q = question.toLowerCase();
+  const matched = patterns.filter((pattern) => {
+    if (pattern.domain === "commitment") return true;
+    if (
+      LAUNCH_RE.test(q) &&
+      (pattern.domain === "growth" ||
+        pattern.domain === "distribution" ||
+        pattern.domain === "timeline")
+    ) {
+      return true;
+    }
+    if (/price|charg|revenue|paid|fee/.test(q) && pattern.domain === "revenue") {
+      return true;
+    }
+    if (
+      /rebuild|backend|architect|migrat|stack|tech/.test(q) &&
+      (pattern.domain === "technical" || pattern.domain === "timeline")
+    ) {
+      return true;
+    }
+    if (/user|growth|signup|adopt/.test(q) && pattern.domain === "growth") {
+      return true;
+    }
+    return pattern.confidence >= 78;
+  });
+  const unique = matched.length ? matched : patterns.slice(0, 1);
+  return unique
+    .slice()
+    .sort((a, b) => rankWarning(a) - rankWarning(b))
+    .slice(0, 3);
+}
+
+function rankWarning(pattern: FounderPattern) {
+  if (/delayed launch/i.test(pattern.insight)) return 0;
+  if (pattern.domain === "commitment") return 1;
+  return 2;
 }
 
 /**

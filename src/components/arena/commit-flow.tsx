@@ -74,8 +74,12 @@ export function CommitFlow({
     if (!open) {
       setStage("readiness");
       setAcknowledged(false);
+      return;
     }
-  }, [open]);
+    if (decision.status === "committed") {
+      setStage("prediction");
+    }
+  }, [open, decision.status]);
 
   // An agent may have staged a commitment; pre-fill it so the founder is
   // confirming the agent's proposal rather than retyping it.
