@@ -425,3 +425,13 @@ export interface ToolCall {
   durationMs: number;
   at: string;
 }
+
+/** A live stamp on the floor when history or a tool finds a pattern. */
+export interface PatternAlert {
+  id: string;
+  title: string;
+  body: string;
+  source: "history" | "calibration" | "tool";
+  tool?: string;
+  at: string;
+}

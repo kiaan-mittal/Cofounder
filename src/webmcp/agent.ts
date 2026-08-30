@@ -1,7 +1,8 @@
 "use client";
 
+import { readToolOutput } from "@/webmcp/compat";
 import { getModelContext, withChannel } from "@/webmcp/registry";
-import type { RegisteredTool, ToolResult } from "@/webmcp/spec";
+import { nativeModelContext, type RegisteredTool } from "@/webmcp/spec";
 
 /**
  * The in-page sparring agent.
@@ -135,9 +136,13 @@ export async function runSparringAgent({
       // Execution — through WebMCP, attributed honestly in the tool log.
       // Native Chrome / ChatGPT take a JSON string and return a DOMString.
       const result = await withChannel("in-page-agent", () =>
-        modelContext.executeTool(target, args, { signal }),
+        modelContext.executeTool(
+          target,
+          nativeModelContext() ? JSON.stringify(args) : args,
+          { signal },
+        ),
       );
-      const { text, ok } = readToolResult(result);
+      const { text, ok } = readToolOutput(result);
 
       transcript.push({ tool: target.name, args, result: text.slice(0, 4000) });
       onStep({
@@ -223,18 +228,3 @@ async function planSparringStep({
   };
 }
 
-function readToolResult(result: ToolResult | string): {
-  text: string;
-  ok: boolean;
-} {
-  if (typeof result === "string") {
-    return { text: result, ok: true };
-  }
-  if (result && typeof result === "object" && Array.isArray(result.content)) {
-    return {
-      text: result.content.map((part) => part.text).join("\n"),
-      ok: result.isError !== true,
-    };
-  }
-  return { text: String(result ?? ""), ok: true };
-}

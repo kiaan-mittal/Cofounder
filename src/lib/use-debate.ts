@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 
 import { ApiError, post, readEventStream } from "@/lib/api";
+import { detectPatterns } from "@/lib/calibration";
 import { landArguments, makeNote, nextNoteSeat } from "@/lib/board";
 import { landRoundOnCanvas } from "@/lib/canvas-model";
 import { id, now } from "@/lib/id";
@@ -74,7 +75,9 @@ function debateContext(state: ArenaState, question: string, founderContext: stri
     brain: state.company!.brain,
     question,
     founderContext,
-    patterns: state.patterns,
+    patterns: state.company
+      ? detectPatterns(state.company.id, state.predictions, state.decisions)
+      : state.patterns,
     history: decisionHistory(state).map((entry) => ({
       question: entry.question,
       status: entry.status,

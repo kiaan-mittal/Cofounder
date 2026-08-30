@@ -2,12 +2,14 @@
 
 import { useArena } from "@/lib/store";
 import type { AgentChannel } from "@/lib/types";
+import { coerceToolArgs, nativeToolText, toolAudience } from "@/webmcp/compat";
 import { ensureModelContext, isPolyfilled } from "@/webmcp/polyfill";
 import {
   nativeModelContext,
   toolError,
   type ModelContext,
   type ToolDefinition,
+  type ToolExecuteOptions,
   type ToolResult,
   type WebMCPSupport,
 } from "@/webmcp/spec";
@@ -51,11 +53,15 @@ export function currentChannel(): AgentChannel {
 /* Instrumentation                                                     */
 /* ------------------------------------------------------------------ */
 
-export interface ArenaTool extends ToolDefinition {
+export interface ArenaTool extends Omit<ToolDefinition, "execute"> {
   /** Grouping used by the README and the tool-surface panel. */
   group: "context" | "debate" | "action" | "outcome";
   /** What the founder sees in the log when the tool runs. */
   humanLabel: string;
+  execute: (
+    args: Record<string, unknown>,
+    options?: ToolExecuteOptions,
+  ) => ToolResult | string | Promise<ToolResult | string>;
 }
 
 /**
@@ -66,17 +72,23 @@ export interface ArenaTool extends ToolDefinition {
 function instrument(tool: ArenaTool): ToolDefinition {
   return {
     name: tool.name,
+    title: tool.humanLabel,
     description: tool.description,
     inputSchema: tool.inputSchema,
     annotations: tool.annotations,
-    execute: async (args, options) => {
+    execute: async (rawArgs, options) => {
+      const args = coerceToolArgs(rawArgs);
       const channel = currentChannel();
       const startedAt = performance.now();
       let result: ToolResult;
       let ok = true;
 
       try {
-        result = await tool.execute(args ?? {}, options);
+        const executed = await tool.execute(args, options);
+        result =
+          typeof executed === "string"
+            ? { content: [{ type: "text", text: executed }] }
+            : executed;
         ok = result.isError !== true;
       } catch (error) {
         ok = false;
@@ -88,10 +100,11 @@ function instrument(tool: ArenaTool): ToolDefinition {
       }
 
       const summary = result.content[0]?.text.split("\n")[0] ?? tool.humanLabel;
+      const store = useArena.getState();
 
-      useArena.getState().logToolCall({
+      store.logToolCall({
         tool: tool.name,
-        args: args ?? {},
+        args,
         ok,
         summary: summary.slice(0, 200),
         channel,
@@ -99,15 +112,15 @@ function instrument(tool: ArenaTool): ToolDefinition {
       });
 
       // Chrome / ChatGPT native WebMCP wants execute() to return a DOMString.
-      // The page shim still speaks the richer ToolResult shape.
       const native = Boolean(nativeModelContext()) && !isPolyfilled();
       if (native) {
-        return result.content.map((part) => part.text).join("\n");
+        return nativeToolText(result);
       }
       return result;
     },
   };
 }
+
 
 /* ------------------------------------------------------------------ */
 /* Registration                                                        */
@@ -145,20 +158,35 @@ export async function registerArenaTools(
   }
 
   const registered: string[] = [];
-  try {
-    for (const tool of tools) {
-      await modelContext.registerTool(instrument(tool), { signal });
+  const errors: string[] = [];
+  const audience = toolAudience();
+  for (const tool of tools) {
+    const definition = instrument(tool);
+    try {
+      await registerWithAudience(modelContext, definition, signal, audience);
       registered.push(tool.name);
+    } catch (error) {
+      errors.push(
+        error instanceof Error ? `${tool.name}: ${error.message}` : tool.name,
+      );
     }
-    return { support, registered };
-  } catch (error) {
-    return {
-      support,
-      registered,
-      error:
-        error instanceof Error
-          ? error.message
-          : "Tool registration was refused by the browser.",
-    };
+  }
+  return {
+    support,
+    registered,
+    error: errors.length ? errors.join("; ") : undefined,
+  };
+}
+
+async function registerWithAudience(
+  modelContext: ModelContext,
+  tool: ToolDefinition,
+  signal: AbortSignal,
+  audience: string[],
+) {
+  try {
+    await modelContext.registerTool(tool, { signal, exposedTo: audience });
+  } catch {
+    await modelContext.registerTool(tool, { signal });
   }
 }

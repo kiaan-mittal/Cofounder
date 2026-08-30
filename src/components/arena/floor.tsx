@@ -1,10 +1,15 @@
 "use client";
 
+import { useMemo } from "react";
+
 import { AgentTranscript } from "@/components/arena/agent-console";
 import { DecisionBoard } from "@/components/arena/decision-board";
+import { PatternBanner } from "@/components/arena/pattern-banner";
 import { PromptComposer } from "@/components/arena/prompt-composer";
 import { SharedState } from "@/components/arena/the-loop";
+import { detectPatterns, warningsForDecision } from "@/lib/calibration";
 import { perspectiveName } from "@/lib/perspectives";
+import { useArena } from "@/lib/store";
 import { AGENT_PROMPTS, useSparringChat } from "@/lib/use-sparring";
 import type {
   ActionItem,
@@ -44,6 +49,22 @@ export function FloorTalk({
   onClearTarget: () => void;
 }) {
   const sparring = useSparringChat();
+  const companyId = useArena((state) => state.company?.id);
+  const predictions = useArena((state) => state.predictions);
+  const decisions = useArena((state) => state.decisions);
+  const storedPatterns = useArena((state) => state.patterns);
+  const question = useArena((state) => {
+    const id = state.activeDecisionId;
+    return state.decisions.find((item) => item.id === id)?.question ?? "";
+  });
+  const patterns = useMemo(
+    () =>
+      companyId
+        ? detectPatterns(companyId, predictions, decisions)
+        : storedPatterns,
+    [companyId, predictions, decisions, storedPatterns],
+  );
+  const warnings = warningsForDecision(question, patterns);
 
   return (
     <div className="flex min-h-0 min-w-0 flex-col border-r border-rule bg-paper">
@@ -53,6 +74,7 @@ export function FloorTalk({
           The board moves when they answer.
         </p>
       </header>
+      <PatternBanner warnings={warnings} />
 
       <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
         {defenses.length === 0 && !busy && sparring.messages.length === 0 ? (

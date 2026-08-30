@@ -19,6 +19,7 @@ import type {
   Evidence,
   FounderPattern,
   Outcome,
+  PatternAlert,
   Prediction,
   Reassessment,
   Risk,
@@ -69,6 +70,8 @@ export interface ArenaState {
    * Committing is the one irreversible act in the Arena, so it stays human.
    */
   pendingCommit: PendingCommit | null;
+  /** Session stamps. Not persisted — they are for the founder watching now. */
+  patternAlerts: PatternAlert[];
 
   setCompany: (company: Company) => void;
   clearWorkspace: () => void;
@@ -125,6 +128,8 @@ export interface ArenaState {
   setHandoff: (handoff: CanvasHandoff | null) => void;
 
   logToolCall: (call: Omit<ToolCall, "id" | "at">) => void;
+  raisePatternAlert: (alert: Omit<PatternAlert, "id" | "at">) => void;
+  dismissPatternAlert: (alertId: string) => void;
   spotlight: (targetId: string | null) => void;
   proposeCommit: (proposal: PendingCommit | null) => void;
   markHydrated: () => void;
@@ -133,6 +138,7 @@ export interface ArenaState {
 type WorkspaceData = Omit<
   ArenaState,
   | "hydrated"
+  | "patternAlerts"
   | "setCompany"
   | "clearWorkspace"
   | "importWorkspace"
@@ -171,6 +177,8 @@ type WorkspaceData = Omit<
   | "adoptCanvas"
   | "setHandoff"
   | "logToolCall"
+  | "raisePatternAlert"
+  | "dismissPatternAlert"
   | "spotlight"
   | "proposeCommit"
   | "markHydrated"
@@ -266,14 +274,20 @@ const emptyWorkspace = (): WorkspaceData => ({
 function createArenaStore() {
   return create<ArenaState>()((set, get) => ({
   hydrated: false,
+  patternAlerts: [],
   ...emptyWorkspace(),
 
       setCompany: (company) => set({ company }),
 
-      clearWorkspace: () => set(emptyWorkspace()),
+      clearWorkspace: () => set({ ...emptyWorkspace(), patternAlerts: [] }),
 
       importWorkspace: (snapshot) =>
-        set({ ...emptyWorkspace(), ...snapshot, hydrated: true }),
+        set({
+          ...emptyWorkspace(),
+          ...snapshot,
+          hydrated: true,
+          patternAlerts: [],
+        }),
 
       createDecision: ({ question, context, options }) => {
         const company = get().company;
@@ -521,6 +535,26 @@ function createArenaStore() {
             { ...call, id: id("call"), at: now() },
             ...state.toolCalls,
           ].slice(0, 60),
+        })),
+
+      raisePatternAlert: (alert) =>
+        set((state) => {
+          const body = alert.body.trim();
+          if (!body) return state;
+          if (state.patternAlerts.some((item) => item.body === body)) {
+            return state;
+          }
+          return {
+            patternAlerts: [
+              { ...alert, id: id("alert"), at: now() },
+              ...state.patternAlerts,
+            ].slice(0, 5),
+          };
+        }),
+
+      dismissPatternAlert: (alertId) =>
+        set((state) => ({
+          patternAlerts: state.patternAlerts.filter((item) => item.id !== alertId),
         })),
 
       spotlight: (targetId) => set({ spotlightId: targetId }),

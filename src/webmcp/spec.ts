@@ -33,14 +33,16 @@ export interface ToolExecuteOptions {
 export interface ToolDefinition {
   name: string;
   description: string;
+  title?: string;
   inputSchema?: JsonSchema;
   annotations?: {
     readOnlyHint?: boolean;
     destructiveHint?: boolean;
     idempotentHint?: boolean;
+    untrustedContentHint?: boolean;
   };
   execute: (
-    args: Record<string, unknown>,
+    args: Record<string, unknown> | string,
     options?: ToolExecuteOptions,
   ) => ToolResult | string | Promise<ToolResult | string>;
 }

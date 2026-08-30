@@ -2,6 +2,7 @@ import "server-only";
 
 import { z } from "zod";
 
+import { warningsForDecision } from "@/lib/calibration";
 import { PERSPECTIVES } from "@/lib/perspectives";
 import type { CompanyBrain, FounderPattern, PerspectiveId } from "@/lib/types";
 import { brainDigest } from "@/server/brain";
@@ -178,6 +179,7 @@ export async function openingRound(
 }
 
 function debatePrompt(context: DebateContext): string {
+  const warnings = warningsForDecision(context.question, context.patterns);
   return [
     brainDigest(context.brain),
     "",
@@ -186,6 +188,11 @@ function debatePrompt(context: DebateContext): string {
     historyDigest(context.history),
     "",
     `THE DECISION: ${context.question}`,
+    warnings.length
+      ? `CALIBRATION WARNING — SAY THIS ON THE FLOOR IF IT FITS. Quote the numbers. Do not invent a pattern.\n${warnings
+          .map((pattern) => `- ${pattern.insight}`)
+          .join("\n")}`
+      : "",
     context.founderContext
       ? `FOUNDER'S OWN FRAMING: ${context.founderContext}`
       : "The founder gave no extra context.",
@@ -506,12 +513,21 @@ addressed / unaddressed stay one sentence each. reply is the conversation.
 
 Only add a new argument if the defense opened a new line. Zero is valid.`;
 
+  const warnings = warningsForDecision(
+    input.context.question,
+    input.context.patterns,
+  );
   const prompt = [
     brainDigest(input.context.brain),
     "",
     patternDigest(input.context.patterns),
     "",
     `THE DECISION: ${input.context.question}`,
+    warnings.length
+      ? `CALIBRATION WARNING — NAME IT IN THE REPLY IF IT FITS. Quote the numbers.\n${warnings
+          .map((pattern) => `- ${pattern.insight}`)
+          .join("\n")}`
+      : "",
     `ARENA CONFIDENCE BEFORE THIS DEFENSE: ${input.arenaConfidence}`,
     "",
     "ARGUMENTS CURRENTLY ON THE TABLE:",

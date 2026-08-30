@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import { useShallow } from "zustand/react/shallow";
 
 import { CommitFlow } from "@/components/arena/commit-flow";
+import { DecisionReady } from "@/components/arena/decision-ready";
 import {
   BriefingWrite,
   FloorBar,
@@ -32,6 +34,7 @@ import {
   reassessmentsFor,
   risksFor,
 } from "@/lib/selectors";
+import { detectPatterns } from "@/lib/calibration";
 import { readArenaDraft, writeArenaDraft } from "@/lib/drafts";
 import { useArena } from "@/lib/store";
 import { scheduleWorkspaceSave } from "@/lib/supabase/sync";
@@ -411,8 +414,17 @@ function Workspace({
         )
       : false,
   );
+  const [readyOpen, setReadyOpen] = useState(false);
 
   const committed = decision.status === "committed";
+
+  useEffect(() => {
+    const state = useArena.getState();
+    if (!state.company) return;
+    state.setPatterns(
+      detectPatterns(state.company.id, state.predictions, state.decisions),
+    );
+  }, [decision.id]);
 
   useEffect(() => {
     if (pendingCommit?.decisionId === decision.id && !committed) {
@@ -436,15 +448,30 @@ function Workspace({
     await defend(decision.id, text, targetId);
   }
 
-  async function openCommit() {
-    setCommitOpen(true);
+  async function openReady() {
+    setReadyOpen(true);
     setSummary(null);
     const result = await summarise(decision.id);
     setSummary(result);
   }
 
+  function investigate() {
+    updateDecision(decision.id, { status: "investigating" });
+    setReadyOpen(false);
+    toast("Marked for investigation", {
+      description: "Back on the floor. Deferral is on the record.",
+    });
+  }
+
+  function kill() {
+    updateDecision(decision.id, { status: "abandoned" });
+    setReadyOpen(false);
+    setFloorOpen(false);
+    toast("Decision killed");
+  }
+
   const commitBar = (
-    <div className="flex shrink-0 flex-wrap items-end gap-6 border-t border-rule bg-paper px-4 py-3">
+    <div className="relative z-20 flex shrink-0 flex-wrap items-end gap-6 border-t border-rule bg-paper px-4 py-3">
       <div className="min-w-[160px] flex-1">
         <label
           htmlFor="founder-confidence"
@@ -483,19 +510,37 @@ function Workspace({
           className="mt-2"
         />
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {committed ? (
           <Button asChild variant="outline" className="h-10">
             <Link href="/history">Open the record</Link>
           </Button>
         ) : (
-          <Button
-            onClick={openCommit}
-            disabled={busy !== null || args.length === 0}
-            className="h-10 px-6"
-          >
-            Weigh it up
-          </Button>
+          <>
+            <Button
+              variant="outline"
+              onClick={investigate}
+              disabled={busy !== null}
+              className="h-10"
+            >
+              Investigate
+            </Button>
+            <Button
+              onClick={() => void openReady()}
+              disabled={busy !== null || args.length === 0}
+              className="h-10 px-6"
+            >
+              Decision ready
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={kill}
+              disabled={busy !== null}
+              className="type-eyebrow h-10 text-oxblood"
+            >
+              Kill
+            </Button>
+          </>
         )}
       </div>
     </div>
@@ -503,53 +548,67 @@ function Workspace({
 
   if (floorOpen) {
     return (
-      <div className="flex h-[calc(100dvh-3.5rem)] flex-col bg-paper">
+      <div className="flex h-[calc(100dvh-3.5rem)] flex-col overflow-hidden bg-paper">
         <FloorBar
           question={decision.question}
           round={decision.round}
           status={decision.status}
           onLeave={() => setFloorOpen(false)}
         />
-        <div className="grid min-h-0 min-w-0 flex-1 lg:grid-cols-2">
-          <FloorTalk
-            defenses={defenses}
-            reassessments={reassessments}
-            value={defense}
-            busy={busy === "defending"}
-            committed={committed}
-            targetLabel={targetSeatLabel(args, target)}
-            onChange={setDefense}
-            onSubmit={submitDefense}
-            onClearTarget={() => setTarget(null)}
-          />
-          <FloorBoard
+        {readyOpen ? (
+          <DecisionReady
             decision={decision}
-            companyName={company.name}
             args={args}
-            reassessments={reassessments}
-            risks={risks}
-            evidence={evidence}
-            contradictions={contradictions}
-            actionItems={actionItems}
-            spotlightId={spotlightId}
-            busy={busy}
-            openingReady={openingReady}
-            defense={defense}
-            target={target}
-            onDefenseChange={setDefense}
-            onTarget={setTarget}
-            onSubmitDefense={submitDefense}
-            onOpenRound={() =>
-              openRound(decision.question, decision.context, decision.id)
-            }
+            summary={summary}
+            loading={busy === "readiness"}
+            onBack={() => setReadyOpen(false)}
+            onCommitted={() => {
+              setReadyOpen(false);
+              setCommitOpen(true);
+            }}
           />
-        </div>
+        ) : (
+          <div className="grid min-h-0 min-w-0 flex-1 lg:grid-cols-2">
+            <FloorTalk
+              defenses={defenses}
+              reassessments={reassessments}
+              value={defense}
+              busy={busy === "defending"}
+              committed={committed}
+              targetLabel={targetSeatLabel(args, target)}
+              onChange={setDefense}
+              onSubmit={submitDefense}
+              onClearTarget={() => setTarget(null)}
+            />
+            <FloorBoard
+              decision={decision}
+              companyName={company.name}
+              args={args}
+              reassessments={reassessments}
+              risks={risks}
+              evidence={evidence}
+              contradictions={contradictions}
+              actionItems={actionItems}
+              spotlightId={spotlightId}
+              busy={busy}
+              openingReady={openingReady}
+              defense={defense}
+              target={target}
+              onDefenseChange={setDefense}
+              onTarget={setTarget}
+              onSubmitDefense={submitDefense}
+              onOpenRound={() =>
+                openRound(decision.question, decision.context, decision.id)
+              }
+            />
+          </div>
+        )}
         {error ? (
           <div className="shrink-0 border-t border-rule bg-oxblood-wash px-4 py-2 text-sm text-ink">
             {error.message}
           </div>
         ) : null}
-        {commitBar}
+        {readyOpen ? null : commitBar}
         <CommitFlow
           decision={decision}
           summary={summary}
