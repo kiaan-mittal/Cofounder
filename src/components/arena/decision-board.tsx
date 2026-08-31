@@ -22,6 +22,7 @@ import type {
   Reassessment,
   Risk,
 } from "@/lib/types";
+import { founderCall } from "@/webmcp/run";
 
 export function DecisionBoard({
   decision,
@@ -316,11 +317,6 @@ export function TableObjects({
   actionItems: ActionItem[];
   spotlightId: string | null;
 }) {
-  const resolveContradiction = useArena((state) => state.resolveContradiction);
-  const updateRisk = useArena((state) => state.updateRisk);
-  const updateEvidence = useArena((state) => state.updateEvidence);
-  const toggleActionItem = useArena((state) => state.toggleActionItem);
-
   const openContradictions = contradictions.filter((item) => !item.resolved);
   const openRisks = risks.filter((item) => item.status === "open");
   const openEvidence = evidence.filter((item) => item.status === "requested");
@@ -348,7 +344,10 @@ export function TableObjects({
             <button
               type="button"
               onClick={() =>
-                resolveContradiction(item.id, "Marked resolved by the founder.")
+                founderCall("resolve_contradiction", {
+                  contradiction_id: item.id,
+                  resolution: "Marked resolved by the founder.",
+                })
               }
               className={cn(
                 "flex max-w-[22ch] items-start gap-2 bg-oxblood-wash px-2 py-2 text-left",
@@ -364,7 +363,12 @@ export function TableObjects({
           <li key={item.id}>
             <button
               type="button"
-              onClick={() => updateRisk(item.id, { status: "mitigated" })}
+              onClick={() =>
+                founderCall("set_risk_status", {
+                  risk_id: item.id,
+                  status: "mitigated",
+                })
+              }
               className={cn(
                 "flex max-w-[22ch] items-start gap-2 bg-ochre-wash px-2 py-2 text-left",
                 spotlightId === item.id && "stamp-in",
@@ -379,7 +383,12 @@ export function TableObjects({
           <li key={item.id}>
             <button
               type="button"
-              onClick={() => updateEvidence(item.id, { status: "provided" })}
+              onClick={() =>
+                founderCall("mark_evidence", {
+                  evidence_id: item.id,
+                  status: "provided",
+                })
+              }
               className="flex max-w-[22ch] items-start gap-2 bg-leaf px-2 py-2 text-left"
             >
               <ObjectMark kind="evidence" />
@@ -391,7 +400,9 @@ export function TableObjects({
           <li key={item.id}>
             <button
               type="button"
-              onClick={() => toggleActionItem(item.id)}
+              onClick={() =>
+                founderCall("toggle_action_item", { action_item_id: item.id })
+              }
               className="flex max-w-[22ch] items-start gap-2 bg-leaf px-2 py-2 text-left"
             >
               <ObjectMark kind="action" />

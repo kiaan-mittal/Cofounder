@@ -6,8 +6,9 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { ArenaMark } from "@/components/ink/marks";
+import { ProjectSwitcher } from "@/components/shell/project-switcher";
 import { WebMCPStatus } from "@/components/webmcp/webmcp-status";
-import { useArena } from "@/lib/store";
+import type { ProjectSummary } from "@/lib/projects";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -19,11 +20,20 @@ const NAV = [
   { href: "/webmcp", label: "WebMCP" },
 ];
 
-export function SiteHeader({ account }: { account: ReactNode }) {
+export function SiteHeader({
+  account,
+  signedIn,
+  projects,
+  activeProjectId,
+}: {
+  account: ReactNode;
+  signedIn: boolean;
+  projects: ProjectSummary[];
+  activeProjectId: string | null;
+}) {
   const pathname = usePathname();
-  const company = useArena((state) => state.company);
 
-  if (pathname === "/") return null;
+  if (pathname === "/" || pathname === "/login") return null;
 
   return (
     <header className="sticky top-0 z-40 border-b border-rule bg-paper/90 backdrop-blur-sm">
@@ -54,11 +64,11 @@ export function SiteHeader({ account }: { account: ReactNode }) {
         </nav>
 
         <div className="ml-auto flex items-center gap-3">
-          {company ? (
-            <span className="type-eyebrow hidden truncate lg:block">
-              {company.name}
-            </span>
-          ) : null}
+          <ProjectSwitcher
+            signedIn={signedIn}
+            initialProjects={projects}
+            initialActiveId={activeProjectId}
+          />
           {account}
           <WebMCPStatus />
         </div>

@@ -11,6 +11,7 @@ yarn-error.log*
 .env*.local
 .env.local.
 .github-oauth.local.json
+.composio-github.local.json
 env.local
 .vercel
 *.tsbuildinfo

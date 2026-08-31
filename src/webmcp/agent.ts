@@ -1,8 +1,10 @@
 "use client";
 
-import { readToolOutput } from "@/webmcp/compat";
-import { getModelContext, withChannel } from "@/webmcp/registry";
-import { nativeModelContext, type RegisteredTool } from "@/webmcp/spec";
+import { readEventStream } from "@/lib/api";
+import type { SparringPlan, SparringPlanEvent } from "@/lib/reading";
+import { getModelContext } from "@/webmcp/registry";
+import { runTool } from "@/webmcp/run";
+import type { RegisteredTool } from "@/webmcp/spec";
 
 /**
  * The in-page sparring agent.
@@ -23,6 +25,7 @@ import { nativeModelContext, type RegisteredTool } from "@/webmcp/spec";
 export interface AgentStep {
   kind: "thought" | "tool" | "message" | "error";
   text: string;
+  pending?: boolean;
   tool?: string;
   args?: Record<string, unknown>;
   result?: string;
@@ -81,6 +84,14 @@ export async function runSparringAgent({
       transcript,
       stepsRemaining: maxSteps - step,
       signal,
+      onPartial: (partial) => {
+        if (partial.reasoning) {
+          onStep({ kind: "thought", text: partial.reasoning });
+        }
+        if (partial.message) {
+          onStep({ kind: "message", text: partial.message, pending: true });
+        }
+      },
     });
 
     if (plan.reasoning) {
@@ -133,16 +144,10 @@ export async function runSparringAgent({
     }
 
     try {
-      // Execution — through WebMCP, attributed honestly in the tool log.
-      // Native Chrome / ChatGPT take a JSON string and return a DOMString.
-      const result = await withChannel("in-page-agent", () =>
-        modelContext.executeTool(
-          target,
-          nativeModelContext() ? JSON.stringify(args) : args,
-          { signal },
-        ),
-      );
-      const { text, ok } = readToolOutput(result);
+      const { text, ok } = await runTool(plan.tool, args, {
+        channel: "in-page-agent",
+        signal,
+      });
 
       transcript.push({ tool: target.name, args, result: text.slice(0, 4000) });
       onStep({
@@ -170,6 +175,14 @@ export async function runSparringAgent({
     stepsRemaining: 0,
     closeOut: true,
     signal,
+    onPartial: (partial) => {
+      if (partial.reasoning) {
+        onStep({ kind: "thought", text: partial.reasoning });
+      }
+      if (partial.message) {
+        onStep({ kind: "message", text: partial.message, pending: true });
+      }
+    },
   });
   onStep({
     kind: "message",
@@ -187,6 +200,7 @@ async function planSparringStep({
   stepsRemaining,
   closeOut = false,
   signal,
+  onPartial,
 }: {
   goal: string;
   tools: Array<{
@@ -198,33 +212,40 @@ async function planSparringStep({
   stepsRemaining: number;
   closeOut?: boolean;
   signal?: AbortSignal;
-}) {
-  const response = await fetch("/api/sparring", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
+  onPartial?: (partial: { reasoning?: string; message?: string }) => void;
+}): Promise<SparringPlan> {
+  let step: SparringPlan | null = null;
+
+  await readEventStream<SparringPlanEvent>(
+    "/api/sparring",
+    {
       goal,
       tools,
       transcript,
       stepsRemaining,
       closeOut,
-    }),
+    },
+    (event) => {
+      if (event.type === "error") {
+        throw new Error(event.message);
+      }
+      if (event.type === "partial") {
+        onPartial?.({
+          reasoning: event.reasoning,
+          message: event.message,
+        });
+      }
+      if (event.type === "done") {
+        step = event.step;
+      }
+    },
     signal,
-  });
+  );
 
-  if (!response.ok) {
-    const body = await response.json().catch(() => ({}));
-    throw new Error(
-      body.error ?? "The sparring agent could not reach its model.",
-    );
+  if (!step) {
+    throw new Error("The sparring agent could not reach its model.");
   }
 
-  return (await response.json()) as {
-    reasoning: string;
-    action: "call_tool" | "respond";
-    tool: string | null;
-    argsJson: string | null;
-    message: string | null;
-  };
+  return step;
 }
 

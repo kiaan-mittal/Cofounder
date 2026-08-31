@@ -4,6 +4,8 @@ import localFont from "next/font/local";
 import { InkFilters } from "@/components/ink/ink-filters";
 import { AccountGate } from "@/components/shell/account-gate";
 import { AppChrome } from "@/components/shell/app-chrome";
+import { readGithubSession } from "@/server/github-oauth";
+import { loadHeaderProjects } from "@/server/projects";
 
 import "./globals.css";
 
@@ -38,9 +40,11 @@ export const metadata: Metadata = {
 // rendered routes. Force a request-time render so every page carries one.
 export const dynamic = "force-dynamic";
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const session = await readGithubSession();
+  const header = await loadHeaderProjects(session);
   return (
     // The font variables must land on :root, because the design tokens compose
     // them there (--font-display is built from --font-fraunces). Declared on
@@ -53,7 +57,12 @@ export default function RootLayout({
       <body>
         <InkFilters />
         <div className="flex min-h-dvh flex-col">
-          <AppChrome account={<AccountGate />} />
+          <AppChrome
+            account={<AccountGate />}
+            signedIn={Boolean(session)}
+            projects={header.projects}
+            activeProjectId={header.activeProjectId}
+          />
           <main className="flex-1">{children}</main>
         </div>
       </body>

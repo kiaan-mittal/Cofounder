@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 
@@ -52,6 +53,7 @@ function CanvasWorkspace({
       ? (initialSnapshot.argumentList as Argument[])
       : [];
   const activeDecisionId = useArena((state) => state.activeDecisionId);
+  const router = useRouter();
 
   const decision = useMemo(() => {
     if (activeDecisionId) {
@@ -109,7 +111,10 @@ function CanvasWorkspace({
 
   return (
     <div className="mx-auto max-w-[1400px] px-5 py-10 lg:py-14">
-      <DecisionRail currentId={decision?.id} />
+      <DecisionRail
+        currentId={decision?.id}
+        onNew={() => router.push("/arena")}
+      />
 
       <header className="mt-8 flex flex-wrap items-end justify-between gap-4">
         <div className="max-w-[52ch]">

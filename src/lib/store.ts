@@ -28,8 +28,8 @@ import type {
 
 /**
  * The Arena keeps its workspace in the page. Persistence is Supabase, keyed
- * by the GitHub account that signed in. WebMCP still mutates this live state
- * so the founder and an agent are looking at the same record.
+ * by the signed-in GitHub user's selected project. WebMCP still mutates this
+ * live state so the founder and an agent are looking at the same record.
  */
 
 export interface PendingCommit {
@@ -72,6 +72,17 @@ export interface ArenaState {
   pendingCommit: PendingCommit | null;
   /** Session stamps. Not persisted — they are for the founder watching now. */
   patternAlerts: PatternAlert[];
+  /**
+   * Bumped when the founder asks for a blank round. Not persisted.
+   * The start screen watches this so + New arena still works when no
+   * decision is active.
+   */
+  composeNonce: number;
+  /**
+   * True while the founder is looking at the list of arenas. Not persisted.
+   * Stops a snapshot pull from putting them back inside the last round.
+   */
+  listingArenas: boolean;
 
   setCompany: (company: Company) => void;
   clearWorkspace: () => void;
@@ -81,6 +92,7 @@ export interface ArenaState {
     input: Pick<Decision, "question" | "context" | "options">,
   ) => Decision;
   setActiveDecision: (decisionId: string | null) => void;
+  beginNewArena: () => void;
   updateDecision: (decisionId: string, patch: Partial<Decision>) => void;
 
   addArgument: (argument: Argument) => void;
@@ -89,6 +101,7 @@ export interface ArenaState {
 
   addDefense: (defense: Defense) => void;
   addReassessments: (items: Reassessment[]) => void;
+  upsertReassessment: (item: Reassessment, applyStrength?: boolean) => void;
 
   addRisk: (risk: Risk) => void;
   updateRisk: (riskId: string, patch: Partial<Risk>) => void;
@@ -139,17 +152,21 @@ type WorkspaceData = Omit<
   ArenaState,
   | "hydrated"
   | "patternAlerts"
+  | "composeNonce"
+  | "listingArenas"
   | "setCompany"
   | "clearWorkspace"
   | "importWorkspace"
   | "createDecision"
   | "setActiveDecision"
+  | "beginNewArena"
   | "updateDecision"
   | "addArgument"
   | "addArguments"
   | "updateArgument"
   | "addDefense"
   | "addReassessments"
+  | "upsertReassessment"
   | "addRisk"
   | "updateRisk"
   | "addEvidence"
@@ -214,7 +231,9 @@ export function getWorkspaceSnapshot(): WorkspaceSnapshot {
     decisions,
     argumentList,
     defenses,
-    reassessments,
+    reassessments: reassessments.map(
+      ({ streaming: _streaming, ...item }) => item,
+    ),
     risks,
     evidence,
     contradictions,
@@ -275,6 +294,8 @@ function createArenaStore() {
   return create<ArenaState>()((set, get) => ({
   hydrated: false,
   patternAlerts: [],
+  composeNonce: 0,
+  listingArenas: false,
   ...emptyWorkspace(),
 
       setCompany: (company) => set({ company }),
@@ -282,12 +303,17 @@ function createArenaStore() {
       clearWorkspace: () => set({ ...emptyWorkspace(), patternAlerts: [] }),
 
       importWorkspace: (snapshot) =>
-        set({
+        set((state) => ({
           ...emptyWorkspace(),
           ...snapshot,
           hydrated: true,
           patternAlerts: [],
-        }),
+          composeNonce: state.composeNonce ?? 0,
+          listingArenas: state.listingArenas,
+          activeDecisionId: state.listingArenas
+            ? null
+            : (snapshot.activeDecisionId ?? null),
+        })),
 
       createDecision: ({ question, context, options }) => {
         const company = get().company;
@@ -306,11 +332,23 @@ function createArenaStore() {
         set((state) => ({
           decisions: [decision, ...state.decisions],
           activeDecisionId: decision.id,
+          listingArenas: false,
         }));
         return decision;
       },
 
-      setActiveDecision: (decisionId) => set({ activeDecisionId: decisionId }),
+      setActiveDecision: (decisionId) =>
+        set({
+          activeDecisionId: decisionId,
+          listingArenas: decisionId === null,
+        }),
+
+      beginNewArena: () =>
+        set((state) => ({
+          activeDecisionId: null,
+          listingArenas: true,
+          composeNonce: (state.composeNonce ?? 0) + 1,
+        })),
 
       updateDecision: (decisionId, patch) =>
         set((state) => ({
@@ -353,6 +391,45 @@ function createArenaStore() {
                       ? "reinforced"
                       : "unresolved";
               return { ...a, strength, status };
+            }),
+          };
+        }),
+
+      upsertReassessment: (item, applyStrength = false) =>
+        set((state) => {
+          const index = state.reassessments.findIndex(
+            (entry) =>
+              entry.id === item.id ||
+              (entry.defenseId === item.defenseId &&
+                entry.argumentId === item.argumentId),
+          );
+          const previous = index >= 0 ? state.reassessments[index] : undefined;
+          const reassessments = [...state.reassessments];
+          const next = previous ? { ...previous, ...item } : item;
+          if (index >= 0) reassessments[index] = next;
+          else reassessments.push(next);
+
+          const shouldApply =
+            applyStrength &&
+            next.strengthDelta !== 0 &&
+            previous?.streaming !== false;
+
+          if (!shouldApply) return { reassessments };
+
+          return {
+            reassessments,
+            argumentList: state.argumentList.map((argument) => {
+              if (argument.id !== next.argumentId) return argument;
+              const strength = clamp(argument.strength + next.strengthDelta);
+              const status: Argument["status"] =
+                next.verdict === "conceded"
+                  ? "conceded"
+                  : next.verdict === "weakened"
+                    ? "weakened"
+                    : next.verdict === "reinforced"
+                      ? "reinforced"
+                      : "unresolved";
+              return { ...argument, strength, status };
             }),
           };
         }),
@@ -572,7 +649,13 @@ function bindArenaStore(): ArenaStore {
   if (typeof window === "undefined") return createArenaStore();
   const root = globalThis as ArenaGlobal;
   const existing = root.__decisionArena;
-  if (existing && typeof existing.getState().addCanvasNode === "function") {
+  if (
+    existing &&
+    typeof existing.getState().addCanvasNode === "function" &&
+    typeof existing.getState().upsertReassessment === "function" &&
+    typeof existing.getState().beginNewArena === "function" &&
+    typeof existing.getState().listingArenas === "boolean"
+  ) {
     const state = existing.getState();
     const patch: Record<string, unknown> = {};
     if (!Array.isArray(state.boardMarks)) patch.boardMarks = [];

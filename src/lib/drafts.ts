@@ -3,6 +3,10 @@ export type OnboardingDraft = {
   github: string;
   docsUrl: string;
   building?: boolean;
+  projectName?: string;
+  githubRepoId?: number | null;
+  githubOwner?: string;
+  githubRepoName?: string;
 };
 
 export type ArenaDraft = {
@@ -18,6 +22,10 @@ const emptyOnboarding = (): OnboardingDraft => ({
   github: "",
   docsUrl: "",
   building: false,
+  projectName: "",
+  githubRepoId: null,
+  githubOwner: "",
+  githubRepoName: "",
 });
 
 const emptyArena = (): ArenaDraft => ({

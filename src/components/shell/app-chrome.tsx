@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 
 import { SiteHeader } from "@/components/shell/site-header";
 import { Toaster } from "@/components/ui/sonner";
+import type { ProjectSummary } from "@/lib/projects";
 import { WebMCPBoot } from "@/webmcp/provider";
 
 /**
@@ -11,11 +12,26 @@ import { WebMCPBoot } from "@/webmcp/provider";
  * Passing `{children}` through a client component from the root layout
  * is what Next 15.5 webpack reports as a missing clientReferenceManifest.
  */
-export function AppChrome({ account }: { account: ReactNode }) {
+export function AppChrome({
+  account,
+  signedIn,
+  projects,
+  activeProjectId,
+}: {
+  account: ReactNode;
+  signedIn: boolean;
+  projects: ProjectSummary[];
+  activeProjectId: string | null;
+}) {
   return (
     <>
       <WebMCPBoot />
-      <SiteHeader account={account} />
+      <SiteHeader
+        account={account}
+        signedIn={signedIn}
+        projects={projects}
+        activeProjectId={activeProjectId}
+      />
       <Toaster position="bottom-right" />
     </>
   );

@@ -62,9 +62,10 @@ export function WebMCPView({
           <code className="type-figure text-[14px] text-ink">
             document.modelContext
           </code>
-          . Each one is a decision primitive — read the Company Brain, challenge
-          an argument, record what reality did. None of them are wrappers around
-          buttons.
+          . Each one is a decision primitive. Founder clicks, Arena seats, and
+          a browser agent all go through{" "}
+          <code className="type-figure text-[14px] text-ink">executeTool</code>
+          {" "}on the same list. None of them are wrappers around buttons.
         </p>
       </header>
 

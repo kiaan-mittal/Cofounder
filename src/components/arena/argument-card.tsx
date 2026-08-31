@@ -51,7 +51,6 @@ export function ArgumentCard({
   const meta = PERSPECTIVE_MAP[argument.perspective];
   const status = STATUS_COPY[argument.status];
   const conceded = argument.status === "conceded";
-  const open = Boolean(selected || composer);
 
   return (
     <article
@@ -91,7 +90,6 @@ export function ArgumentCard({
             className={cn(
               "type-display mt-1.5 text-[18px] leading-snug [overflow-wrap:anywhere]",
               conceded && "ink-strike",
-              !open && "line-clamp-3",
             )}
           >
             {argument.claim}
@@ -100,7 +98,7 @@ export function ArgumentCard({
         <StanceStamp stance={argument.stance} className="mt-0.5 shrink-0" />
       </button>
 
-      {open ? (
+      {argument.reasoning ? (
         <p className="mt-3 text-[14px] leading-relaxed text-graphite">
           {argument.reasoning}
         </p>
@@ -125,25 +123,33 @@ export function ArgumentCard({
         </ul>
       ) : null}
 
-      {open
-        ? reassessments.map((reassessment) => (
+      {reassessments.map((reassessment) => (
             <div key={reassessment.id} className="mt-4 border-t border-rule pt-3">
-              <p className="type-eyebrow">after your move · {reassessment.verdict}</p>
-              <p className="mt-2 text-[13.5px] leading-relaxed">
-                <span className="type-eyebrow mr-2 text-indigo">answered</span>
-                {reassessment.addressed}
+              <p className="type-eyebrow">
+                after your move · {reassessment.verdict}
               </p>
-              {reassessment.verdict !== "conceded" ? (
-                <p className="mt-2 text-[13.5px] leading-relaxed">
-                  <span className="type-eyebrow mr-2 text-oxblood">
-                    still open
-                  </span>
-                  {reassessment.unaddressed}
+              {reassessment.reply?.trim() ? (
+                <p className="mt-2 whitespace-pre-wrap text-[13.5px] leading-relaxed text-ink">
+                  {reassessment.reply}
                 </p>
-              ) : null}
+              ) : (
+                <>
+                  <p className="mt-2 text-[13.5px] leading-relaxed">
+                    <span className="type-eyebrow mr-2 text-indigo">answered</span>
+                    {reassessment.addressed}
+                  </p>
+                  {reassessment.verdict !== "conceded" ? (
+                    <p className="mt-2 text-[13.5px] leading-relaxed">
+                      <span className="type-eyebrow mr-2 text-oxblood">
+                        still open
+                      </span>
+                      {reassessment.unaddressed}
+                    </p>
+                  ) : null}
+                </>
+              )}
             </div>
-          ))
-        : null}
+          ))}
 
       {challengedBy.length ? (
         <div className="relative mt-4 border-t border-rule pt-3">

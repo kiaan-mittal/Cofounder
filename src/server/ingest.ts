@@ -7,6 +7,11 @@ import {
   firecrawlMap,
   firecrawlScrape,
 } from "@/server/firecrawl";
+import {
+  githubFetch,
+  hasGithubUserAuth,
+  type GithubAuth,
+} from "@/server/github-api";
 
 /**
  * Source ingestion for the Company Brain.
@@ -787,30 +792,12 @@ export async function ingestWebsite(
 /* GitHub                                                              */
 /* ------------------------------------------------------------------ */
 
-function githubHeaders(
-  accessToken: string | undefined,
-  extra: Record<string, string> = {},
-) {
-  const headers: Record<string, string> = {
-    accept: "application/vnd.github+json",
-    "x-github-api-version": "2022-11-28",
-    ...extra,
-  };
-  const token = accessToken || process.env.GITHUB_TOKEN;
-  if (token) {
-    headers.authorization = `Bearer ${token}`;
-  }
-  return headers;
-}
-
 async function githubJson<T>(
   url: string,
-  accessToken: string | undefined,
+  auth?: GithubAuth,
 ): Promise<T | null> {
   try {
-    const response = await fetchWithTimeout(url, {
-      headers: githubHeaders(accessToken),
-    });
+    const response = await githubFetch(url, auth);
     if (!response.ok) return null;
     return (await response.json()) as T;
   } catch {
@@ -818,17 +805,12 @@ async function githubJson<T>(
   }
 }
 
-async function githubRaw(
-  url: string,
-  accessToken: string | undefined,
-): Promise<string> {
+async function githubRaw(url: string, auth?: GithubAuth): Promise<string> {
   try {
-    const response = await fetchWithTimeout(url, {
-      headers: githubHeaders(accessToken, {
-        accept: "application/vnd.github.raw",
-      }),
+    const response = await githubFetch(url, auth, {
+      accept: "application/vnd.github.raw",
     });
-    return response.ok ? await readCapped(response) : "";
+    return response.ok ? await response.text() : "";
   } catch {
     return "";
   }
@@ -836,7 +818,7 @@ async function githubRaw(
 
 export async function ingestGithub(
   rawRepo: string,
-  accessToken?: string,
+  auth?: GithubAuth,
   progress?: IngestProgress,
 ): Promise<{ source: GithubSource | null; report: IngestionSourceReport }> {
   const parsed = parseRepo(rawRepo);
@@ -857,9 +839,7 @@ export async function ingestGithub(
   const url = `https://github.com/${owner}/${repo}`;
 
   try {
-    const meta = await fetchWithTimeout(apiBase, {
-      headers: githubHeaders(accessToken),
-    });
+    const meta = await githubFetch(apiBase, auth);
 
     if (meta.status === 404) {
       return {
@@ -868,7 +848,7 @@ export async function ingestGithub(
           kind: "github",
           url,
           ok: false,
-          detail: accessToken
+          detail: hasGithubUserAuth(auth)
             ? "That repository was not found, or this GitHub account cannot read it."
             : "That repository is private or does not exist. Sign in with GitHub to read a private repository.",
         },
@@ -903,15 +883,15 @@ export async function ingestGithub(
 
     const [readme, languages, tree, commits, issues, releases, contributors] =
       await Promise.all([
-        githubRaw(`${apiBase}/readme`, accessToken),
-        githubJson<Record<string, number>>(`${apiBase}/languages`, accessToken),
+        githubRaw(`${apiBase}/readme`, auth),
+        githubJson<Record<string, number>>(`${apiBase}/languages`, auth),
         githubJson<Array<{ name: string; type: string }>>(
           `${apiBase}/contents/`,
-          accessToken,
+          auth,
         ),
         githubJson<
           Array<{ commit?: { message?: string; author?: { date?: string } } }>
-        >(`${apiBase}/commits?per_page=16`, accessToken),
+        >(`${apiBase}/commits?per_page=16`, auth),
         githubJson<
           Array<{
             title?: string;
@@ -919,14 +899,14 @@ export async function ingestGithub(
             pull_request?: unknown;
             labels?: Array<{ name?: string }>;
           }>
-        >(`${apiBase}/issues?state=open&per_page=16`, accessToken),
+        >(`${apiBase}/issues?state=open&per_page=16`, auth),
         githubJson<Array<{ name?: string; tag_name?: string; body?: string }>>(
           `${apiBase}/releases?per_page=8`,
-          accessToken,
+          auth,
         ),
         githubJson<Array<{ login?: string; contributions?: number }>>(
           `${apiBase}/contributors?per_page=10`,
-          accessToken,
+          auth,
         ),
       ]);
 
@@ -984,7 +964,7 @@ export async function ingestGithub(
 
     const files = (
       await mapPool(wantedFiles, 4, async (path) => {
-        const text = await githubRaw(`${apiBase}/contents/${path}`, accessToken);
+        const text = await githubRaw(`${apiBase}/contents/${path}`, auth);
         if (!text.trim()) return null;
         return { path, text: text.slice(0, 4_000) } satisfies GithubFile;
       })
@@ -1154,6 +1134,7 @@ export async function ingestSources(
     github: string;
     docsUrl?: string;
     accessToken?: string;
+    composioUserId?: string;
   },
   progress?: IngestProgress,
 ): Promise<IngestResult> {
@@ -1174,7 +1155,14 @@ export async function ingestSources(
   }
   if (input.github.trim()) {
     tasks.push(
-      ingestGithub(input.github, input.accessToken, progress).then((r) => {
+      ingestGithub(
+        input.github,
+        {
+          accessToken: input.accessToken,
+          composioUserId: input.composioUserId,
+        },
+        progress,
+      ).then((r) => {
         github = r.source;
         reports.push(r.report);
       }),
@@ -1204,6 +1192,10 @@ export async function ingestSources(
       .map((page) => `[${page.role} ${page.url}]\n${page.text}`)
       .join("\n\n")
       .slice(0, 60_000);
+  } else if (docsSource) {
+    docsSource.pages = docsSource.pages.map((page) =>
+      page.role === "home" ? { ...page, role: "docs" } : page,
+    );
   }
 
   return {

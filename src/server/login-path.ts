@@ -1,21 +1,45 @@
 import "server-only";
 
 import { createServerSupabase } from "@/lib/supabase/server";
+import { findUserByLogin, listProjectSummariesForUser } from "@/server/projects";
 
 export async function pathAfterLogin(login: string): Promise<string> {
+  const user = await findUserByLogin(login);
+  if (user) {
+    const projects = await listProjectSummariesForUser(user.id);
+    if (projects.length > 0) return "/arena";
+  }
+
   const supabase = createServerSupabase();
-  if (!supabase) return "/arena";
+  if (supabase) {
+    const { data } = await supabase
+      .from("workspaces")
+      .select("snapshot")
+      .eq("device_id", login)
+      .maybeSingle();
+    const snapshot = data?.snapshot as { company?: unknown } | null;
+    if (snapshot?.company) return "/arena";
+  }
 
-  const { data } = await supabase
-    .from("workspaces")
-    .select("snapshot")
-    .eq("device_id", login)
-    .maybeSingle();
-
-  const snapshot = data?.snapshot as { company?: unknown } | null;
-  return snapshot?.company ? "/arena" : "/onboarding";
+  return "/onboarding";
 }
 
 export function shouldUseLoginPath(returnTo: string | null | undefined) {
-  return !returnTo || returnTo === "/" || returnTo === "/arena";
+  return (
+    !returnTo ||
+    returnTo === "/" ||
+    returnTo === "/arena" ||
+    returnTo === "/login" ||
+    returnTo === "/onboarding"
+  );
+}
+
+export async function destinationAfterAuth(
+  login: string,
+  returnTo: string,
+): Promise<string> {
+  const home = await pathAfterLogin(login);
+  if (home === "/onboarding") return "/onboarding";
+  if (shouldUseLoginPath(returnTo)) return home;
+  return returnTo;
 }

@@ -454,7 +454,7 @@ const reassessmentSchema = z.object({
         reply: z
           .string()
           .describe(
-            "The seat speaking out loud to the founder. 120–280 words. First person. Quote their words. Then argue like that job: CFO talks cash, runway, unit cost, what they will not sign; Tech talks months, people, failure modes; Product talks the user; GTM talks who hears it; Contra says why the whole frame is wrong. Not a caption. Not two lines.",
+            "The seat speaking out loud. 80–140 words. Separate paragraphs with a blank line. Optional: up to four conditions as lines that start with '- ' (each under 22 words). First person. Quote the founder once. No 'Tech:'/'CFO:' prefix, no fact_ ids, no JSON, no spec dump. CFO: cash and runway. Tech: months and failure modes. Product: the user. GTM: who hears it. Contra: why the frame is wrong.",
           ),
         strengthDelta: z
           .number()
@@ -488,18 +488,23 @@ export interface ArgumentForPrompt {
   status: string;
 }
 
-export async function reassessAfterDefense(input: {
-  context: DebateContext;
-  arguments: ArgumentForPrompt[];
-  defense: string;
-  targetArgumentId: string | null;
-  arenaConfidence: number;
-}): Promise<ReassessmentRound> {
+export async function reassessAfterDefense(
+  input: {
+    context: DebateContext;
+    arguments: ArgumentForPrompt[];
+    defense: string;
+    targetArgumentId: string | null;
+    arenaConfidence: number;
+  },
+  onPartial?: (value: Partial<ReassessmentRound>) => void,
+): Promise<ReassessmentRound> {
   const system = `${ANTI_SYCOPHANCY}
 
 The founder just spoke. You are the seats on their board — CFO, Tech, Product, GTM, Contrarian — sitting across the table. You do not write captions. You answer.
 
-Each reassessment is that seat talking. The reply field is what they say out loud: 120–280 words, first person, concrete. Quote the founder's words. Use numbers from the Company Brain when you have them. A real CFO does not say "funding is uncertain." They say what this does to runway, what they would refuse to sign, and what number would change their mind.
+Each reassessment is that seat talking. The reply field is what they say out loud: 80–140 words, three short paragraphs separated by blank lines. First person. Quote the founder's words once. Then one concrete objection. Then what number, date or proof would change your mind. If you have conditions, add at most four lines that start with "- ", each under 22 words — not a spec, not JSON, not "1) 2) 3)".
+
+Never prefix with "Tech:" or "CFO:". Never cite internal ids (fact_…, asm_…). A real CFO talks runway and what they will not sign. Tech talks months, people and failure modes. Product talks the user. GTM talks who hears it. Contra says why the whole frame is wrong.
 
 If the founder mentioned money, cost, features, or recovery, the financial seat MUST answer. Reassess every seat the defense actually hits. Two or three full answers beat five stubs.
 
@@ -552,6 +557,9 @@ Only add a new argument if the defense opened a new line. Zero is valid.`;
     prompt,
     purpose: "Reassessing after the founder's defense",
     timeoutMs: 55_000,
+    onPartial: onPartial
+      ? (value) => onPartial(value as Partial<ReassessmentRound>)
+      : undefined,
   });
 }
 

@@ -12,6 +12,27 @@ import { DEMO_COMPANY_ID } from "@/lib/demo-seed";
 import { writeArenaDraft } from "@/lib/drafts";
 import type { Assumption, BrainDossierPage, Company, Fact } from "@/lib/types";
 
+const MONTHS = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
+
+function formatReadDate(iso: string) {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  return `${MONTHS[date.getUTCMonth()]} ${date.getUTCDate()}, ${date.getUTCFullYear()}`;
+}
+
 export function BrainView({
   initialSnapshot,
 }: {
@@ -55,6 +76,9 @@ function Brain({ company }: { company: Company }) {
           </h1>
           <p className="mt-4 text-[16px] leading-relaxed text-graphite">
             {brain.summary}
+          </p>
+          <p className="mt-3 text-[13px] leading-relaxed text-graphite">
+            {`Sources last read ${formatReadDate(brain.generatedAt)}. GitHub and the site resync every three days.`}
           </p>
         </div>
         <Button asChild size="lg" className="h-11 px-6 text-[15px]">

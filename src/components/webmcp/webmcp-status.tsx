@@ -30,7 +30,7 @@ const COPY = {
     label: "WebMCP shim",
     dot: "bg-ochre",
     detail:
-      "This browser has no native WebMCP, so Decision Arena installed a spec-shaped shim. Tool definitions, discovery and execution are identical — the in-page agent still goes through getTools() and executeTool().",
+      "This browser has no native WebMCP, so Decision Arena installed a spec-shaped shim. Every write — seats, founder, in-page agent — still goes through getTools() and executeTool().",
   },
   unavailable: {
     label: "WebMCP unavailable",

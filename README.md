@@ -117,7 +117,11 @@ semantic terms.
 
 There is no `click_commit_button`. There is `challenge_argument`,
 `flag_contradiction`, `add_canvas_node`, `create_prediction`. **The page
-decides how a semantic action is rendered.**
+decides how a semantic action is rendered.** Founder clicks, Arena seats, and
+browser agents all call `runTool` → `document.modelContext.executeTool`. The
+store is not a back door.
+
+### Registration
 
 ### Registration
 
@@ -176,8 +180,8 @@ returns. Judges should start there.
 | Tool | What it returns |
 | --- | --- |
 | `get_company_brain` | Product, market, stack, and the fact/assumption split |
-| `get_current_decision` | Question, options, arguments, defenses, reassessments |
-| `get_decision_history` | Past decisions, predictions, outcomes |
+| `get_current_decision` | Full floor record: openings, defenses, seat replies, still-open items. Pass `decision_id` for a past arena |
+| `get_decision_history` | Index of past arenas (seat claims, outcomes). `include_record` attaches the full floor dataset |
 | `get_founder_patterns` | Measured patterns, e.g. growth estimates 2.1× optimistic |
 | `get_open_risks` | Risks still open, by severity |
 | `get_predictions` | Expected vs actual, with deadlines |
@@ -194,6 +198,9 @@ returns. Judges should start there.
 | `request_evidence` | Checkable request; blocks commitment |
 | `flag_contradiction` | Two things that cannot both be true |
 | `add_risk` | Severity + likelihood, open until resolved |
+| `resolve_contradiction` | Close a flagged contradiction with an explanation |
+| `set_risk_status` | Mitigate, accept, or reopen a risk |
+| `mark_evidence` | Mark a request provided or unavailable |
 | `add_canvas_node` | Put one object on the shared map |
 | `connect_nodes` | `supports`, `counters`, `depends`, or `handoff` |
 | `return_work` | After a handoff, write the result back onto the map |
@@ -205,6 +212,14 @@ returns. Judges should start there.
 | --- | --- |
 | `create_prediction` | Falsifiable number, unit, deadline |
 | `add_action_item` | Next step attached to the decision |
+| `toggle_action_item` | Mark that step done, or reopen it |
+| `add_defense` | Founder's pushback, on the record |
+| `add_reassessment` | One seat's full reply to that defense |
+| `open_decision` | Create or reopen a round, then write with `add_argument` |
+| `set_active_decision` | Put a past arena in front of the founder, or show the list |
+| `set_confidence` | Founder and/or Arena confidence, 0–100 |
+| `confirm_commit` | **Founder only.** Agents must `commit_decision` to propose |
+| `set_decision_status` | Investigate or abandon |
 | `commit_decision` | **Proposes** a commitment for the founder to confirm |
 
 ### Outcome — feed reality back in

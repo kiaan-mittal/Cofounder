@@ -8,6 +8,7 @@ import {
   readGithubSession,
 } from "@/server/github-oauth";
 import { llmConfigured } from "@/server/llm";
+import { composioConfigured } from "@/server/composio";
 
 export const runtime = "nodejs";
 
@@ -20,6 +21,7 @@ export async function GET() {
     githubOAuth: githubOAuthConfigured(),
     githubUser: publicGithubIdentity(session),
     supabase: supabaseConfigured(),
+    composio: composioConfigured(),
   };
   return NextResponse.json(body, {
     headers: { "cache-control": "no-store" },
