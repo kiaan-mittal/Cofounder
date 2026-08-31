@@ -17,12 +17,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { calibrationWarning, detectPatterns } from "@/lib/calibration";
-import { id, now } from "@/lib/id";
+import { calibrationWarning } from "@/lib/calibration";
 import { readiness } from "@/lib/selectors";
 import { useArena } from "@/lib/store";
 import type { CompanyBrain, Decision, PredictionDomain } from "@/lib/types";
 import type { ReadinessResponse } from "@/lib/use-debate";
+import { runTool } from "@/webmcp/run";
 
 /**
  * Commitment, then prediction.
@@ -108,18 +108,25 @@ export function CommitFlow({
     const option = decision.options.find((o) => o.id === optionId);
     if (!option) return;
 
-    useArena.getState().updateDecision(decision.id, {
-      status: "committed",
-      chosenOptionId: option.id,
-      commitmentRationale: rationale.trim(),
-      committedAt: now(),
+    void runTool(
+      "confirm_commit",
+      {
+        option: option.id,
+        rationale: rationale.trim(),
+        decision_id: decision.id,
+      },
+      { channel: "founder" },
+    ).then((result) => {
+      if (result.ok) setStage("prediction");
     });
-    useArena.getState().proposeCommit(null);
-    setStage("prediction");
   }
 
   function investigate() {
-    useArena.getState().updateDecision(decision.id, { status: "investigating" });
+    void runTool(
+      "set_decision_status",
+      { status: "investigating", decision_id: decision.id },
+      { channel: "founder" },
+    );
     toast("Marked for investigation", {
       description: "Deferral is a decision too — it will show in your record.",
     });
@@ -127,7 +134,11 @@ export function CommitFlow({
   }
 
   function abandon() {
-    useArena.getState().updateDecision(decision.id, { status: "abandoned" });
+    void runTool(
+      "set_decision_status",
+      { status: "abandoned", decision_id: decision.id },
+      { channel: "founder" },
+    );
     toast("Decision killed");
     onOpenChange(false);
   }
@@ -409,8 +420,6 @@ function PredictionStage({
   onDone: () => void;
 }) {
   const patterns = useArena((state) => state.patterns);
-  const addPrediction = useArena((state) => state.addPrediction);
-
   const [statement, setStatement] = useState("");
   const [metric, setMetric] = useState("");
   const [expected, setExpected] = useState("");
@@ -431,35 +440,27 @@ function PredictionStage({
   function record() {
     if (!Number.isFinite(expectedValue)) return;
 
-    addPrediction({
-      id: id("pred"),
-      decisionId: decision.id,
-      companyId: decision.companyId,
-      statement: statement.trim() || `${expected} ${unit} within ${days} days`,
-      domain,
-      metric: metric.trim() || unit.trim() || "outcome",
-      expectedValue,
-      unit: unit.trim() || "units",
-      deadline: new Date(
-        Date.now() + Math.max(1, Number(days) || 30) * 86_400_000,
-      ).toISOString(),
-      confidence: Math.max(0, Math.min(100, Number(confidence) || 70)),
-      status: "pending",
-      createdBy: "founder",
-      createdAt: now(),
+    void runTool(
+      "create_prediction",
+      {
+        statement: statement.trim() || `${expected} ${unit} within ${days} days`,
+        metric: metric.trim() || unit.trim() || "outcome",
+        expected_value: expectedValue,
+        unit: unit.trim() || "units",
+        days: Math.max(1, Number(days) || 30),
+        confidence: Math.max(0, Math.min(100, Number(confidence) || 70)),
+        domain,
+        decision_id: decision.id,
+      },
+      { channel: "founder" },
+    ).then((result) => {
+      if (!result.ok) return;
+      toast("Prediction recorded", {
+        description:
+          "Come back when the deadline lands and enter the real number.",
+      });
+      onDone();
     });
-
-    const state = useArena.getState();
-    if (state.company) {
-      state.setPatterns(
-        detectPatterns(state.company.id, state.predictions, state.decisions),
-      );
-    }
-
-    toast("Prediction recorded", {
-      description: "Come back when the deadline lands and enter the real number.",
-    });
-    onDone();
   }
 
   return (

@@ -18,11 +18,59 @@ export type BrainBuildEvent =
   | { type: "done"; company: import("@/lib/types").Company }
   | { type: "error"; message: string; hint?: string };
 
+export type DebateDefendEvent =
+  | { type: "started" }
+  | {
+      type: "partial";
+      reassessments: Array<{
+        argumentId: string;
+        verdict?: import("@/lib/types").Reassessment["verdict"];
+        addressed?: string;
+        unaddressed?: string;
+        reply?: string;
+        strengthDelta?: number;
+      }>;
+    }
+  | {
+      type: "done";
+      round: {
+        reassessments: Array<{
+          argumentId: string;
+          verdict: import("@/lib/types").Reassessment["verdict"];
+          addressed: string;
+          unaddressed: string;
+          reply?: string;
+          strengthDelta: number;
+        }>;
+        newArguments: Array<
+          DebateOpeningRound["arguments"][number] & { challengesId?: string }
+        >;
+        newRisks: DebateOpeningRound["risks"];
+        newContradictions: DebateOpeningRound["contradictions"];
+        arenaConfidence: number;
+        arenaConfidenceRationale: string;
+      };
+    }
+  | { type: "error"; message: string; hint?: string };
+
 export type DebateOpenEvent =
   | { type: "started" }
   | { type: "perspective"; perspective: import("@/lib/types").PerspectiveId }
   | { type: "done"; round: DebateOpeningRound }
   | { type: "error"; message: string; hint?: string };
+
+export type SparringPlan = {
+  reasoning: string;
+  action: "call_tool" | "respond";
+  tool: string | null;
+  argsJson: string | null;
+  message: string | null;
+};
+
+export type SparringPlanEvent =
+  | { type: "partial"; reasoning?: string; message?: string }
+  | { type: "done"; step: SparringPlan }
+  | { type: "error"; message: string };
 
 export interface DebateOpeningRound {
   contextNote: string;

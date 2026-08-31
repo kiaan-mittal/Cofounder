@@ -91,11 +91,17 @@ export async function readEventStream<T>(
     const chunks = buffer.split("\n\n");
     buffer = chunks.pop() ?? "";
     for (const chunk of chunks) {
-      const line = chunk
-        .split("\n")
-        .find((entry) => entry.startsWith("data: "));
-      if (!line) continue;
-      onEvent(JSON.parse(line.slice(6)) as T);
+      dispatch(chunk, onEvent);
     }
   }
+
+  if (buffer.trim()) dispatch(buffer, onEvent);
+}
+
+function dispatch<T>(chunk: string, onEvent: (event: T) => void) {
+  const line = chunk
+    .split("\n")
+    .find((entry) => entry.startsWith("data: "));
+  if (!line) return;
+  onEvent(JSON.parse(line.slice(6)) as T);
 }

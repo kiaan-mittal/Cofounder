@@ -11,11 +11,10 @@ import type { ArenaTool } from "@/webmcp/registry";
 /**
  * The Decision Arena tool surface.
  *
- * Every tool here is a decision primitive, not a UI control. There is no
- * `click_commit_button` or `scroll_to_risks`; there is `challenge_argument`,
- * `flag_contradiction` and `create_prediction`. The page decides how a
- * semantic action is rendered, which is what keeps the agent a participant in
- * the workspace rather than a puppeteer of its buttons.
+ * Every durable write in the Arena — seats opening a round, the founder
+ * defending, an external agent challenging — goes through these tools.
+ * The page decides how a semantic action is rendered. There is no private
+ * store API beside this surface.
  *
  *   context — understand the workspace       (read-only)
  *   debate  — participate in the reasoning   (writes and draws on the table)

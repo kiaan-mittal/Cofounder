@@ -6,6 +6,7 @@ import {
   type ArenaDraft,
   type OnboardingDraft,
 } from "@/lib/drafts";
+import type { ProjectSummary } from "@/lib/projects";
 import {
   getWorkspaceSnapshot,
   snapshotIsEmpty,
@@ -21,15 +22,22 @@ type PersistedSnapshot = WorkspaceSnapshot & {
 type RemoteWorkspace = {
   configured: boolean;
   workspace: {
+    id?: string;
+    name?: string;
     website: string;
     github: string;
     docs_url: string;
     snapshot: PersistedSnapshot | Record<string, never> | null;
     updated_at?: string;
   } | null;
+  projects?: ProjectSummary[];
+  activeProjectId?: string | null;
 };
 
 let saveTimer: number | undefined;
+let adoptedProjectId: string | null = null;
+
+const DEMO_COMPANY_ID = "co_worked_example";
 
 async function request(
   method: "GET" | "PUT",
@@ -40,6 +48,7 @@ async function request(
       method,
       headers: { "content-type": "application/json" },
       cache: "no-store",
+      credentials: "same-origin",
       body: body ? JSON.stringify(body) : undefined,
     });
     if (!response.ok) return null;
@@ -49,11 +58,21 @@ async function request(
   }
 }
 
+function companyIdOf(snapshot: Partial<WorkspaceSnapshot> | null | undefined) {
+  return snapshot?.company?.id ?? null;
+}
+
+function isDemoSnapshot(snapshot: Partial<WorkspaceSnapshot> | null | undefined) {
+  return companyIdOf(snapshot) === DEMO_COMPANY_ID;
+}
+
 export function shouldAdoptRemote(
   local: Partial<WorkspaceSnapshot>,
   remote: Partial<WorkspaceSnapshot> | null | undefined,
 ) {
   if (!remote || snapshotIsEmpty(remote)) return false;
+  if (isDemoSnapshot(local) && !isDemoSnapshot(remote)) return true;
+  if (!isDemoSnapshot(local) && isDemoSnapshot(remote)) return false;
   if (snapshotIsEmpty(local)) return true;
   return snapshotWeight(remote) > snapshotWeight(local);
 }
@@ -69,24 +88,35 @@ function applySnapshot(snapshot: PersistedSnapshot) {
   }
 }
 
+function rememberProjectDraft(row: NonNullable<RemoteWorkspace["workspace"]>) {
+  const current = readOnboardingDraft();
+  writeOnboardingDraft({
+    ...current,
+    website: row.website || "",
+    github: row.github || "",
+    docsUrl: row.docs_url || "",
+    projectName: row.name || current.projectName || "",
+    building: current.building,
+  });
+}
+
 export async function pullRemoteWorkspace() {
   const remote = await request("GET");
   if (!remote?.configured || !remote.workspace) return remote;
 
   const row = remote.workspace;
-  writeOnboardingDraft({
-    website: row.website || "",
-    github: row.github || "",
-    docsUrl: row.docs_url || "",
-    building: readOnboardingDraft().building,
-  });
+  const projectId = remote.activeProjectId ?? row.id ?? null;
+  rememberProjectDraft(row);
 
-  const snapshot = row.snapshot as PersistedSnapshot | null;
-  if (
-    snapshot &&
-    typeof snapshot === "object" &&
-    shouldAdoptRemote(getWorkspaceSnapshot(), snapshot)
-  ) {
+  const snapshot = (row.snapshot ?? {}) as PersistedSnapshot;
+  const switched = Boolean(projectId && projectId !== adoptedProjectId);
+  if (switched) {
+    adoptedProjectId = projectId;
+    applySnapshot(snapshot);
+    return remote;
+  }
+
+  if (typeof snapshot === "object" && shouldAdoptRemote(getWorkspaceSnapshot(), snapshot)) {
     applySnapshot(snapshot);
   }
 
@@ -101,16 +131,87 @@ export function adoptSnapshotIfRicher(
   applySnapshot(snapshot as PersistedSnapshot);
 }
 
+export async function flushWorkspaceSave(draft?: OnboardingDraft) {
+  if (typeof window === "undefined") return;
+  window.clearTimeout(saveTimer);
+  const snapshot = getWorkspaceSnapshot();
+  if (isDemoSnapshot(snapshot)) return;
+  await request("PUT", {
+    draft: draft ?? readOnboardingDraft(),
+    snapshot: {
+      ...snapshot,
+      arenaDraft: readArenaDraft(),
+    },
+  });
+}
+
 export function scheduleWorkspaceSave(draft?: OnboardingDraft) {
   if (typeof window === "undefined") return;
   window.clearTimeout(saveTimer);
   saveTimer = window.setTimeout(() => {
-    void request("PUT", {
-      draft: draft ?? readOnboardingDraft(),
-      snapshot: {
-        ...getWorkspaceSnapshot(),
-        arenaDraft: readArenaDraft(),
-      },
-    });
+    void flushWorkspaceSave(draft);
   }, 500);
+}
+
+export async function createRemoteProject(input: {
+  name: string;
+  githubRepoId: number;
+  githubOwner: string;
+  githubRepoName: string;
+  website: string;
+  docsUrl?: string;
+}): Promise<{ ok: true; project: ProjectSummary } | { ok: false; error: string }> {
+  try {
+    const response = await fetch("/api/projects", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify(input),
+    });
+    const payload = (await response.json().catch(() => ({}))) as {
+      error?: string;
+      project?: ProjectSummary;
+      workspace?: RemoteWorkspace["workspace"];
+    };
+    if (!response.ok || !payload.project) {
+      return {
+        ok: false,
+        error: payload.error || "The project could not be created.",
+      };
+    }
+    adoptedProjectId = payload.project.id;
+    useArena.getState().clearWorkspace();
+    if (payload.workspace) rememberProjectDraft(payload.workspace);
+    return { ok: true, project: payload.project };
+  } catch {
+    return { ok: false, error: "The project could not be created." };
+  }
+}
+
+export async function switchToProject(projectId: string): Promise<boolean> {
+  await flushWorkspaceSave();
+  try {
+    const response = await fetch("/api/projects", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify({ activeProjectId: projectId }),
+    });
+    if (!response.ok) return false;
+    const payload = (await response.json()) as {
+      workspace?: RemoteWorkspace["workspace"];
+    };
+    adoptedProjectId = projectId;
+    const snapshot = payload.workspace?.snapshot;
+    if (snapshot && typeof snapshot === "object") {
+      applySnapshot(snapshot as PersistedSnapshot);
+    } else {
+      useArena.getState().clearWorkspace();
+    }
+    if (payload.workspace) rememberProjectDraft(payload.workspace);
+    writeArenaDraft({ question: "", context: "" });
+    return true;
+  } catch {
+    return false;
+  }
 }

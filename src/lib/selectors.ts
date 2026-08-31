@@ -1,7 +1,39 @@
 import { calibrationBands } from "@/lib/calibration";
-import { PERSPECTIVE_MAP } from "@/lib/perspectives";
+import { PERSPECTIVE_MAP, perspectiveSeat } from "@/lib/perspectives";
 import type { ArenaState } from "@/lib/store";
-import type { Argument, Decision } from "@/lib/types";
+import type { Argument, Decision, Reassessment } from "@/lib/types";
+
+export type StillOpenItem = {
+  id: string;
+  seat: string;
+  text: string;
+};
+
+/**
+ * Latest non-conceded hole per argument and seat. Derived from reassessments
+ * so the right panel can show what is still unpaid without duplicating it
+ * into Risk or Contradiction records.
+ */
+export function stillOpenFrom(reassessments: Reassessment[]): StillOpenItem[] {
+  const latest = new Map<string, Reassessment>();
+  for (const item of reassessments) {
+    if (item.streaming) continue;
+    const key = `${item.argumentId}:${item.perspective}`;
+    const prev = latest.get(key);
+    if (!prev || item.createdAt >= prev.createdAt) latest.set(key, item);
+  }
+
+  return [...latest.values()]
+    .filter(
+      (item) =>
+        item.verdict !== "conceded" && Boolean(item.unaddressed?.trim()),
+    )
+    .map((item) => ({
+      id: item.id,
+      seat: perspectiveSeat(item.perspective),
+      text: item.unaddressed.trim(),
+    }));
+}
 
 /**
  * One read layer for two consumers.
@@ -12,12 +44,8 @@ import type { Argument, Decision } from "@/lib/types";
  */
 
 export function activeDecision(state: ArenaState): Decision | null {
-  if (!state.activeDecisionId) return state.decisions[0] ?? null;
-  return (
-    state.decisions.find((d) => d.id === state.activeDecisionId) ??
-    state.decisions[0] ??
-    null
-  );
+  if (state.listingArenas || !state.activeDecisionId) return null;
+  return state.decisions.find((d) => d.id === state.activeDecisionId) ?? null;
 }
 
 export function argumentsFor(
@@ -92,6 +120,7 @@ export function decisionSnapshot(state: ArenaState, decisionId: string) {
       id: a.id,
       perspective: a.perspective,
       perspectiveName: PERSPECTIVE_MAP[a.perspective]?.name ?? a.perspective,
+      seat: perspectiveSeat(a.perspective),
       stance: a.stance,
       claim: a.claim,
       reasoning: a.reasoning,
@@ -100,19 +129,40 @@ export function decisionSnapshot(state: ArenaState, decisionId: string) {
       basis: a.basis,
       round: a.round,
       createdBy: a.createdBy,
+      challengesId: a.challengesId ?? null,
     })),
     founderDefenses: defenses.map((d) => ({
       id: d.id,
       respondsToArgumentId: d.argumentId,
       text: d.text,
       round: d.round,
+      createdAt: d.createdAt,
     })),
     reassessments: reassessments.map((r) => ({
+      id: r.id,
+      defenseId: r.defenseId,
       argumentId: r.argumentId,
+      perspective: r.perspective,
+      perspectiveName: PERSPECTIVE_MAP[r.perspective]?.name ?? r.perspective,
+      seat: perspectiveSeat(r.perspective),
       verdict: r.verdict,
       addressed: r.addressed,
       unaddressed: r.unaddressed,
+      reply: r.reply ?? null,
+      strengthDelta: r.strengthDelta,
+      streaming: Boolean(r.streaming),
+      createdAt: r.createdAt,
     })),
+    stillOpen: stillOpenFrom(reassessments),
+    pendingCommit:
+      state.pendingCommit?.decisionId === decisionId
+        ? {
+            optionId: state.pendingCommit.optionId,
+            optionLabel: state.pendingCommit.optionLabel,
+            rationale: state.pendingCommit.rationale,
+            proposedBy: state.pendingCommit.proposedBy,
+          }
+        : null,
     risks: risksFor(state, decisionId).map((r) => ({
       id: r.id,
       title: r.title,
@@ -120,11 +170,15 @@ export function decisionSnapshot(state: ArenaState, decisionId: string) {
       severity: r.severity,
       likelihood: r.likelihood,
       status: r.status,
+      perspective: r.perspective,
+      createdBy: r.createdBy,
     })),
     evidence: evidenceFor(state, decisionId).map((e) => ({
       id: e.id,
       statement: e.statement,
       status: e.status,
+      argumentId: e.argumentId ?? null,
+      requestedBy: e.requestedBy,
     })),
     contradictions: contradictionsFor(state, decisionId).map((c) => ({
       id: c.id,
@@ -132,6 +186,7 @@ export function decisionSnapshot(state: ArenaState, decisionId: string) {
       sideA: c.sideA,
       sideB: c.sideB,
       resolved: c.resolved,
+      resolution: c.resolution ?? null,
     })),
     actionItems: actionItemsFor(state, decisionId).map((a) => ({
       id: a.id,
@@ -151,10 +206,14 @@ export function decisionSnapshot(state: ArenaState, decisionId: string) {
   };
 }
 
-export function decisionHistory(state: ArenaState) {
+export function decisionHistory(state: ArenaState, includeRecord = false) {
   return state.decisions.map((decision) => {
     const outcome = state.outcomes.find((o) => o.decisionId === decision.id);
     const predictions = predictionsFor(state, decision.id);
+    const args = argumentsFor(state, decision.id);
+    const defenses = defensesFor(state, decision.id);
+    const reassessments = reassessmentsFor(state, decision.id);
+    const openings = args.filter((a) => !a.challengesId);
     return {
       id: decision.id,
       question: decision.question,
@@ -167,6 +226,18 @@ export function decisionHistory(state: ArenaState) {
         decision.options.find((o) => o.id === decision.chosenOptionId)?.label ??
         null,
       commitmentRationale: decision.commitmentRationale ?? null,
+      floor: {
+        arguments: args.length,
+        defenses: defenses.length,
+        replies: reassessments.filter((r) => Boolean(r.reply?.trim())).length,
+        seats: openings.map((a) => ({
+          id: a.id,
+          seat: perspectiveSeat(a.perspective),
+          perspective: a.perspective,
+          stance: a.stance,
+          claim: a.claim,
+        })),
+      },
       outcome: outcome
         ? { result: outcome.result, summary: outcome.summary, lesson: outcome.lesson }
         : null,
@@ -179,6 +250,9 @@ export function decisionHistory(state: ArenaState) {
         status: p.status,
         ratio: p.ratio ?? null,
       })),
+      ...(includeRecord
+        ? { record: decisionSnapshot(state, decision.id) }
+        : {}),
     };
   });
 }

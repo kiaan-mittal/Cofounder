@@ -42,26 +42,61 @@ export function RequireCompany({
   }, [initialSnapshot]);
 
   useEffect(() => {
-    void pullRemoteWorkspace();
-    return useArena.subscribe(() => scheduleWorkspaceSave());
+    let unsub: (() => void) | undefined;
+    let cancelled = false;
+    void pullRemoteWorkspace().finally(() => {
+      if (cancelled) return;
+      unsub = useArena.subscribe(() => scheduleWorkspaceSave());
+    });
+    return () => {
+      cancelled = true;
+      unsub?.();
+    };
   }, []);
 
   if (!company) {
     return (
-      <div className="mx-auto max-w-[1400px] px-5 py-20">
-        <div className="max-w-[46ch]">
-          <p className="type-eyebrow">No Company Brain yet</p>
-          <h1 className="type-display mt-5 text-[clamp(2rem,4vw,2.75rem)] font-semibold">
-            The Arena needs to know your company first.
-          </h1>
-          <p className="mt-6 text-[17px] leading-relaxed text-graphite">
-            Arguments that are not grounded in your product, your repository and
-            your history are just startup advice. Give it a website and a
-            repository, and it will have something to argue with.
+      <div className="flex h-[calc(100dvh-3.5rem)] flex-col overflow-hidden bg-paper">
+        <div className="flex shrink-0 items-center gap-4 border-b border-rule px-4 py-2.5">
+          <p className="type-eyebrow text-graphite">Arena</p>
+          <p className="type-display min-w-0 flex-1 truncate text-[17px] font-semibold">
+            No Company Brain yet
           </p>
-          <Button asChild size="lg" className="mt-8 h-11 px-6 text-[15px]">
-            <Link href="/onboarding">Build your Company Brain</Link>
-          </Button>
+        </div>
+        <div className="grid min-h-0 min-w-0 flex-1 md:grid-cols-2">
+          <div className="flex min-h-0 min-w-0 flex-col border-r border-rule bg-paper">
+            <header className="flex shrink-0 items-baseline justify-between gap-3 border-b border-rule px-5 py-2">
+              <p className="type-eyebrow text-indigo">You</p>
+              <p className="text-[13px] text-graphite">
+                The board has nothing to argue from yet.
+              </p>
+            </header>
+            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
+              <p className="text-[15px] leading-relaxed text-graphite">
+                Arguments that are not grounded in your product, your repository
+                and your history are just startup advice.
+              </p>
+            </div>
+            <div className="shrink-0 border-t border-rule bg-paper px-4 py-3">
+              <Button asChild className="h-8 rounded-none px-3.5 text-[13px]">
+                <Link href="/onboarding?existing=1">Build your Company Brain</Link>
+              </Button>
+            </div>
+          </div>
+          <div className="hidden min-h-0 min-w-0 flex-col bg-leaf md:flex">
+            <header className="shrink-0 border-b border-rule bg-paper px-5 py-3">
+              <p className="type-eyebrow">The board</p>
+              <p className="mt-1 text-[13.5px] text-graphite">
+                Give it a website and a GitHub repository, and it will have
+                something to argue with.
+              </p>
+            </header>
+            <div className="min-h-0 flex-1 px-5 py-5">
+              <p className="text-[14px] leading-relaxed text-graphite">
+                No open risk. No open contradiction. No outstanding evidence.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -85,8 +120,16 @@ export function HydrateWorkspace({
   }, [initialSnapshot]);
 
   useEffect(() => {
-    void pullRemoteWorkspace();
-    return useArena.subscribe(() => scheduleWorkspaceSave());
+    let unsub: (() => void) | undefined;
+    let cancelled = false;
+    void pullRemoteWorkspace().finally(() => {
+      if (cancelled) return;
+      unsub = useArena.subscribe(() => scheduleWorkspaceSave());
+    });
+    return () => {
+      cancelled = true;
+      unsub?.();
+    };
   }, []);
   return null;
 }

@@ -17,8 +17,16 @@ export type PerspectiveId =
 /** Who caused a piece of state to exist. Provenance is shown in the UI. */
 export type Actor = "founder" | "arena" | "agent";
 
-/** How an agent reached the workspace, for honest labelling in the tool log. */
-export type AgentChannel = "browser-agent" | "in-page-agent" | "unknown";
+/**
+ * Who invoked a tool. Founder clicks and Arena seats go through the same
+ * `executeTool` path as a browser agent; this is how the log stays honest.
+ */
+export type AgentChannel =
+  | "browser-agent"
+  | "in-page-agent"
+  | "founder"
+  | "arena"
+  | "unknown";
 
 /* ------------------------------------------------------------------ */
 /* Company Brain                                                       */
@@ -224,6 +232,8 @@ export interface Reassessment {
   /** The seat speaking to the founder. Full answer, not a caption. */
   reply?: string;
   strengthDelta: number;
+  /** True while this seat's reply is still arriving from the model. */
+  streaming?: boolean;
   createdAt: string;
 }
 

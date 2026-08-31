@@ -3,7 +3,7 @@
 import { makeDrawing, makeNote, nextNoteSeat } from "@/lib/board";
 import { useArena } from "@/lib/store";
 import type { BoardShape } from "@/lib/types";
-import { currentChannel, type ArenaTool } from "@/webmcp/registry";
+import { currentChannel, actorFromChannel, type ArenaTool } from "@/webmcp/registry";
 import { toolError, toolResult } from "@/webmcp/spec";
 
 const SHAPES: BoardShape[] = [
@@ -101,7 +101,7 @@ export const boardTools: ArenaTool[] = [
         text,
         x: Math.max(2, Math.min(86, seat.x)),
         y: Math.max(2, Math.min(82, seat.y)),
-        author: "agent",
+        author: actorFromChannel(),
         channel: currentChannel(),
       });
       state.addBoardMark(mark);
@@ -143,7 +143,7 @@ export const boardTools: ArenaTool[] = [
         y: Math.max(1, Math.min(90, num(args.y, 40))),
         w: Math.max(6, Math.min(40, num(args.w, 16))),
         h: Math.max(6, Math.min(40, num(args.h, 12))),
-        author: "agent",
+        author: actorFromChannel(),
         channel: currentChannel(),
       });
       useArena.getState().addBoardMark(mark);

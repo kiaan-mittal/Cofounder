@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 
 import { PromptComposer } from "@/components/arena/prompt-composer";
-import { cn } from "@/lib/utils";
+import { StreamingCaret } from "@/components/arena/streaming-caret";
 import {
   AGENT_PROMPTS,
   useSparringChat,
@@ -130,20 +130,21 @@ export function AgentTranscript({
           <li key={message.id}>
             <p className="type-eyebrow text-oxblood">Agent</p>
             {message.tools.length ? (
-              <ul className="mt-2 space-y-1.5">
+              <ul className="mt-2 space-y-0.5 opacity-40">
                 {message.tools.map((tool, index) => (
                   <ToolStamp key={`${tool.name}-${index}`} tool={tool} />
                 ))}
               </ul>
             ) : null}
-            {message.pending && !message.text ? (
-              <p className="mt-2 text-[14px] leading-relaxed text-graphite">
-                {message.thinking || "Working…"}
+            {message.pending && message.thinking && !message.text ? (
+              <p className="mt-2 text-[13.5px] leading-relaxed text-pencil">
+                {message.thinking}
               </p>
             ) : null}
             {message.text ? (
               <p className="mt-2 max-w-[54ch] whitespace-pre-wrap text-[16px] leading-[1.55] text-ink">
                 {message.text}
+                {message.pending ? <StreamingCaret /> : null}
               </p>
             ) : null}
             {message.error ? (
@@ -157,20 +158,10 @@ export function AgentTranscript({
 }
 
 function ToolStamp({ tool }: { tool: ChatTool }) {
-  const result = tool.result?.split("\n")[0]?.trim() ?? "";
   return (
-    <li className="border border-rule bg-paper px-3 py-2">
-      <p className="type-figure text-[12px] text-ink">{tool.name}</p>
-      {result ? (
-        <p
-          className={cn(
-            "mt-0.5 line-clamp-2 text-[12.5px] leading-snug",
-            tool.ok === false ? "text-oxblood" : "text-graphite",
-          )}
-        >
-          {result}
-        </p>
-      ) : null}
+    <li className="type-figure text-[11px] leading-snug text-pencil">
+      {tool.name}
+      {tool.ok === false ? " · failed" : ""}
     </li>
   );
 }

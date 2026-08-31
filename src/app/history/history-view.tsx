@@ -13,13 +13,12 @@ import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { detectPatterns } from "@/lib/calibration";
-import { id, now } from "@/lib/id";
-import { perspectiveName } from "@/lib/perspectives";
 import { argumentsFor } from "@/lib/selectors";
+import { perspectiveName } from "@/lib/perspectives";
 import { useArena } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import type { Argument, Decision, Outcome, Prediction } from "@/lib/types";
+import { founderCall, runTool } from "@/webmcp/run";
 
 export function HistoryView({
   initialSnapshot,
@@ -44,7 +43,6 @@ function History({
       ? (initialSnapshot.decisions as Decision[])
       : [];
   const decisions = storeDecisions.length ? storeDecisions : seeded;
-  const setActiveDecision = useArena((state) => state.setActiveDecision);
 
   if (decisions.length === 0) {
     return (
@@ -99,7 +97,9 @@ function History({
                   ? (initialSnapshot.predictions as Prediction[])
                   : []
               }
-              onReopen={() => setActiveDecision(decision.id)}
+              onReopen={() =>
+                founderCall("set_active_decision", { decision_id: decision.id })
+              }
             />
           </li>
         ))}
@@ -267,6 +267,11 @@ function SeatVoice({ argument }: { argument: Argument }) {
           <p className="mt-1 text-[14.5px] leading-snug text-ink">
             {argument.claim}
           </p>
+          {argument.reasoning ? (
+            <p className="mt-2 text-[13.5px] leading-relaxed text-graphite">
+              {argument.reasoning}
+            </p>
+          ) : null}
         </div>
       </div>
     </li>
@@ -288,7 +293,6 @@ const RESULT_LABEL: Record<Prediction["status"], string> = {
 };
 
 function PredictionRow({ prediction }: { prediction: Prediction }) {
-  const recordActual = useArena((state) => state.recordActual);
   const [actual, setActual] = useState("");
 
   const overdue =
@@ -299,25 +303,21 @@ function PredictionRow({ prediction }: { prediction: Prediction }) {
     const value = Number(actual);
     if (!Number.isFinite(value)) return;
 
-    const updated = recordActual(prediction.id, value);
-    const state = useArena.getState();
-    if (state.company) {
-      state.setPatterns(
-        detectPatterns(state.company.id, state.predictions, state.decisions),
-      );
-    }
-    if (updated) {
+    void runTool(
+      "evaluate_prediction",
+      { prediction_id: prediction.id, actual_value: value },
+      { channel: "founder" },
+    ).then((result) => {
+      if (!result.ok) return;
+      const status =
+        typeof result.data?.status === "string" ? result.data.status : "";
       toast(
-        updated.status === "hit"
-          ? "Called it"
-          : updated.status === "partial"
-            ? "Close"
-            : "Missed",
+        status === "hit" ? "Called it" : status === "partial" ? "Close" : "Missed",
         {
-          description: `Expected ${updated.expectedValue} ${updated.unit}, actual ${value}. Calibration updated.`,
+          description: `Expected ${prediction.expectedValue} ${prediction.unit}, actual ${value}. Calibration updated.`,
         },
       );
-    }
+    });
   }
 
   return (
@@ -383,7 +383,6 @@ function PredictionRow({ prediction }: { prediction: Prediction }) {
 }
 
 function OutcomeForm({ decision }: { decision: Decision }) {
-  const addOutcome = useArena((state) => state.addOutcome);
   const [open, setOpen] = useState(false);
   const [result, setResult] = useState<Outcome["result"]>("mixed");
   const [summary, setSummary] = useState("");
@@ -402,26 +401,22 @@ function OutcomeForm({ decision }: { decision: Decision }) {
   }
 
   function save() {
-    addOutcome({
-      id: id("out"),
-      decisionId: decision.id,
-      result,
-      summary: summary.trim(),
-      lesson: lesson.trim(),
-      recordedAt: now(),
+    void runTool(
+      "record_outcome",
+      {
+        decision_id: decision.id,
+        result,
+        summary: summary.trim(),
+        lesson: lesson.trim(),
+      },
+      { channel: "founder" },
+    ).then((outcome) => {
+      if (!outcome.ok) return;
+      toast("Outcome recorded", {
+        description: "The lesson will be quoted back in your next decision.",
+      });
+      setOpen(false);
     });
-
-    const state = useArena.getState();
-    if (state.company) {
-      state.setPatterns(
-        detectPatterns(state.company.id, state.predictions, state.decisions),
-      );
-    }
-
-    toast("Outcome recorded", {
-      description: "The lesson will be quoted back in your next decision.",
-    });
-    setOpen(false);
   }
 
   return (

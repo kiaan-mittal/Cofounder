@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 import { GithubMark } from "@/components/ink/emblems";
@@ -41,13 +42,13 @@ export function AccountMenu({
 
   if (!user) {
     return (
-      <a
-        href={authHref("/api/auth/github", "/arena")}
+      <Link
+        href="/login"
         className="inline-flex h-9 items-center gap-2 bg-ink px-3 text-[13px] font-medium text-paper transition-colors hover:bg-ink/90"
       >
         <GithubMark className="h-3.5 w-3.5 text-paper" />
-        Sign in with GitHub
-      </a>
+        Sign in
+      </Link>
     );
   }
 

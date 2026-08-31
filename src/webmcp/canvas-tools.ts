@@ -9,7 +9,7 @@ import {
 } from "@/lib/canvas-model";
 import { useArena } from "@/lib/store";
 import type { CanvasKind, CanvasLinkKind } from "@/lib/types";
-import { currentChannel, type ArenaTool } from "@/webmcp/registry";
+import { currentChannel, actorFromChannel, type ArenaTool } from "@/webmcp/registry";
 import { toolError, toolResult } from "@/webmcp/spec";
 
 const KINDS: CanvasKind[] = [
@@ -127,7 +127,7 @@ export const canvasTools: ArenaTool[] = [
         text,
         x: Math.max(2, Math.min(80, seat.x)),
         y: Math.max(18, Math.min(82, seat.y)),
-        author: "agent",
+        author: actorFromChannel(),
         stance:
           args.stance === "+" || args.stance === "-" || args.stance === "~"
             ? args.stance
@@ -146,7 +146,7 @@ export const canvasTools: ArenaTool[] = [
           fromId: node.id,
           toId: target,
           kind: linkKind,
-          author: "agent",
+          author: actorFromChannel(),
         }),
       );
       spotlight(node.id);
@@ -185,7 +185,7 @@ export const canvasTools: ArenaTool[] = [
         fromId: from,
         toId: to,
         kind,
-        author: "agent",
+        author: actorFromChannel(),
       });
       useArena.getState().addCanvasLink(link);
       spotlight(link.id);
@@ -228,7 +228,7 @@ export const canvasTools: ArenaTool[] = [
         text,
         x: Math.min(80, (parent?.x ?? 40) + 8),
         y: Math.min(82, (parent?.y ?? 40) + 16),
-        author: "agent",
+        author: actorFromChannel(),
         channel: currentChannel(),
       });
       state.addCanvasNode(node);
@@ -238,7 +238,7 @@ export const canvasTools: ArenaTool[] = [
           fromId: target,
           toId: node.id,
           kind: "handoff",
-          author: "agent",
+          author: actorFromChannel(),
         }),
       );
       state.setHandoff(

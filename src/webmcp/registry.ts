@@ -1,7 +1,7 @@
 "use client";
 
 import { useArena } from "@/lib/store";
-import type { AgentChannel } from "@/lib/types";
+import type { Actor, AgentChannel } from "@/lib/types";
 import { coerceToolArgs, nativeToolText, toolAudience } from "@/webmcp/compat";
 import { ensureModelContext, isPolyfilled } from "@/webmcp/polyfill";
 import {
@@ -49,6 +49,13 @@ export function currentChannel(): AgentChannel {
   return activeChannel;
 }
 
+/** Provenance written onto records this tool call creates. */
+export function actorFromChannel(channel: AgentChannel = currentChannel()): Actor {
+  if (channel === "founder") return "founder";
+  if (channel === "arena") return "arena";
+  return "agent";
+}
+
 /* ------------------------------------------------------------------ */
 /* Instrumentation                                                     */
 /* ------------------------------------------------------------------ */
@@ -65,10 +72,49 @@ export interface ArenaTool extends Omit<ToolDefinition, "execute"> {
 }
 
 /**
- * Wraps a tool so every invocation is timed, recorded in the workspace log and
- * given a spotlight. The founder watching the screen should always be able to
- * see that something was changed by an agent, and which agent it was.
+ * Timed, logged execution. Registration wraps this so `executeTool` and the
+ * in-page fallback share one path — no private write API beside WebMCP.
  */
+export async function executeAndLog(
+  tool: ArenaTool,
+  rawArgs: unknown,
+  options?: ToolExecuteOptions,
+): Promise<ToolResult> {
+  const args = coerceToolArgs(rawArgs);
+  const channel = currentChannel();
+  const startedAt = performance.now();
+  let result: ToolResult;
+  let ok = true;
+
+  try {
+    const executed = await tool.execute(args, options);
+    result =
+      typeof executed === "string"
+        ? { content: [{ type: "text", text: executed }] }
+        : executed;
+    ok = result.isError !== true;
+  } catch (error) {
+    ok = false;
+    result = toolError(
+      error instanceof Error
+        ? error.message
+        : "The tool failed for an unknown reason.",
+    );
+  }
+
+  const summary = result.content[0]?.text.split("\n")[0] ?? tool.humanLabel;
+  useArena.getState().logToolCall({
+    tool: tool.name,
+    args,
+    ok,
+    summary: summary.slice(0, 200),
+    channel,
+    durationMs: Math.round(performance.now() - startedAt),
+  });
+
+  return result;
+}
+
 function instrument(tool: ArenaTool): ToolDefinition {
   return {
     name: tool.name,
@@ -77,45 +123,9 @@ function instrument(tool: ArenaTool): ToolDefinition {
     inputSchema: tool.inputSchema,
     annotations: tool.annotations,
     execute: async (rawArgs, options) => {
-      const args = coerceToolArgs(rawArgs);
-      const channel = currentChannel();
-      const startedAt = performance.now();
-      let result: ToolResult;
-      let ok = true;
-
-      try {
-        const executed = await tool.execute(args, options);
-        result =
-          typeof executed === "string"
-            ? { content: [{ type: "text", text: executed }] }
-            : executed;
-        ok = result.isError !== true;
-      } catch (error) {
-        ok = false;
-        result = toolError(
-          error instanceof Error
-            ? error.message
-            : "The tool failed for an unknown reason.",
-        );
-      }
-
-      const summary = result.content[0]?.text.split("\n")[0] ?? tool.humanLabel;
-      const store = useArena.getState();
-
-      store.logToolCall({
-        tool: tool.name,
-        args,
-        ok,
-        summary: summary.slice(0, 200),
-        channel,
-        durationMs: Math.round(performance.now() - startedAt),
-      });
-
-      // Chrome / ChatGPT native WebMCP wants execute() to return a DOMString.
+      const result = await executeAndLog(tool, rawArgs, options);
       const native = Boolean(nativeModelContext()) && !isPolyfilled();
-      if (native) {
-        return nativeToolText(result);
-      }
+      if (native) return nativeToolText(result);
       return result;
     },
   };

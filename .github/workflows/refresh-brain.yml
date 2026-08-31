@@ -1,0 +1,28 @@
+name: Refresh Company Brain
+
+on:
+  schedule:
+    # Every three days at 04:00 UTC. Re-scrapes GitHub + the public site.
+    - cron: "0 4 */3 * *"
+  workflow_dispatch:
+
+jobs:
+  refresh:
+    name: Resync GitHub and scrape sources
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Rebuild stale Company Brains
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${APP_URL:-}" ] || [ -z "${CRON_SECRET:-}" ]; then
+            echo "Set repository secrets APP_URL and CRON_SECRET so this job can reach /api/cron/brain."
+            exit 1
+          fi
+          curl -fsS -X GET \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            -H "Accept: application/json" \
+            "${APP_URL%/}/api/cron/brain"

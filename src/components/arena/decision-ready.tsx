@@ -8,11 +8,11 @@ import { HatchMeter } from "@/components/ink/marks";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Textarea } from "@/components/ui/textarea";
-import { now } from "@/lib/id";
 import { readiness } from "@/lib/selectors";
 import { useArena } from "@/lib/store";
 import type { Argument, Decision } from "@/lib/types";
 import type { ReadinessResponse } from "@/lib/use-debate";
+import { runTool } from "@/webmcp/run";
 
 export function DecisionReady({
   decision,
@@ -29,7 +29,6 @@ export function DecisionReady({
   onBack: () => void;
   onCommitted: () => void;
 }) {
-  const updateDecision = useArena((state) => state.updateDecision);
   const blockers = useArena(
     useShallow((state) => readiness(state, decision.id).blockers),
   );
@@ -50,21 +49,27 @@ export function DecisionReady({
     summary?.recommendedTest ??
     "Name the cheapest test that would change your mind.";
 
-  function commit() {
+  async function commit() {
     const option = decision.options.find((item) => item.id === optionId);
     if (!option) return;
-    updateDecision(decision.id, {
-      status: "committed",
-      chosenOptionId: option.id,
-      commitmentRationale: rationale.trim(),
-      committedAt: now(),
-    });
-    useArena.getState().proposeCommit(null);
+    await runTool(
+      "confirm_commit",
+      {
+        option: option.id,
+        rationale: rationale.trim(),
+        decision_id: decision.id,
+      },
+      { channel: "founder" },
+    );
     onCommitted();
   }
 
   function investigate() {
-    updateDecision(decision.id, { status: "investigating" });
+    void runTool(
+      "set_decision_status",
+      { status: "investigating", decision_id: decision.id },
+      { channel: "founder" },
+    );
     toast("Marked for investigation", {
       description: "Back on the floor. Deferral is on the record.",
     });
@@ -72,7 +77,11 @@ export function DecisionReady({
   }
 
   function kill() {
-    updateDecision(decision.id, { status: "abandoned" });
+    void runTool(
+      "set_decision_status",
+      { status: "abandoned", decision_id: decision.id },
+      { channel: "founder" },
+    );
     toast("Decision killed");
     onBack();
   }

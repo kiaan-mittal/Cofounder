@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import type { SparringPlanEvent } from "@/lib/reading";
 import { handleRouteError, parseBody } from "@/server/http";
 import { generateStructured } from "@/server/llm";
 
@@ -115,14 +116,68 @@ export async function POST(request: Request) {
         : `You have ${input.stepsRemaining} step(s) left. Decide your single next action.`,
     ].join("\n");
 
-    const step = await generateStructured({
-      schema: stepSchema,
-      system: SYSTEM,
-      prompt,
-      purpose: "Planning the sparring agent's next move",
+    const wantsStream = request.headers.get("accept")?.includes("text/event-stream");
+    if (!wantsStream) {
+      const step = await generateStructured({
+        schema: stepSchema,
+        system: SYSTEM,
+        prompt,
+        purpose: "Planning the sparring agent's next move",
+      });
+      return NextResponse.json(step);
+    }
+
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+      async start(controller) {
+        const send = (event: SparringPlanEvent) => {
+          controller.enqueue(
+            encoder.encode(`data: ${JSON.stringify(event)}\n\n`),
+          );
+        };
+
+        try {
+          const step = await generateStructured({
+            schema: stepSchema,
+            system: SYSTEM,
+            prompt,
+            purpose: "Planning the sparring agent's next move",
+            onPartial: (value) => {
+              const partial = value as {
+                reasoning?: string;
+                message?: string | null;
+              };
+              if (!partial.reasoning && !partial.message) return;
+              send({
+                type: "partial",
+                reasoning: partial.reasoning,
+                message: partial.message ?? undefined,
+              });
+            },
+          });
+          send({ type: "done", step });
+        } catch (error) {
+          const handled = handleRouteError(error);
+          const payload = await handled.json().catch(() => null);
+          send({
+            type: "error",
+            message:
+              payload?.error ??
+              "The sparring agent could not reach its model.",
+          });
+        } finally {
+          controller.close();
+        }
+      },
     });
 
-    return NextResponse.json(step);
+    return new Response(stream, {
+      headers: {
+        "content-type": "text/event-stream; charset=utf-8",
+        "cache-control": "no-cache, no-transform",
+        connection: "keep-alive",
+      },
+    });
   } catch (error) {
     return handleRouteError(error);
   }

@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 
-import { useArena } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import type { StillOpenItem } from "@/lib/selectors";
 import type { Contradiction, Evidence, Risk } from "@/lib/types";
+import { founderCall } from "@/webmcp/run";
 
 const STEPS = [
   { id: "brain", label: "Brain", href: "/brain" },
@@ -69,17 +70,15 @@ export function SharedState({
   risks,
   contradictions,
   evidence,
+  stillOpen = [],
   stacked = false,
 }: {
   risks: Risk[];
   contradictions: Contradiction[];
   evidence: Evidence[];
+  stillOpen?: StillOpenItem[];
   stacked?: boolean;
 }) {
-  const updateRisk = useArena((state) => state.updateRisk);
-  const resolveContradiction = useArena((state) => state.resolveContradiction);
-  const updateEvidence = useArena((state) => state.updateEvidence);
-
   const openRisks = risks.filter((item) => item.status === "open");
   const openCons = contradictions.filter((item) => !item.resolved);
   const openEv = evidence.filter((item) => item.status === "requested");
@@ -89,13 +88,14 @@ export function SharedState({
       <header className="border-b border-rule bg-paper px-4 py-3">
         <p className="type-eyebrow">Shared arena state</p>
         <p className="mt-1 text-[13.5px] text-graphite">
-          Founder and agent write the same three things. Nothing else.
+          Risks, contradictions, evidence, and what the seats have not been
+          paid.
         </p>
       </header>
       <div
         className={cn(
           "grid gap-px bg-rule",
-          stacked ? "grid-cols-1" : "lg:grid-cols-3",
+          stacked ? "grid-cols-1" : "lg:grid-cols-2 xl:grid-cols-4",
         )}
       >
         <Bucket
@@ -106,7 +106,11 @@ export function SharedState({
             title: item.title,
             body: item.detail,
             meta: `${item.likelihood} · ${item.severity}/5`,
-            onAct: () => updateRisk(item.id, { status: "accepted" }),
+            onAct: () =>
+              founderCall("set_risk_status", {
+                risk_id: item.id,
+                status: "accepted",
+              }),
             act: "Accept",
           }))}
         />
@@ -119,7 +123,10 @@ export function SharedState({
             body: `${item.sideA} — ${item.sideB}`,
             meta: "cannot both be true",
             onAct: () =>
-              resolveContradiction(item.id, "Marked resolved by the founder."),
+              founderCall("resolve_contradiction", {
+                contradiction_id: item.id,
+                resolution: "Marked resolved by the founder.",
+              }),
             act: "Resolve",
           }))}
         />
@@ -131,8 +138,23 @@ export function SharedState({
             title: item.statement,
             body: null,
             meta: "requested",
-            onAct: () => updateEvidence(item.id, { status: "provided" }),
+            onAct: () =>
+              founderCall("mark_evidence", {
+                evidence_id: item.id,
+                status: "provided",
+              }),
             act: "Have it",
+          }))}
+        />
+        <Bucket
+          label="Still open"
+          empty="Nothing still open."
+          tone="open"
+          items={stillOpen.map((item) => ({
+            id: item.id,
+            title: item.text,
+            body: null,
+            meta: item.seat,
           }))}
         />
       </div>
@@ -144,21 +166,23 @@ function Bucket({
   label,
   empty,
   items,
+  tone,
 }: {
   label: string;
   empty: string;
+  tone?: "open";
   items: Array<{
     id: string;
     title: string;
     body: string | null;
     meta: string;
-    onAct: () => void;
-    act: string;
+    onAct?: () => void;
+    act?: string;
   }>;
 }) {
   return (
     <div className="min-w-0 bg-paper px-4 py-4">
-      <p className="type-eyebrow">
+      <p className={cn("type-eyebrow", tone === "open" && "text-oxblood")}>
         {label}
         {items.length ? ` · ${items.length}` : ""}
       </p>
@@ -175,14 +199,23 @@ function Bucket({
                 </p>
               ) : null}
               <div className="mt-2 flex items-baseline justify-between gap-3">
-                <span className="type-eyebrow text-pencil">{item.meta}</span>
-                <button
-                  type="button"
-                  onClick={item.onAct}
-                  className="type-eyebrow text-ink underline underline-offset-4 hover:text-graphite"
+                <span
+                  className={cn(
+                    "type-eyebrow",
+                    tone === "open" ? "text-oxblood" : "text-pencil",
+                  )}
                 >
-                  {item.act}
-                </button>
+                  {item.meta}
+                </span>
+                {item.onAct && item.act ? (
+                  <button
+                    type="button"
+                    onClick={item.onAct}
+                    className="type-eyebrow text-ink underline underline-offset-4 hover:text-graphite"
+                  >
+                    {item.act}
+                  </button>
+                ) : null}
               </div>
             </li>
           ))}

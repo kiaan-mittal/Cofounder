@@ -9,25 +9,30 @@ import {
 import { cookies } from "next/headers";
 
 import type { GithubIdentity } from "@/lib/github";
+import { composioConfigured } from "@/server/composio";
 import { githubCredentials } from "@/server/github-credentials";
 
 const SESSION_COOKIE = "da_github";
 const STATE_COOKIE = "da_github_state";
+const PROJECT_COOKIE = "da_project";
 const SESSION_MAX_AGE = 60 * 60 * 24 * 30;
 const STATE_MAX_AGE = 60 * 10;
 
 export interface GithubSession extends GithubIdentity {
   accessToken: string;
+  composioUserId?: string;
 }
 
 interface OauthState {
   nonce: string;
   returnTo: string;
   origin: string;
+  composioUserId?: string;
+  composioConnectionId?: string;
 }
 
 export function githubOAuthConfigured(): boolean {
-  return Boolean(githubCredentials());
+  return Boolean(githubCredentials() || composioConfigured());
 }
 
 export function githubCallbackUrl(): string {
@@ -49,6 +54,7 @@ export function publicGithubIdentity(
     login: session.login,
     name: session.name,
     avatar: session.avatar,
+    githubId: session.githubId,
   };
 }
 
@@ -97,7 +103,7 @@ function sessionKey() {
   return createHash("sha256").update(material).digest();
 }
 
-function seal(payload: unknown): string {
+export function sealSecret(payload: unknown): string {
   const iv = randomBytes(12);
   const cipher = createCipheriv("aes-256-gcm", sessionKey(), iv);
   const encrypted = Buffer.concat([
@@ -109,7 +115,7 @@ function seal(payload: unknown): string {
   );
 }
 
-function open<T>(value: string): T | null {
+export function openSecret<T>(value: string): T | null {
   try {
     const buf = Buffer.from(value, "base64url");
     const iv = buf.subarray(0, 12);
@@ -128,14 +134,15 @@ export async function readGithubSession(): Promise<GithubSession | null> {
   const jar = await cookies();
   const raw = jar.get(SESSION_COOKIE)?.value;
   if (!raw) return null;
-  const session = open<GithubSession>(raw);
-  if (!session?.accessToken || !session.login) return null;
+  const session = openSecret<GithubSession>(raw);
+  if (!session?.login) return null;
+  if (!session.accessToken && !session.composioUserId) return null;
   return session;
 }
 
 export async function writeGithubSession(session: GithubSession) {
   const jar = await cookies();
-  jar.set(SESSION_COOKIE, seal(session), {
+  jar.set(SESSION_COOKIE, sealSecret(session), {
     ...cookieBase(),
     maxAge: SESSION_MAX_AGE,
   });
@@ -144,11 +151,31 @@ export async function writeGithubSession(session: GithubSession) {
 export async function clearGithubSession() {
   const jar = await cookies();
   jar.delete(SESSION_COOKIE);
+  jar.delete(PROJECT_COOKIE);
+}
+
+export async function readProjectCookie(): Promise<string | null> {
+  const jar = await cookies();
+  const value = jar.get(PROJECT_COOKIE)?.value?.trim();
+  return value || null;
+}
+
+export async function writeProjectCookie(projectId: string) {
+  const jar = await cookies();
+  jar.set(PROJECT_COOKIE, projectId, {
+    ...cookieBase(),
+    maxAge: SESSION_MAX_AGE,
+  });
+}
+
+export async function clearProjectCookie() {
+  const jar = await cookies();
+  jar.delete(PROJECT_COOKIE);
 }
 
 export async function writeOauthState(state: OauthState) {
   const jar = await cookies();
-  jar.set(STATE_COOKIE, seal(state), {
+  jar.set(STATE_COOKIE, sealSecret(state), {
     ...cookieBase(),
     maxAge: STATE_MAX_AGE,
   });
@@ -159,7 +186,7 @@ export async function consumeOauthState(): Promise<OauthState | null> {
   const raw = jar.get(STATE_COOKIE)?.value;
   jar.delete(STATE_COOKIE);
   if (!raw) return null;
-  return open<OauthState>(raw);
+  return openSecret<OauthState>(raw);
 }
 
 export function authorizeUrl(nonce: string): string {
@@ -170,6 +197,9 @@ export function authorizeUrl(nonce: string): string {
   const params = new URLSearchParams({
     client_id: credentials.clientId,
     redirect_uri: githubCallbackUrl(),
+    // read:user identifies the account. repo is the least GitHub grants for
+    // listing and reading private repositories (there is no read-only private
+    // scope on classic OAuth apps). Nothing is written back to GitHub.
     scope: "read:user repo",
     state: nonce,
     allow_signup: "true",
@@ -238,6 +268,7 @@ export async function sessionFromAccessToken(
   }
 
   const user = (await userResponse.json()) as {
+    id?: number;
     login?: string;
     name?: string | null;
     avatar_url?: string | null;
@@ -252,16 +283,6 @@ export async function sessionFromAccessToken(
     login: user.login,
     name: user.name ?? null,
     avatar: user.avatar_url ?? null,
+    githubId: typeof user.id === "number" ? user.id : undefined,
   };
-}
-
-/** Sign in as the GitHub account behind GITHUB_TOKEN when no OAuth app exists. */
-export async function sessionFromServerToken(): Promise<GithubSession | null> {
-  const token = process.env.GITHUB_TOKEN?.trim();
-  if (!token) return null;
-  try {
-    return await sessionFromAccessToken(token);
-  } catch {
-    return null;
-  }
 }

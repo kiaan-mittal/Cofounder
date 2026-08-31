@@ -4,26 +4,28 @@ import { useCallback, useState } from "react";
 
 import { ApiError, post, readEventStream } from "@/lib/api";
 import { detectPatterns } from "@/lib/calibration";
-import { landArguments, makeNote, nextNoteSeat } from "@/lib/board";
-import { landRoundOnCanvas } from "@/lib/canvas-model";
 import { id, now } from "@/lib/id";
-import type { DebateOpenEvent, DebateOpeningRound } from "@/lib/reading";
+import type {
+  DebateDefendEvent,
+  DebateOpenEvent,
+  DebateOpeningRound,
+} from "@/lib/reading";
 import { argumentsFor, decisionHistory } from "@/lib/selectors";
 import { useArena, type ArenaState } from "@/lib/store";
 import type {
-  Argument,
   ArgumentStance,
   Decision,
   PerspectiveId,
   Reassessment,
 } from "@/lib/types";
+import { runTool } from "@/webmcp/run";
 
 /**
- * The debate loop, as the UI uses it.
+ * The debate loop.
  *
- * Server calls produce structured rounds; this turns them into workspace
- * records. Nothing arrives on screen that is not also a record an agent can
- * read back through WebMCP.
+ * The server only proposes structured rounds. Every durable write goes through
+ * WebMCP tools (`open_decision`, `add_argument`, `add_defense`, …) so the
+ * seats, the founder, and a browser agent share one protocol.
  */
 
 export type OpeningResponse = DebateOpeningRound;
@@ -69,7 +71,6 @@ export interface ReadinessResponse {
   verdict: string;
 }
 
-/** The slice of workspace the debate routes need. */
 function debateContext(state: ArenaState, question: string, founderContext: string) {
   return {
     brain: state.company!.brain,
@@ -92,19 +93,54 @@ function debateContext(state: ArenaState, question: string, founderContext: stri
   };
 }
 
-function toBasis(
-  basis: Array<{ type: string; ref?: string; label: string }>,
-): Argument["basis"] {
-  return basis.map((item) => ({
-    type:
-      item.type === "fact" ||
-      item.type === "assumption" ||
-      item.type === "pattern"
-        ? item.type
-        : "inference",
-    ref: item.ref,
-    label: item.label,
-  }));
+async function arenaCall(name: string, args: Record<string, unknown>) {
+  const result = await runTool(name, args, { channel: "arena" });
+  if (!result.ok) {
+    throw new ApiError(result.text || `${name} failed.`);
+  }
+  return result;
+}
+
+async function writeRound(decisionId: string, round: OpeningResponse) {
+  await Promise.all(
+    round.arguments.map((argument) =>
+      arenaCall("add_argument", {
+        perspective: argument.perspective,
+        stance: argument.stance,
+        claim: argument.claim,
+        reasoning: argument.reasoning,
+        basis_items: argument.basis,
+        strength: argument.strength,
+        decision_id: decisionId,
+      }),
+    ),
+  );
+  await Promise.all([
+    ...round.risks.map((risk) =>
+      arenaCall("add_risk", {
+        title: risk.title,
+        detail: risk.detail,
+        severity: risk.severity,
+        likelihood: risk.likelihood,
+        perspective: risk.perspective ?? undefined,
+        decision_id: decisionId,
+      }),
+    ),
+    ...round.contradictions.map((item) =>
+      arenaCall("flag_contradiction", {
+        summary: item.summary,
+        side_a: item.sideA,
+        side_b: item.sideB,
+        decision_id: decisionId,
+      }),
+    ),
+    ...round.evidenceRequests.map((statement) =>
+      arenaCall("request_evidence", {
+        statement,
+        decision_id: decisionId,
+      }),
+    ),
+  ]);
 }
 
 export function useDebate() {
@@ -128,11 +164,6 @@ export function useDebate() {
     }
   }
 
-  /**
-   * Runs round one. Creates the decision when `existingDecisionId` is absent,
-   * and otherwise fills an existing one — which is how a decision reopened
-   * from the history gets a round of arguments.
-   */
   const open = useCallback(
     async (
       question: string,
@@ -180,124 +211,25 @@ export function useDebate() {
           );
         }
 
-        const existing = existingDecisionId
-          ? useArena.getState().decisions.find((d) => d.id === existingDecisionId)
-          : undefined;
-
-        const decision =
-          existing ??
-          state.createDecision({
-            question,
-            context: founderContext || round.contextNote,
-            options: round.options.map((option) => ({
-              id: id("opt"),
-              label: option.label,
-              detail: option.detail,
-            })),
-          });
-
-        const store = useArena.getState();
-        store.updateDecision(decision.id, {
-          agentConfidence: round.arenaConfidence,
-          round: 1,
-          status: "open",
-          // A decision reopened from history keeps its own options if it has
-          // them; otherwise take the ones this round proposed.
-          ...(existing && existing.options.length === 0
-            ? {
-                options: round.options.map((option) => ({
-                  id: id("opt"),
-                  label: option.label,
-                  detail: option.detail,
-                })),
-              }
-            : {}),
+        const opened = await arenaCall("open_decision", {
+          question,
+          context: founderContext || round.contextNote,
+          options: round.options,
+          arena_confidence: round.arenaConfidence,
+          ...(existingDecisionId ? { decision_id: existingDecisionId } : {}),
         });
-        store.setActiveDecision(decision.id);
-
-        if (!existing && state.company) {
-          store.adoptBoardMarks(state.company.id, decision.id);
-          store.adoptCanvas(state.company.id, decision.id);
+        const decisionId =
+          typeof opened.data?.decisionId === "string" ? opened.data.decisionId : "";
+        if (!decisionId) {
+          throw new ApiError("open_decision did not return a decision id.");
         }
 
-        const created = round.arguments.map((argument) => ({
-          id: id("arg"),
-          decisionId: decision.id,
-          perspective: argument.perspective,
-          stance: argument.stance,
-          claim: argument.claim,
-          reasoning: argument.reasoning,
-          basis: toBasis(argument.basis),
-          strength: argument.strength,
-          status: "standing" as const,
-          round: 1,
-          createdBy: "arena" as const,
-          createdAt: now(),
-        }));
-        store.addArguments(created);
-        store.addBoardMarks(
-          landArguments(
-            created,
-            store.boardMarks.filter((mark) => mark.decisionId === decision.id),
-          ),
+        await writeRound(decisionId, round);
+
+        return (
+          useArena.getState().decisions.find((item) => item.id === decisionId) ??
+          null
         );
-
-        for (const risk of round.risks) {
-          store.addRisk({
-            id: id("risk"),
-            decisionId: decision.id,
-            title: risk.title,
-            detail: risk.detail,
-            severity: risk.severity,
-            likelihood: risk.likelihood,
-            status: "open",
-            perspective: risk.perspective,
-            createdBy: "arena",
-            createdAt: now(),
-          });
-        }
-
-        for (const contradiction of round.contradictions) {
-          store.addContradiction({
-            id: id("con"),
-            decisionId: decision.id,
-            summary: contradiction.summary,
-            sideA: contradiction.sideA,
-            sideB: contradiction.sideB,
-            resolved: false,
-            createdBy: "arena",
-            createdAt: now(),
-          });
-        }
-
-        for (const request of round.evidenceRequests) {
-          store.addEvidence({
-            id: id("ev"),
-            decisionId: decision.id,
-            statement: request,
-            status: "requested",
-            requestedBy: "arena",
-            createdAt: now(),
-          });
-        }
-
-        const live = useArena.getState();
-        const landed = landRoundOnCanvas({
-          decisionId: decision.id,
-          existing: (live.canvasNodes ?? []).filter(
-            (node) => node.decisionId === decision.id,
-          ),
-          arguments: created,
-          risks: live.risks.filter((risk) => risk.decisionId === decision.id),
-          evidence: live.evidence.filter((item) => item.decisionId === decision.id),
-          contradictions: live.contradictions.filter(
-            (item) => item.decisionId === decision.id,
-          ),
-        });
-        live.addCanvasNodes(landed.nodes);
-        live.addCanvasLinks(landed.links);
-
-        return decision;
       } catch (caught) {
         if (caught instanceof DOMException && caught.name === "AbortError") {
           setError({
@@ -315,7 +247,6 @@ export function useDebate() {
     [],
   );
 
-  /** The founder pushes back; the Arena reassesses without caving. */
   const defend = useCallback(
     async (
       decisionId: string,
@@ -326,7 +257,7 @@ export function useDebate() {
       setBusy("defending");
 
       const state = useArena.getState();
-      const decision = state.decisions.find((d) => d.id === decisionId);
+      const decision = state.decisions.find((item) => item.id === decisionId);
       if (!state.company || !decision) {
         setBusy(null);
         setError({ message: "That decision is no longer open." });
@@ -334,144 +265,176 @@ export function useDebate() {
       }
 
       const live = argumentsFor(state, decisionId);
-      const defenseId = id("def");
-      const round = decision.round + 1;
-
-      state.addDefense({
-        id: defenseId,
-        decisionId,
-        argumentId: targetArgumentId,
-        text,
-        round,
-        createdAt: now(),
-      });
-      const seat = nextNoteSeat(
-        state.boardMarks.filter((mark) => mark.decisionId === decisionId),
-      );
-      state.addBoardMark(
-        makeNote({
-          decisionId,
-          text,
-          x: seat.x,
-          y: seat.y,
-          author: "founder",
-        }),
-      );
 
       try {
-        const response = await post<DefenseResponse>("/api/debate/defend", {
-          context: debateContext(state, decision.question, decision.context),
-          arguments: live.map((argument) => ({
-            id: argument.id,
-            perspective: argument.perspective,
-            stance: argument.stance,
-            claim: argument.claim,
-            reasoning: argument.reasoning,
-            strength: argument.strength,
-            status: argument.status,
-          })),
-          defense: text,
-          targetArgumentId,
-          arenaConfidence: decision.agentConfidence,
-        });
+        const defense = await runTool(
+          "add_defense",
+          {
+            text,
+            argument_id: targetArgumentId,
+            decision_id: decisionId,
+          },
+          { channel: "founder" },
+        );
+        if (!defense.ok) throw new ApiError(defense.text);
+        const defenseId =
+          typeof defense.data?.defenseId === "string" ? defense.data.defenseId : "";
+        if (!defenseId) {
+          throw new ApiError("add_defense did not return a defense id.");
+        }
 
-        const store = useArena.getState();
         const known = new Set(live.map((argument) => argument.id));
+        const localIds = new Map<string, string>();
+        const collected: { round: DefenseResponse | null } = { round: null };
+        const timeout = AbortSignal.timeout(90_000);
 
-        store.addReassessments(
-          response.reassessments
-            .filter((item) => known.has(item.argumentId))
-            .map((item) => ({
-              id: id("rea"),
+        const paintSeat = (
+          item: DefenseResponse["reassessments"][number],
+          streaming: boolean,
+        ) => {
+          if (!known.has(item.argumentId)) return;
+          let reaId = localIds.get(item.argumentId);
+          if (!reaId) {
+            reaId = id("rea");
+            localIds.set(item.argumentId, reaId);
+          }
+          useArena.getState().upsertReassessment(
+            {
+              id: reaId,
               decisionId,
               defenseId,
               argumentId: item.argumentId,
               perspective:
                 live.find((argument) => argument.id === item.argumentId)
                   ?.perspective ?? "contrarian",
+              verdict: item.verdict ?? "unmoved",
+              addressed: item.addressed ?? "",
+              unaddressed: item.unaddressed ?? "",
+              reply: item.reply,
+              strengthDelta: 0,
+              streaming,
+              createdAt: now(),
+            },
+            false,
+          );
+        };
+
+        await readEventStream<DebateDefendEvent>(
+          "/api/debate/defend",
+          {
+            context: debateContext(state, decision.question, decision.context),
+            arguments: live.map((argument) => ({
+              id: argument.id,
+              perspective: argument.perspective,
+              stance: argument.stance,
+              claim: argument.claim,
+              reasoning: argument.reasoning,
+              strength: argument.strength,
+              status: argument.status,
+            })),
+            defense: text,
+            targetArgumentId,
+            arenaConfidence: decision.agentConfidence,
+          },
+          (event) => {
+            if (event.type === "error") {
+              throw new ApiError(event.message, event.hint);
+            }
+            if (event.type === "partial") {
+              for (const item of event.reassessments) {
+                paintSeat(
+                  {
+                    argumentId: item.argumentId,
+                    verdict: item.verdict ?? "unmoved",
+                    addressed: item.addressed ?? "",
+                    unaddressed: item.unaddressed ?? "",
+                    reply: item.reply,
+                    strengthDelta: item.strengthDelta ?? 0,
+                  },
+                  true,
+                );
+              }
+            }
+            if (event.type === "done") {
+              collected.round = event.round;
+            }
+          },
+          timeout,
+        );
+
+        const response = collected.round;
+        if (!response) {
+          throw new ApiError(
+            "The seats started writing, but the round never landed.",
+          );
+        }
+
+        await Promise.all(
+          response.reassessments.map((item) =>
+            arenaCall("add_reassessment", {
+              argument_id: item.argumentId,
+              defense_id: defenseId,
               verdict: item.verdict,
               addressed: item.addressed,
               unaddressed: item.unaddressed,
               reply: item.reply,
-              strengthDelta: item.strengthDelta,
-              createdAt: now(),
-            })),
-        );
-
-        const created = response.newArguments.map((argument) => ({
-          id: id("arg"),
-          decisionId,
-          perspective: argument.perspective,
-          stance: argument.stance,
-          claim: argument.claim,
-          reasoning: argument.reasoning,
-          basis: toBasis(argument.basis),
-          strength: argument.strength,
-          status: "standing" as const,
-          round,
-          createdBy: "arena" as const,
-          challengesId: argument.challengesId,
-          createdAt: now(),
-        }));
-        store.addArguments(created);
-        store.addBoardMarks(
-          landArguments(
-            created,
-            store.boardMarks.filter((mark) => mark.decisionId === decisionId),
+              strength_delta: item.strengthDelta,
+              id: localIds.get(item.argumentId),
+              decision_id: decisionId,
+            }),
           ),
         );
 
-        for (const risk of response.newRisks) {
-          store.addRisk({
-            id: id("risk"),
-            decisionId,
-            title: risk.title,
-            detail: risk.detail,
-            severity: risk.severity,
-            likelihood: risk.likelihood,
-            status: "open",
-            perspective: risk.perspective,
-            createdBy: "arena",
-            createdAt: now(),
-          });
-        }
-
-        for (const contradiction of response.newContradictions) {
-          store.addContradiction({
-            id: id("con"),
-            decisionId,
-            summary: contradiction.summary,
-            sideA: contradiction.sideA,
-            sideB: contradiction.sideB,
-            resolved: false,
-            createdBy: "arena",
-            createdAt: now(),
-          });
-        }
-
-        const after = useArena.getState();
-        const landed = landRoundOnCanvas({
-          decisionId,
-          existing: (after.canvasNodes ?? []).filter(
-            (node) => node.decisionId === decisionId,
+        await Promise.all(
+          response.newArguments.map((argument) =>
+            arenaCall("add_argument", {
+              perspective: argument.perspective,
+              stance: argument.stance,
+              claim: argument.claim,
+              reasoning: argument.reasoning,
+              basis_items: argument.basis,
+              strength: argument.strength,
+              challenges_id: argument.challengesId,
+              decision_id: decisionId,
+            }),
           ),
-          arguments: created,
-          risks: after.risks.filter((risk) => risk.decisionId === decisionId),
-          evidence: after.evidence.filter((item) => item.decisionId === decisionId),
-          contradictions: after.contradictions.filter(
-            (item) => item.decisionId === decisionId,
-          ),
-        });
-        after.addCanvasNodes(landed.nodes);
-        after.addCanvasLinks(landed.links);
+        );
 
-        store.updateDecision(decisionId, {
-          round,
-          agentConfidence: response.arenaConfidence,
+        await Promise.all([
+          ...response.newRisks.map((risk) =>
+            arenaCall("add_risk", {
+              title: risk.title,
+              detail: risk.detail,
+              severity: risk.severity,
+              likelihood: risk.likelihood,
+              perspective: risk.perspective ?? undefined,
+              decision_id: decisionId,
+            }),
+          ),
+          ...response.newContradictions.map((item) =>
+            arenaCall("flag_contradiction", {
+              summary: item.summary,
+              side_a: item.sideA,
+              side_b: item.sideB,
+              decision_id: decisionId,
+            }),
+          ),
+        ]);
+
+        await arenaCall("set_confidence", {
+          arena: response.arenaConfidence,
+          decision_id: decisionId,
         });
 
         return true;
       } catch (caught) {
+        if (caught instanceof DOMException && caught.name === "AbortError") {
+          setError({
+            message: "The seats took too long to answer.",
+            hint: "Try again. Their replies now stream as they write.",
+          });
+          return false;
+        }
         capture(caught);
         return false;
       } finally {
@@ -487,7 +450,7 @@ export function useDebate() {
       setBusy("readiness");
 
       const state = useArena.getState();
-      const decision = state.decisions.find((d) => d.id === decisionId);
+      const decision = state.decisions.find((item) => item.id === decisionId);
       if (!state.company || !decision) {
         setBusy(null);
         return null;

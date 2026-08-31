@@ -184,6 +184,111 @@ export function SecondChair({ className }: { className?: string }) {
   );
 }
 
+/**
+ * Five chairs around the table — who argues before you commit.
+ */
+export function FiveSeats({ className }: { className?: string }) {
+  const chairs = [
+    { x: 48, ink: "currentColor" },
+    { x: 112, ink: "currentColor" },
+    { x: 176, ink: "var(--oxblood)" },
+    { x: 240, ink: "currentColor" },
+    { x: 304, ink: "currentColor" },
+  ];
+
+  return (
+    <svg
+      aria-hidden
+      viewBox="0 0 384 168"
+      className={cn("h-auto w-full text-ink", className)}
+      fill="none"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={{ filter: "url(#ink-rough)" }}
+    >
+      <ellipse
+        cx="192"
+        cy="118"
+        rx="168"
+        ry="36"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+      <ellipse
+        cx="192"
+        cy="112"
+        rx="158"
+        ry="28"
+        stroke="var(--rule-strong)"
+        strokeWidth="1"
+      />
+      <path d="M118 108 H 266" stroke="currentColor" strokeWidth="0.9" />
+      <path d="M140 104 H 244" stroke="currentColor" strokeWidth="0.7" />
+      {chairs.map((chair) => (
+        <g key={chair.x} stroke={chair.ink}>
+          <path d={`M${chair.x - 16} 78 V 48`} strokeWidth="1.5" />
+          <path d={`M${chair.x + 16} 78 V 48`} strokeWidth="1.5" />
+          <path d={`M${chair.x - 20} 48 H ${chair.x + 20}`} strokeWidth="1.7" />
+          <path d={`M${chair.x - 16} 78 H ${chair.x + 16}`} strokeWidth="1.2" />
+        </g>
+      ))}
+    </svg>
+  );
+}
+
+/**
+ * A weigh-up needle — the number you put on a decision before reality lands.
+ */
+export function CommitNeedle({ className }: { className?: string }) {
+  return (
+    <svg
+      aria-hidden
+      viewBox="0 0 280 148"
+      className={cn("h-auto w-full text-ink", className)}
+      fill="none"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={{ filter: "url(#ink-rough)" }}
+    >
+      <path
+        d="M28 118 A 112 112 0 0 1 252 118"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+      <path
+        d="M48 118 A 92 92 0 0 1 232 118"
+        stroke="var(--rule-strong)"
+        strokeWidth="1"
+      />
+      {Array.from({ length: 11 }, (_, index) => {
+        const angle = Math.PI - (index / 10) * Math.PI;
+        const inner = index % 5 === 0 ? 78 : 88;
+        const x1 = 140 + Math.cos(angle) * inner;
+        const y1 = 118 - Math.sin(angle) * inner;
+        const x2 = 140 + Math.cos(angle) * 100;
+        const y2 = 118 - Math.sin(angle) * 100;
+        return (
+          <path
+            key={index}
+            d={`M${x1.toFixed(1)} ${y1.toFixed(1)} L ${x2.toFixed(1)} ${y2.toFixed(1)}`}
+            stroke="currentColor"
+            strokeWidth={index % 5 === 0 ? 1.5 : 0.9}
+          />
+        );
+      })}
+      <path
+        d="M140 118 L 78 52"
+        stroke="var(--oxblood)"
+        strokeWidth="2"
+      />
+      <circle cx="140" cy="118" r="5" stroke="var(--oxblood)" strokeWidth="1.6" />
+      <path d="M36 128 H 244" stroke="currentColor" strokeWidth="1.2" />
+      <path d="M36 128 V 136" stroke="currentColor" strokeWidth="1.1" />
+      <path d="M244 128 V 136" stroke="currentColor" strokeWidth="1.1" />
+    </svg>
+  );
+}
+
 /** GitHub's mark, drawn in the same line weight as the rest of the notebook. */
 export function GithubMark({ className }: { className?: string }) {
   return (

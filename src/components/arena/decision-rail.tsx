@@ -1,9 +1,12 @@
 "use client";
 
 import { writeArenaDraft } from "@/lib/drafts";
+import { PERSPECTIVES } from "@/lib/perspectives";
 import { useArena } from "@/lib/store";
+import { scheduleWorkspaceSave } from "@/lib/supabase/sync";
 import { cn } from "@/lib/utils";
 import type { Decision } from "@/lib/types";
+import { founderCall } from "@/webmcp/run";
 
 const STATUS_TONE: Record<Decision["status"], string> = {
   framing: "text-graphite",
@@ -24,23 +27,32 @@ const STATUS_WASH: Record<Decision["status"], string> = {
 export function DecisionRail({
   currentId,
   seed,
+  onNew,
 }: {
   currentId?: string | null;
   seed?: Decision[];
+  onNew?: () => void;
 }) {
   const storeDecisions = useArena((state) => state.decisions);
   const decisions = storeDecisions.length ? storeDecisions : (seed ?? []);
-  const setActiveDecision = useArena((state) => state.setActiveDecision);
 
   function startNew() {
     writeArenaDraft({ question: "", context: "" });
-    setActiveDecision(null);
+    const api = useArena.getState();
+    if (typeof api.beginNewArena === "function") {
+      api.beginNewArena();
+    } else {
+      api.setActiveDecision(null);
+    }
+    scheduleWorkspaceSave();
+    onNew?.();
   }
 
   return (
     <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
       <button
         type="button"
+        onMouseDown={(event) => event.preventDefault()}
         onClick={startNew}
         className="inline-flex h-8 shrink-0 items-center gap-1.5 bg-ink px-3 text-[13px] text-paper transition-colors hover:bg-ink/90"
       >
@@ -56,7 +68,9 @@ export function DecisionRail({
           <button
             key={decision.id}
             type="button"
-            onClick={() => setActiveDecision(decision.id)}
+            onClick={() =>
+              founderCall("set_active_decision", { decision_id: decision.id })
+            }
             className={cn(
               "inline-flex h-8 max-w-[280px] items-center gap-2 border px-2.5 text-left transition-colors",
               active
@@ -89,55 +103,89 @@ export function DecisionGallery({
   decisions: Decision[];
   onOpen: (id: string) => void;
 }) {
+  const argumentList = useArena((state) => state.argumentList);
+
   if (!decisions.length) return null;
 
   return (
     <div>
       <p className="type-eyebrow">Your arenas</p>
       <ul className="mt-4 grid gap-3 sm:grid-cols-2">
-        {decisions.map((decision, index) => (
-          <li key={decision.id}>
-            <button
-              type="button"
-              onClick={() => onOpen(decision.id)}
-              className="group flex h-full w-full flex-col border border-rule bg-leaf p-4 text-left transition-colors hover:border-ink hover:bg-paper"
-            >
-              <div className="flex items-center justify-between gap-3">
-                <span className="type-figure text-[12px] text-pencil">
-                  {String(index + 1).padStart(2, "0")}
-                </span>
-                <span
-                  className={cn(
-                    "type-eyebrow px-1.5 py-0.5",
-                    STATUS_WASH[decision.status],
-                  )}
-                >
-                  {decision.status}
-                </span>
-              </div>
-              <p className="type-display mt-3 text-[18px] font-semibold leading-snug">
-                {decision.question}
-              </p>
-              {decision.options.length ? (
-                <div className="mt-4 flex flex-wrap gap-1.5">
-                  {decision.options.map((option) => (
-                    <span
-                      key={option.id}
-                      className={cn(
-                        "border px-2 py-1 text-[12px]",
-                        decision.chosenOptionId === option.id
-                          ? "border-ink bg-ink text-paper"
-                          : "border-rule text-graphite",
-                      )}
-                    >
-                      {option.label}
-                    </span>
-                  ))}
+        {decisions.map((decision, index) => {
+          const seats = argumentList.filter(
+            (argument) =>
+              argument.decisionId === decision.id && !argument.challengesId,
+          );
+          const bySeat = PERSPECTIVES.map((perspective) =>
+            seats.find((argument) => argument.perspective === perspective.id),
+          ).filter((argument): argument is NonNullable<typeof argument> =>
+            Boolean(argument),
+          );
+          return (
+            <li key={decision.id}>
+              <button
+                type="button"
+                onClick={() => onOpen(decision.id)}
+                className="group flex h-full w-full flex-col border border-rule bg-leaf p-4 text-left transition-colors hover:border-ink hover:bg-paper"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <span className="type-figure text-[12px] text-pencil">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                  <span
+                    className={cn(
+                      "type-eyebrow px-1.5 py-0.5",
+                      STATUS_WASH[decision.status],
+                    )}
+                  >
+                    {decision.status}
+                  </span>
                 </div>
-              ) : null}
-            </button>
-          </li>
-        ))}
+                <p className="type-display mt-3 text-[18px] font-semibold leading-snug">
+                  {decision.question}
+                </p>
+                {bySeat.length ? (
+                  <ul className="mt-3 space-y-1.5">
+                    {bySeat.map((argument) => (
+                      <li
+                        key={argument.id}
+                        className="text-[13px] leading-snug text-graphite"
+                      >
+                        <span className="type-eyebrow mr-1.5 text-oxblood">
+                          {PERSPECTIVES.find(
+                            (item) => item.id === argument.perspective,
+                          )?.mark}
+                        </span>
+                        {argument.claim}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-3 text-[13px] leading-snug text-pencil">
+                    The seats have not written yet.
+                  </p>
+                )}
+                {decision.options.length ? (
+                  <div className="mt-4 flex flex-wrap gap-1.5">
+                    {decision.options.map((option) => (
+                      <span
+                        key={option.id}
+                        className={cn(
+                          "border px-2 py-1 text-[12px]",
+                          decision.chosenOptionId === option.id
+                            ? "border-ink bg-ink text-paper"
+                            : "border-rule text-graphite",
+                        )}
+                      >
+                        {option.label}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+              </button>
+            </li>
+          );
+        })}
       </ul>
     </div>
   );

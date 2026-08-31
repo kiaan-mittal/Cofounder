@@ -5,6 +5,7 @@ import {
   generateObject,
   generateText,
   NoObjectGeneratedError,
+  streamObject,
   type LanguageModel,
 } from "ai";
 import type { z } from "zod";
@@ -71,6 +72,8 @@ interface GenerateOptions<T extends z.ZodTypeAny> {
   normalize?: (value: unknown) => unknown;
   /** Per-model budget. gpt-5 will otherwise sit on a structured call for minutes. */
   timeoutMs?: number;
+  /** Called as the object fills in. Used to paint the floor before the call finishes. */
+  onPartial?: (value: unknown) => void;
 }
 
 export function fastModels(): string[] {
@@ -94,6 +97,7 @@ export async function generateStructured<T extends z.ZodTypeAny>({
   schemaName,
   normalize,
   timeoutMs = 40_000,
+  onPartial,
 }: GenerateOptions<T>): Promise<z.infer<T>> {
   if (!llmConfigured()) {
     throw new LlmUnavailableError(
@@ -124,27 +128,53 @@ export async function generateStructured<T extends z.ZodTypeAny>({
 
   for (const modelId of attempts) {
     const model = resolveModel(modelId);
-    try {
-      const { object } = await generateObject({
-        model,
-        schema,
-        schemaName,
-        system: systemWithGuard,
-        prompt,
-        maxRetries: 0,
-        abortSignal: AbortSignal.timeout(timeoutMs),
-        experimental_repairText: async ({ text }) => {
-          const repaired = acceptText(text);
-          return repaired ? JSON.stringify(repaired) : null;
-        },
-      });
-      const accepted = accept(object);
-      if (accepted) return accepted;
-    } catch (error) {
-      lastError = error;
-      if (NoObjectGeneratedError.isInstance(error)) {
-        const salvaged = acceptText(error.text);
-        if (salvaged) return salvaged;
+    if (onPartial) {
+      try {
+        const streamed = await streamStructuredAttempt({
+          model,
+          schema,
+          schemaName,
+          system: systemWithGuard,
+          prompt,
+          timeoutMs,
+          accept,
+          acceptText,
+          onPartial,
+        });
+        if (streamed) return streamed;
+      } catch (error) {
+        lastError = error;
+        if (NoObjectGeneratedError.isInstance(error)) {
+          const salvaged = acceptText(error.text);
+          if (salvaged) {
+            onPartial(salvaged);
+            return salvaged;
+          }
+        }
+      }
+    } else {
+      try {
+        const { object } = await generateObject({
+          model,
+          schema,
+          schemaName,
+          system: systemWithGuard,
+          prompt,
+          maxRetries: 0,
+          abortSignal: AbortSignal.timeout(timeoutMs),
+          experimental_repairText: async ({ text }) => {
+            const repaired = acceptText(text);
+            return repaired ? JSON.stringify(repaired) : null;
+          },
+        });
+        const accepted = accept(object);
+        if (accepted) return accepted;
+      } catch (error) {
+        lastError = error;
+        if (NoObjectGeneratedError.isInstance(error)) {
+          const salvaged = acceptText(error.text);
+          if (salvaged) return salvaged;
+        }
       }
     }
 
@@ -156,7 +186,10 @@ export async function generateStructured<T extends z.ZodTypeAny>({
         abortSignal: AbortSignal.timeout(timeoutMs),
       });
       const salvaged = acceptText(text);
-      if (salvaged) return salvaged;
+      if (salvaged) {
+        onPartial?.(salvaged);
+        return salvaged;
+      }
       lastError = new Error("JSON fallback did not match the expected shape.");
     } catch (error) {
       lastError = error;
@@ -168,6 +201,67 @@ export async function generateStructured<T extends z.ZodTypeAny>({
   throw new LlmUnavailableError(
     `${purpose} failed. The model did not return usable output: ${detail}`,
   );
+}
+
+async function streamStructuredAttempt<T extends z.ZodTypeAny>({
+  model,
+  schema,
+  schemaName,
+  system,
+  prompt,
+  timeoutMs,
+  accept,
+  acceptText,
+  onPartial,
+}: {
+  model: LanguageModel;
+  schema: T;
+  schemaName?: string;
+  system: string;
+  prompt: string;
+  timeoutMs: number;
+  accept: (value: unknown) => z.infer<T> | null;
+  acceptText: (text: string | undefined) => z.infer<T> | null;
+  onPartial: (value: unknown) => void;
+}): Promise<z.infer<T> | null> {
+  const { partialObjectStream, object } = streamObject({
+    model,
+    schema,
+    schemaName,
+    system,
+    prompt,
+    maxRetries: 0,
+    abortSignal: AbortSignal.timeout(timeoutMs),
+    experimental_repairText: async ({ text }) => {
+      const repaired = acceptText(text);
+      return repaired ? JSON.stringify(repaired) : null;
+    },
+  });
+
+  let lastEmit = 0;
+  let queued: unknown = null;
+  const flush = (value: unknown, force = false) => {
+    const now = Date.now();
+    if (!force && now - lastEmit < 40) {
+      queued = value;
+      return;
+    }
+    lastEmit = now;
+    queued = null;
+    onPartial(value);
+  };
+
+  for await (const partial of partialObjectStream) {
+    flush(partial);
+  }
+  if (queued !== null) flush(queued, true);
+
+  const accepted = accept(await object);
+  if (accepted) {
+    onPartial(accepted);
+    return accepted;
+  }
+  return null;
 }
 
 function extractJson(text: string): unknown {

@@ -11,6 +11,7 @@ import type {
   FounderPattern,
   Risk,
 } from "@/lib/types";
+import { founderCall } from "@/webmcp/run";
 
 /**
  * The margin of the page: everything the debate has left unresolved.
@@ -34,10 +35,6 @@ export function Margin({
   patterns: FounderPattern[];
 }) {
   const spotlightId = useArena((state) => state.spotlightId);
-  const resolveContradiction = useArena((state) => state.resolveContradiction);
-  const updateRisk = useArena((state) => state.updateRisk);
-  const updateEvidence = useArena((state) => state.updateEvidence);
-  const toggleActionItem = useArena((state) => state.toggleActionItem);
 
   const openContradictions = contradictions.filter((c) => !c.resolved);
   const openRisks = risks.filter((r) => r.status === "open");
@@ -107,10 +104,10 @@ export function Margin({
                   size="sm"
                   className="type-eyebrow relative mt-2 -ml-3"
                   onClick={() =>
-                    resolveContradiction(
-                      contradiction.id,
-                      "Marked resolved by the founder.",
-                    )
+                    founderCall("resolve_contradiction", {
+                      contradiction_id: contradiction.id,
+                      resolution: "Marked resolved by the founder.",
+                    })
                   }
                 >
                   Mark resolved
@@ -157,7 +154,12 @@ export function Margin({
                     variant="ghost"
                     size="sm"
                     className="type-eyebrow"
-                    onClick={() => updateRisk(risk.id, { status: "mitigated" })}
+                    onClick={() =>
+                      founderCall("set_risk_status", {
+                        risk_id: risk.id,
+                        status: "mitigated",
+                      })
+                    }
                   >
                     Mitigated
                   </Button>
@@ -165,7 +167,12 @@ export function Margin({
                     variant="ghost"
                     size="sm"
                     className="type-eyebrow"
-                    onClick={() => updateRisk(risk.id, { status: "accepted" })}
+                    onClick={() =>
+                      founderCall("set_risk_status", {
+                        risk_id: risk.id,
+                        status: "accepted",
+                      })
+                    }
                   >
                     Accept
                   </Button>
@@ -205,7 +212,12 @@ export function Margin({
                     variant="ghost"
                     size="sm"
                     className="type-eyebrow"
-                    onClick={() => updateEvidence(item.id, { status: "provided" })}
+                    onClick={() =>
+                      founderCall("mark_evidence", {
+                        evidence_id: item.id,
+                        status: "provided",
+                      })
+                    }
                   >
                     I checked this
                   </Button>
@@ -214,7 +226,10 @@ export function Margin({
                     size="sm"
                     className="type-eyebrow"
                     onClick={() =>
-                      updateEvidence(item.id, { status: "unavailable" })
+                      founderCall("mark_evidence", {
+                        evidence_id: item.id,
+                        status: "unavailable",
+                      })
                     }
                   >
                     Can&rsquo;t know
@@ -236,7 +251,11 @@ export function Margin({
                   id={item.id}
                   type="checkbox"
                   checked={item.done}
-                  onChange={() => toggleActionItem(item.id)}
+                  onChange={() =>
+                    founderCall("toggle_action_item", {
+                      action_item_id: item.id,
+                    })
+                  }
                   className="mt-1 size-3.5 accent-[var(--ink)]"
                 />
                 <label

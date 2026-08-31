@@ -102,8 +102,8 @@ export function useSparringChat() {
             return {
               ...message,
               text: step.text,
-              thinking: "",
-              pending: false,
+              thinking: step.pending ? message.thinking : "",
+              pending: step.pending ?? false,
             };
           }
           if (step.kind === "error") {

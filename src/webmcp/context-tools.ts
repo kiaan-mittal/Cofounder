@@ -100,21 +100,24 @@ export const contextTools: ArenaTool[] = [
     group: "context",
     humanLabel: "Read the open decision",
     description:
-      "Read the decision currently open in the Arena: the question, the options, every argument with its perspective, stance, strength and status, the founder's defenses, the Arena's reassessments of those defenses, plus risks, evidence requests and contradictions. Use the returned ids when you challenge an argument or add to the record. The confidence gap between founder and Arena is usually the most useful thing in the response.",
+      "Read a decision record as the founder sees it on the floor: the question, options, every seat opening (claim, reasoning, basis), founder defenses in full, and each seat's reassessment including the full reply — not just a verdict. Also returns risks, evidence, contradictions, action items, predictions, and what is still unpaid. Pass decision_id from get_decision_history to load a past arena; omit it to read the round the founder currently has open. Errors if they are on the arena list with nothing open.",
     annotations: { readOnlyHint: true },
     inputSchema: {
       type: "object",
       properties: {
         decision_id: {
           type: "string",
-          description: "Defaults to the decision the founder currently has open.",
+          description:
+            "A past or open decision id from get_decision_history. Defaults to the round the founder currently has open.",
         },
       },
     },
     execute: ({ decision_id }) => {
       const decision = requireDecision(decision_id);
       if (!decision) {
-        return toolError("There is no decision open in the Arena right now.");
+        return toolError(
+          "There is no decision open in the Arena right now. Call get_decision_history and pass a decision_id.",
+        );
       }
       const snapshot = decisionSnapshot(state(), decision.id);
       return toolResult(`Decision: ${decision.question}`, snapshot);
@@ -126,7 +129,7 @@ export const contextTools: ArenaTool[] = [
     group: "context",
     humanLabel: "Read past decisions",
     description:
-      "Read every decision this founder has previously worked through, with what they chose, what they predicted, what actually happened and the lesson recorded afterwards. Use this to find repetition: a decision that resembles one already made, a rationale already used, or a prediction already missed. Naming a specific past decision is far more persuasive than generic caution.",
+      "Index of every arena this founder has run: question, status, chosen option, predictions, outcome, and a floor summary (seat claims, defense and reply counts). Use a returned id with get_current_decision to load that arena as a full record. Set include_record to true to attach the full floor dataset on each entry in one call.",
     annotations: { readOnlyHint: true },
     inputSchema: {
       type: "object",
@@ -135,10 +138,15 @@ export const contextTools: ArenaTool[] = [
           type: "boolean",
           description: "Return only decisions whose real outcome is known.",
         },
+        include_record: {
+          type: "boolean",
+          description:
+            "Attach the full floor record (openings, defenses, seat replies) to each entry. Defaults to false; prefer get_current_decision with a decision_id when you only need one arena.",
+        },
       },
     },
-    execute: ({ only_with_outcomes }) => {
-      const history = decisionHistory(state());
+    execute: ({ only_with_outcomes, include_record }) => {
+      const history = decisionHistory(state(), include_record === true);
       const filtered = only_with_outcomes
         ? history.filter((h) => h.outcome !== null)
         : history;

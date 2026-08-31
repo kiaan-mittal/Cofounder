@@ -1,10 +1,19 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { SecondChair } from "@/components/ink/emblems";
+import { SeatReply } from "@/components/arena/seat-reply";
+import {
+  CommitNeedle,
+  FiveSeats,
+  PerspectiveEmblem,
+  SecondChair,
+} from "@/components/ink/emblems";
 import { ArenaMark, InkRule, InkUnderline } from "@/components/ink/marks";
+import { BalanceSketch, TableSketch } from "@/components/ink/table-drawings";
 import { Button } from "@/components/ui/button";
 import { WebMCPStatus } from "@/components/webmcp/webmcp-status";
+import { PERSPECTIVES } from "@/lib/perspectives";
+import type { Reassessment } from "@/lib/types";
 import { readGithubSession } from "@/server/github-oauth";
 import { pathAfterLogin } from "@/server/login-path";
 
@@ -16,6 +25,29 @@ const LOOP = [
   { step: "Commit", detail: "You choose, and attach a number that can be wrong." },
   { step: "Calibrate", detail: "The number lands. The next decision gets sharper." },
 ];
+
+const SPECIMEN: Reassessment = {
+  id: "specimen",
+  decisionId: "specimen",
+  defenseId: "specimen",
+  argumentId: "specimen",
+  perspective: "financial",
+  verdict: "unmoved",
+  addressed: "You named a feature you intend to ship.",
+  unaddressed:
+    "You did not name the cash that pays for it, or the date that cash has to arrive.",
+  reply: `You said you would "manage to add new features." Managing is not a number.
+
+I will not sign a live index we cannot price. Weekly snapshots on the core set. Daily only as a paid add-on, after we know the unit cost.
+
+- Three months of data cost at the scope you want
+- A price that covers it without eating runway
+- A kill date if the add-on does not sell
+
+Until then I stay against.`,
+  strengthDelta: 0,
+  createdAt: "2026-08-31T00:00:00.000Z",
+};
 
 export default async function LandingPage() {
   const session = await readGithubSession();
@@ -39,12 +71,12 @@ export default async function LandingPage() {
           >
             Tool surface
           </Link>
-          <a
-            href="/api/auth/github?returnTo=/arena"
+          <Link
+            href="/login"
             className="type-eyebrow text-ink transition-opacity hover:opacity-60"
           >
-            Sign in with GitHub
-          </a>
+            Sign in
+          </Link>
           <WebMCPStatus />
         </div>
       </header>
@@ -77,9 +109,7 @@ export default async function LandingPage() {
 
           <div className="mt-10 flex flex-wrap items-center gap-3">
             <Button asChild size="lg" className="h-11 px-6 text-[15px]">
-              <a href="/api/auth/github?returnTo=/arena">
-                Sign in with GitHub
-              </a>
+              <Link href="/login">Get started</Link>
             </Button>
             <Button
               asChild
@@ -103,6 +133,83 @@ export default async function LandingPage() {
             Fig. 1 — The second chair. Most founders argue with no one before
             reality argues back.
           </p>
+          <div className="mt-8 border border-rule bg-leaf px-4 py-4">
+            <FiveSeats />
+            <ul className="mt-3 flex justify-between px-1">
+              {PERSPECTIVES.map((seat) => (
+                <li key={seat.id} className="flex flex-col items-center gap-1">
+                  <PerspectiveEmblem perspective={seat.id} className="size-9" />
+                  <span className="type-eyebrow">{seat.mark}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <p className="type-eyebrow mt-4 max-w-[42ch] leading-relaxed">
+            Fig. 2 — The five seats. They write first. You answer on the record.
+          </p>
+        </div>
+      </section>
+
+      <section className="border-t border-rule py-16">
+        <div className="grid gap-12 lg:grid-cols-[1.1fr_1fr] lg:gap-16">
+          <div>
+            <h2 className="type-eyebrow">Who sits across from you</h2>
+            <p className="type-display mt-5 max-w-[20ch] text-[clamp(1.8rem,3.5vw,2.6rem)] font-semibold leading-[1.08]">
+              High-quality disagreement, before you ship.
+            </p>
+            <p className="mt-5 max-w-[46ch] text-[17px] leading-relaxed text-graphite">
+              Sign in with GitHub. You pick the repository. Then the website.
+              Then five seats argue the next decision you cannot take back.
+            </p>
+            <Button asChild size="lg" className="mt-8 h-11 px-6 text-[15px]">
+              <Link href="/login">Get started</Link>
+            </Button>
+          </div>
+          <div className="border border-rule bg-leaf px-5 py-5">
+            <TableSketch writing={[]} ready={[]} filled={[]} />
+            <ul className="mt-6 space-y-4">
+              {PERSPECTIVES.map((seat) => (
+                <li key={seat.id} className="flex gap-3">
+                  <PerspectiveEmblem
+                    perspective={seat.id}
+                    className="size-10 shrink-0"
+                  />
+                  <div>
+                    <p className="type-eyebrow">{seat.mark}</p>
+                    <p className="mt-1 text-[14px] leading-relaxed text-graphite">
+                      {seat.remit}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section className="border-t border-rule py-16">
+        <div className="grid gap-12 lg:grid-cols-[1fr_1.05fr] lg:items-start lg:gap-16">
+          <div>
+            <h2 className="type-eyebrow">They answer on the record</h2>
+            <p className="type-display mt-5 max-w-[18ch] text-[clamp(1.8rem,3.5vw,2.6rem)] font-semibold leading-[1.08]">
+              Not a dump. A seat, speaking.
+            </p>
+            <p className="mt-5 max-w-[46ch] text-[17px] leading-relaxed text-graphite">
+              Technical, Product, GTM, Finance, and the Contrarian write like
+              people across a table: what they heard, what they will not sign,
+              and the hole that is still open. You answer. The card does not
+              scroll away.
+            </p>
+            <Button asChild size="lg" className="mt-8 h-11 px-6 text-[15px]">
+              <Link href="/login">Sit the board</Link>
+            </Button>
+          </div>
+          <figure>
+            <SeatReply item={SPECIMEN} />
+            <figcaption className="type-eyebrow mt-4 max-w-[46ch] leading-relaxed">
+              Fig. 3 — A seat answers. Quote, terms, and the thing still unpaid.
+            </figcaption>
+          </figure>
         </div>
       </section>
 
@@ -159,6 +266,7 @@ export default async function LandingPage() {
           </div>
 
           <div className="space-y-5 text-[17px] leading-relaxed text-graphite">
+            <FiveSeats className="max-w-[360px] text-ink" />
             <p>
               The Arena will concede when you are right. It will not concede
               because you pushed. Every reassessment names two things: what your
@@ -179,6 +287,32 @@ export default async function LandingPage() {
                 your last five growth predictions were 2.1× optimistic.
               </span>
             </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="border-t border-rule py-16">
+        <div className="grid gap-12 lg:grid-cols-[1fr_1fr] lg:items-center lg:gap-16">
+          <div className="border border-rule bg-leaf px-6 py-6">
+            <CommitNeedle />
+            <BalanceSketch forPct={36} className="mt-4" />
+            <p className="type-eyebrow mt-5 leading-relaxed">
+              Fig. 4 — You put a number on it before reality does.
+            </p>
+          </div>
+          <div>
+            <h2 className="type-eyebrow">Then you weigh it</h2>
+            <p className="type-display mt-5 max-w-[16ch] text-[clamp(1.8rem,3.5vw,2.6rem)] font-semibold leading-[1.08]">
+              A decision without a number is a story.
+            </p>
+            <p className="mt-5 max-w-[46ch] text-[17px] leading-relaxed text-graphite">
+              After the seats have spoken you commit, attach a prediction, and
+              come back when the date lands. That record is what the next
+              argument is made of.
+            </p>
+            <Button asChild size="lg" className="mt-8 h-11 px-6 text-[15px]">
+              <Link href="/login">Get started</Link>
+            </Button>
           </div>
         </div>
       </section>
@@ -234,12 +368,12 @@ export default async function LandingPage() {
         <span className="type-eyebrow">
           Decision Arena · MIT licensed · WebMCP Challenge 2026
         </span>
-        <a
-          href="/api/auth/github?returnTo=/arena"
+        <Link
+          href="/login"
           className="type-eyebrow ml-auto text-ink transition-opacity hover:opacity-60"
         >
-          Sign in with GitHub →
-        </a>
+          Get started →
+        </Link>
       </footer>
     </div>
   );
