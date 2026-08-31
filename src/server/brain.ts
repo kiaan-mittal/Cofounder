@@ -3,8 +3,9 @@ import "server-only";
 import { z } from "zod";
 
 import { id, now } from "@/lib/id";
-import type { CompanyBrain } from "@/lib/types";
+import type { BrainDossierPage, CompanyBrain } from "@/lib/types";
 import type { GithubSource, WebsiteSource } from "@/server/ingest";
+import { roleScore } from "@/server/ingest";
 import { generateStructured, untrusted } from "@/server/llm";
 
 const SOURCE_KINDS = [
@@ -73,6 +74,60 @@ const brainSchema = z.object({
 
 type BrainDraft = z.infer<typeof brainSchema>;
 
+function promptBudgetFor(role: string): number {
+  switch (role) {
+    case "pricing":
+      return 8_000;
+    case "product":
+      return 5_000;
+    case "about":
+    case "home":
+      return 4_500;
+    case "docs":
+      return 4_000;
+    case "customers":
+      return 3_000;
+    case "changelog":
+    case "trust":
+      return 2_000;
+    case "blog":
+      return 800;
+    default:
+      return 1_500;
+  }
+}
+
+function excerptBudgetFor(role: string): number {
+  switch (role) {
+    case "pricing":
+      return 2_800;
+    case "product":
+      return 1_600;
+    case "about":
+    case "home":
+      return 1_400;
+    case "docs":
+    case "customers":
+      return 1_200;
+    default:
+      return 700;
+  }
+}
+
+export function buildDossier(site: WebsiteSource | null): BrainDossierPage[] {
+  if (!site?.pages.length) return [];
+  return [...site.pages]
+    .sort((a, b) => roleScore(b.role) - roleScore(a.role))
+    .filter((page) => page.role !== "blog")
+    .slice(0, 8)
+    .map((page) => ({
+      url: page.url,
+      title: page.title || page.role,
+      role: page.role,
+      excerpt: page.text.slice(0, excerptBudgetFor(page.role)),
+    }));
+}
+
 const SYSTEM = `You build the Company Brain for Decision Arena: a checkable model of a real company, assembled only from the public pages and repository files the founder provided.
 
 Your single most important job is to separate what is KNOWN from what is BELIEVED.
@@ -81,7 +136,7 @@ A FACT is something a source states. It must be traceable, with a short verbatim
 
 An ASSUMPTION is a belief the company is acting on that the sources do not establish. "Solo developers will pay $49/month" is an assumption. "The rewrite is worth the delay" is an assumption. Assumptions are what the Arena will later attack, so make them sharp, specific and falsifiable — never vague platitudes.
 
-Use every page you were given — homepage, pricing, about, docs, changelog, issues, stack files. Do not ignore a pricing page or an open issue. Never present an inference as a fact. If a topic is missing after a multi-page read, say so in gaps. Always return facts and assumptions as arrays. Write in plain, specific, unhedged prose, using the company's own vocabulary.`;
+Use every high-signal page you were given — homepage, pricing, product, about, docs — before blog noise. Do not ignore a pricing page or an open issue. Prefer a specific price, plan name, or customer claim over a generic summary. Never present an inference as a fact. If a topic is missing after a multi-page read, say so in gaps. Always return facts and assumptions as arrays. Write in plain, specific, unhedged prose, using the company's own vocabulary.`;
 
 export function buildBrainPrompt(sources: {
   website: WebsiteSource | null;
@@ -94,9 +149,11 @@ export function buildBrainPrompt(sources: {
     const pageBlocks =
       site.pages.length > 0
         ? site.pages
+            .slice()
+            .sort((a, b) => roleScore(b.role) - roleScore(a.role))
             .map(
               (page) =>
-                `--- ${page.role.toUpperCase()} ${page.url} ---\nTitle: ${page.title}\nHeadings: ${page.headings.slice(0, 12).join(" | ")}\n${page.text.slice(0, page.role === "pricing" ? 6_000 : 2_800)}`,
+                `--- ${page.role.toUpperCase()} ${page.url} ---\nTitle: ${page.title}\nHeadings: ${page.headings.slice(0, 12).join(" | ")}\n${page.text.slice(0, promptBudgetFor(page.role))}`,
             )
             .join("\n\n")
         : `Page copy: ${site.text.slice(0, 5000)}`;
@@ -157,7 +214,7 @@ export function buildBrainPrompt(sources: {
   }
 
   parts.push(
-    "Build the Company Brain from every page and file above. Include companyName, headline, summary, product, market, technical, facts (as many specific checkable ones as the sources support, up to 16), assumptions (the bets the company is making, up to 12), openQuestions and gaps. Quote the sources for facts. Name the assumptions the company is betting on.",
+    "Build the Company Brain from the pages and files above. Spend your attention on pricing, product, about and docs — not on repeating the homepage. Include companyName, headline, summary, product, market, technical, facts (specific checkable ones with verbatim quotes, up to 16), assumptions (the bets the company is making, up to 12), openQuestions and gaps. Every fact needs a quote and a page URL. Name the assumptions the company is betting on.",
   );
 
   return parts.join("\n\n");
@@ -225,6 +282,7 @@ export async function generateCompanyBrain(sources: {
       provenance: assumption.provenance,
     })),
     openQuestions: raw.openQuestions.slice(0, 6),
+    dossier: buildDossier(sources.website),
     degraded,
     gaps: gaps.slice(0, 8),
     generatedAt: now(),
@@ -371,12 +429,18 @@ function seedFacts(sources: {
       });
     }
     if (site.pricingText) {
+      const price = site.pricingText.match(
+        /\$\s?\d[\d,]*(?:\.\d+)?(?:\s*\/\s*(?:mo|month|yr|year))?/i,
+      );
+      const pricingPage = site.pages.find((page) => page.role === "pricing");
       facts.push({
-        statement: "The site publishes pricing information.",
+        statement: price
+          ? `The site publishes a price of ${price[0].replace(/\s+/g, " ")}.`
+          : "The site publishes pricing information.",
         provenance: {
           kind: "website",
-          ref: site.url,
-          quote: site.pricingText.slice(0, 240),
+          ref: pricingPage?.url ?? site.url,
+          quote: site.pricingText.slice(0, 280),
         },
       });
     }
@@ -510,16 +574,40 @@ export function brainDigest(brain: CompanyBrain): string {
     `Repo: ${brain.technical.repoStructure.join(", ")}`,
     `Activity: ${brain.technical.activitySignals.join("; ")}`,
     "",
-    "FACTS (checkable, quote these by id):",
-    ...brain.facts.map((f) => `- [${f.id}] ${f.statement}`),
+    digestDossier(brain.dossier ?? []),
+    "",
+    "FACTS (checkable — cite the id and the quote, do not invent prices):",
+    ...brain.facts.map((f) => {
+      const quote = f.provenance.quote ? ` Quote: “${f.provenance.quote}”` : "";
+      const ref = f.provenance.ref ? ` (${f.provenance.ref})` : "";
+      return `- [${f.id}] ${f.statement}${quote}${ref}`;
+    }),
     "",
     "ASSUMPTIONS (unproven, attack these by id):",
     ...brain.assumptions.map(
       (a) => `- [${a.id}] (${a.risk} risk, ${a.status}) ${a.statement}`,
     ),
     "",
+    brain.openQuestions.length
+      ? `OPEN QUESTIONS: ${brain.openQuestions.join("; ")}`
+      : "",
     brain.gaps.length ? `KNOWN GAPS: ${brain.gaps.join("; ")}` : "",
   ]
     .filter(Boolean)
     .join("\n");
+}
+
+function digestDossier(pages: BrainDossierPage[]): string {
+  if (!pages.length) return "";
+  const parts = [
+    "SOURCE DOSSIER (verbatim from pages we read — quote these; never invent a price or feature that is not here):",
+  ];
+  let used = 0;
+  for (const page of pages) {
+    const slice = page.excerpt.slice(0, page.role === "pricing" ? 2_200 : 900);
+    if (used + slice.length > 10_000) break;
+    parts.push(`--- ${page.role.toUpperCase()} ${page.url} ---\n${slice}`);
+    used += slice.length;
+  }
+  return parts.join("\n\n");
 }

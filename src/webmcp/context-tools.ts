@@ -35,14 +35,22 @@ export const contextTools: ArenaTool[] = [
     group: "context",
     humanLabel: "Read the Company Brain",
     description:
-      "Read the Company Brain: what this company builds, who it sells to, its stack, and — critically — the separation between FACTS drawn from the founder's website and repository, and ASSUMPTIONS the company is betting on without proof. Call this before making any argument, so your reasoning is about this company rather than startups in general. Facts carry source quotes; assumptions carry ids you can cite when you challenge them.",
+      "Read the Company Brain: what this company builds, who it sells to, its stack, and — critically — the separation between FACTS drawn from the founder's website and repository, and ASSUMPTIONS the company is betting on without proof. The dossier is verbatim excerpts from the pages that were scraped — quote those instead of inventing prices or features. Call this before making any argument. Facts carry source quotes; assumptions carry ids you can cite when you challenge them.",
     annotations: { readOnlyHint: true, untrustedContentHint: true },
     inputSchema: {
       type: "object",
       properties: {
         section: {
           type: "string",
-          enum: ["all", "product", "market", "technical", "facts", "assumptions"],
+          enum: [
+            "all",
+            "product",
+            "market",
+            "technical",
+            "facts",
+            "assumptions",
+            "dossier",
+          ],
           description: "Narrow the response to one section. Defaults to all.",
         },
       },
@@ -62,6 +70,7 @@ export const contextTools: ArenaTool[] = [
         technical: brain.technical,
         facts: brain.facts,
         assumptions: brain.assumptions,
+        dossier: brain.dossier ?? [],
       };
 
       if (typeof section === "string" && section !== "all" && sections[section]) {
@@ -79,6 +88,7 @@ export const contextTools: ArenaTool[] = [
         summary: brain.summary,
         ...sections,
         openQuestions: brain.openQuestions,
+        dossier: brain.dossier ?? [],
         degraded: brain.degraded,
         gaps: brain.gaps,
       });
