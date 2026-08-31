@@ -54,6 +54,17 @@ export const brainSchema = z.object({
     }),
   ),
   openQuestions: z.array(z.string()),
+  dossier: z
+    .array(
+      z.object({
+        url: z.string(),
+        title: z.string(),
+        role: z.string(),
+        excerpt: z.string(),
+      }),
+    )
+    .optional()
+    .default([]),
   degraded: z.boolean(),
   gaps: z.array(z.string()),
   generatedAt: z.string(),

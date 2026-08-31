@@ -36,7 +36,7 @@ export function ArenaPath({
           <span
             className={cn(
               "type-eyebrow block text-center",
-              current ? "text-paper" : "text-graphite",
+              current ? "text-paper" : "text-ink",
             )}
           >
             {step.label}
@@ -48,11 +48,11 @@ export function ArenaPath({
             className={cn(
               "flex min-w-[6.5rem] flex-1 items-center justify-center px-2 py-2.5",
               index > 0 && "border-l border-rule",
-              current ? "bg-ink" : "bg-paper",
+              current ? "bg-ink text-paper" : "bg-paper text-ink",
             )}
           >
             {"href" in step && step.href && !current ? (
-              <Link href={step.href} className="hover:text-ink">
+              <Link href={step.href} className="text-ink hover:text-ink">
                 {label}
               </Link>
             ) : (

@@ -10,7 +10,7 @@ import { RequireCompany } from "@/components/shell/require-company";
 import { Button } from "@/components/ui/button";
 import { DEMO_COMPANY_ID } from "@/lib/demo-seed";
 import { writeArenaDraft } from "@/lib/drafts";
-import type { Assumption, Company, Fact } from "@/lib/types";
+import type { Assumption, BrainDossierPage, Company, Fact } from "@/lib/types";
 
 export function BrainView({
   initialSnapshot,
@@ -29,6 +29,7 @@ function Brain({ company }: { company: Company }) {
   const { brain } = company;
   const isDemo = company.id === DEMO_COMPANY_ID;
   const coverage = company.sources.flatMap((source) => source.pages ?? []);
+  const dossier = brain.dossier ?? [];
 
   function takeToArena(question: string, context: string) {
     writeArenaDraft({ question, context });
@@ -109,6 +110,29 @@ function Brain({ company }: { company: Company }) {
           </article>
         ) : null}
       </div>
+
+      {dossier.length ? (
+        <>
+          <InkRule className="my-14" />
+          <section>
+            <div className="flex items-baseline gap-3">
+              <h2 className="type-display text-3xl font-semibold">
+                Pages on the record
+              </h2>
+              <span className="type-eyebrow">{dossier.length} quoted</span>
+            </div>
+            <p className="mt-3 max-w-[52ch] text-sm leading-relaxed text-graphite">
+              Verbatim excerpts the Arena keeps and quotes in every round.
+              Rebuild the Brain after changing the site.
+            </p>
+            <ul className="mt-8 grid gap-4 md:grid-cols-2">
+              {dossier.map((page) => (
+                <DossierCard key={page.url} page={page} />
+              ))}
+            </ul>
+          </section>
+        </>
+      ) : null}
 
       <InkRule className="my-14" />
 
@@ -219,6 +243,23 @@ function Brain({ company }: { company: Company }) {
         </>
       ) : null}
     </div>
+  );
+}
+
+function DossierCard({ page }: { page: BrainDossierPage }) {
+  return (
+    <li className="border border-rule bg-leaf px-5 py-4">
+      <p className="type-eyebrow">{page.role}</p>
+      <p className="mt-2 text-[15px] font-medium leading-snug text-ink">
+        {page.title}
+      </p>
+      <p className="type-figure mt-1 truncate text-[12px] text-graphite">
+        {page.url}
+      </p>
+      <p className="mt-3 line-clamp-6 whitespace-pre-wrap text-[13px] leading-relaxed text-graphite">
+        {page.excerpt}
+      </p>
+    </li>
   );
 }
 

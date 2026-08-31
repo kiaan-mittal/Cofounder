@@ -20,7 +20,10 @@ import {
 
 const FETCH_TIMEOUT_MS = 12_000;
 const MAX_BYTES = 600_000;
-const MAX_SITE_PAGES = 18;
+/** Pages we keep after a successful read. Quality over a long thin crawl. */
+const MAX_SITE_PAGES = 10;
+/** Extra guesses we are willing to try so 404s do not starve the keep list. */
+const MAX_TRY_PAGES = 16;
 const USER_AGENT =
   "DecisionArena/1.0 (+https://github.com/decision-arena; WebMCP Challenge entry)";
 
@@ -295,7 +298,7 @@ function extractLinks(html: string, base: string): string[] {
       if (resolved.protocol !== "http:" && resolved.protocol !== "https:") {
         continue;
       }
-      if (resolved.hostname !== origin.hostname) continue;
+      if (!sameCompanyHost(resolved.hostname, origin.hostname)) continue;
       if (SKIP_PATH.test(resolved.pathname)) continue;
       resolved.hash = "";
       resolved.search = "";
@@ -311,14 +314,18 @@ export function classifyPageRole(url: string): string {
   try {
     const path = new URL(url).pathname.toLowerCase();
     if (path === "/" || path === "") return "home";
-    if (/pric|plan|billing/.test(path)) return "pricing";
+    if (/\/(pricing|plans?|price|billing|subscribe)(?:\/|$)/.test(path)) {
+      return "pricing";
+    }
     if (/about|company|team/.test(path)) return "about";
     if (/doc|guide|help|docs/.test(path)) return "docs";
     if (/changelog|releas|update/.test(path)) return "changelog";
     if (/blog|news|post/.test(path)) return "blog";
-    if (/feature|product|platform/.test(path)) return "product";
+    if (/feature|product|platform|enterprise|compare|\/vs(?:\/|$)/.test(path)) {
+      return "product";
+    }
     if (/secur|trust|privacy|legal/.test(path)) return "trust";
-    if (/customer|case/.test(path)) return "customers";
+    if (/customer|case|use-cases/.test(path)) return "customers";
     if (/faq/.test(path)) return "faq";
     return "page";
   } catch {
@@ -326,22 +333,57 @@ export function classifyPageRole(url: string): string {
   }
 }
 
-function pageScore(url: string): number {
-  const role = classifyPageRole(url);
+export function roleScore(role: string): number {
   const scores: Record<string, number> = {
     home: 110,
-    pricing: 100,
-    about: 90,
-    product: 86,
-    docs: 82,
-    changelog: 76,
-    customers: 70,
-    trust: 64,
-    blog: 48,
-    faq: 44,
+    pricing: 105,
+    product: 90,
+    about: 88,
+    docs: 84,
+    customers: 72,
+    changelog: 58,
+    trust: 54,
+    faq: 28,
+    blog: 12,
     page: 20,
   };
   return scores[role] ?? 20;
+}
+
+function pageScore(url: string): number {
+  return roleScore(classifyPageRole(url));
+}
+
+function pageTextBudget(role: string): number {
+  switch (role) {
+    case "pricing":
+      return 20_000;
+    case "product":
+    case "about":
+    case "home":
+      return 12_000;
+    case "docs":
+    case "customers":
+      return 10_000;
+    case "changelog":
+    case "trust":
+      return 5_000;
+    case "blog":
+      return 2_000;
+    default:
+      return 4_000;
+  }
+}
+
+/** Docs/help hosts on the same registrable domain. Not every subdomain. */
+function sameCompanyHost(linkHost: string, homeHost: string): boolean {
+  const home = homeHost.replace(/^www\./i, "").toLowerCase();
+  const host = linkHost.replace(/^www\./i, "").toLowerCase();
+  if (host === home) return true;
+  return (
+    host.endsWith(`.${home}`) &&
+    /^(docs|help|developers|developer|support|kb)\./.test(host)
+  );
 }
 
 function canonicalUrl(raw: string): string {
@@ -372,11 +414,9 @@ function headingsFrom(html: string): string[] {
 function headingsFromMarkdown(markdown: string): string[] {
   return markdown
     .split("\n")
+    .filter((line) => /^#{1,3}\s+/.test(line))
     .map((line) => line.replace(/^#{1,3}\s+/, "").trim())
-    .filter((line, index, lines) => {
-      const original = markdown.split("\n")[index] ?? "";
-      return /^#{1,3}\s+/.test(original) && line.length > 1;
-    })
+    .filter((line) => line.length > 1)
     .slice(0, 24);
 }
 
@@ -408,7 +448,11 @@ function pageFromMarkdown(
   markdown: string,
   title: string,
 ): Omit<WebsitePage, "role"> {
-  const text = markdown.replace(/```[\s\S]*?```/g, " ").replace(/\s+/g, " ").trim();
+  const text = markdown
+    .replace(/```[\s\S]*?```/g, " ")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
   return {
     url,
     title,
@@ -417,17 +461,43 @@ function pageFromMarkdown(
   };
 }
 
-function asWebsitePage(
-  parsed: Omit<WebsitePage, "role">,
-): WebsitePage {
-  return {
+function refineRole(page: WebsitePage): WebsitePage {
+  if (page.role === "pricing") return page;
+  const hay = `${page.title}\n${page.headings.join("\n")}\n${page.text}`.toLowerCase();
+  const hits = (
+    hay.match(
+      /\$\d|€\d|£\d|per month|\/ ?mo\b|billed (monthly|annually)|starter plan|pro plan|enterprise plan/g,
+    ) ?? []
+  ).length;
+  if (hits >= 3 && page.role !== "blog") {
+    return { ...page, role: "pricing" };
+  }
+  return page;
+}
+
+function asWebsitePage(parsed: Omit<WebsitePage, "role">): WebsitePage {
+  const role = classifyPageRole(parsed.url);
+  return refineRole({
     ...parsed,
-    role: classifyPageRole(parsed.url),
-    text: parsed.text.slice(
-      0,
-      classifyPageRole(parsed.url) === "pricing" ? 16_000 : 8_000,
-    ),
-  };
+    role,
+    text: parsed.text.slice(0, pageTextBudget(role)),
+  });
+}
+
+export function keepBestPages(pages: WebsitePage[]): WebsitePage[] {
+  const refined = pages.map(refineRole);
+  const highValue = refined
+    .filter((page) => page.role !== "blog" && page.text.trim().length >= 80)
+    .sort(
+      (a, b) =>
+        roleScore(b.role) - roleScore(a.role) || b.text.length - a.text.length,
+    );
+  const picked = highValue.slice(0, MAX_SITE_PAGES);
+  if (picked.length < 5) {
+    const blog = refined.find((page) => page.role === "blog" && page.text.length >= 80);
+    if (blog) picked.push(blog);
+  }
+  return picked;
 }
 
 function emitPageExcerpt(
@@ -453,13 +523,13 @@ async function fetchHtmlPage(url: string): Promise<{
   }
 }
 
-function sameHost(link: string, homeUrl: string): boolean {
+function sameCompanySite(link: string, homeUrl: string): boolean {
   try {
     const origin = new URL(homeUrl);
     const parsed = new URL(link, origin);
     return (
       (parsed.protocol === "http:" || parsed.protocol === "https:") &&
-      parsed.hostname === origin.hostname &&
+      sameCompanyHost(parsed.hostname, origin.hostname) &&
       !SKIP_PATH.test(parsed.pathname)
     );
   } catch {
@@ -472,7 +542,7 @@ function addDiscovered(
   link: string,
   homeUrl: string,
 ) {
-  if (!sameHost(link, homeUrl)) return;
+  if (!sameCompanySite(link, homeUrl)) return;
   into.add(canonicalUrl(new URL(link, homeUrl).toString()));
 }
 
@@ -482,7 +552,8 @@ async function discoverSiteUrls(
   extraLinks: string[] = [],
 ): Promise<string[]> {
   const origin = new URL(homeUrl);
-  const discovered = new Set<string>([canonicalUrl(homeUrl)]);
+  const home = canonicalUrl(homeUrl);
+  const discovered = new Set<string>([home]);
 
   for (const link of extractLinks(html, homeUrl)) {
     addDiscovered(discovered, link, homeUrl);
@@ -490,7 +561,7 @@ async function discoverSiteUrls(
   for (const link of extraLinks) {
     addDiscovered(discovered, link, homeUrl);
   }
-  for (const path of PRIORITY_PATHS) {
+  for (const path of [...MUST_READ_PATHS, ...PRIORITY_PATHS]) {
     discovered.add(canonicalUrl(new URL(path, origin).toString()));
   }
 
@@ -508,42 +579,43 @@ async function discoverSiteUrls(
   }
 
   if (firecrawlConfigured()) {
-    const [mapped, pricingHits] = await Promise.all([
-      firecrawlMap(homeUrl, { limit: 80 }),
-      firecrawlMap(homeUrl, { limit: 20, search: "pricing" }),
+    const [mapped, pricingHits, docsHits] = await Promise.all([
+      firecrawlMap(homeUrl, { limit: 40 }),
+      firecrawlMap(homeUrl, { limit: 12, search: "pricing" }),
+      firecrawlMap(homeUrl, { limit: 12, search: "docs" }),
     ]);
-    for (const link of [...mapped, ...pricingHits]) {
+    for (const link of [...mapped, ...pricingHits, ...docsHits]) {
       addDiscovered(discovered, link, homeUrl);
     }
   }
 
-  const ranked = [...discovered].sort((a, b) => pageScore(b) - pageScore(a));
-  const must = MUST_READ_PATHS.map((path) =>
-    canonicalUrl(new URL(path, origin).toString()),
-  );
-  const selected = new Set<string>([canonicalUrl(homeUrl), ...must]);
-  for (const url of ranked) {
-    if (selected.size >= MAX_SITE_PAGES) break;
-    selected.add(url);
+  const ranked = [...discovered]
+    .filter((url) => url !== home)
+    .sort((a, b) => pageScore(b) - pageScore(a));
+  return [home, ...ranked.slice(0, MAX_TRY_PAGES - 1)];
+}
+
+function scrapeOptionsFor(url: string): {
+  onlyMainContent: boolean;
+  waitFor: number;
+} {
+  const role = classifyPageRole(url);
+  if (role === "pricing") return { onlyMainContent: false, waitFor: 4_000 };
+  if (role === "home" || role === "product") {
+    return { onlyMainContent: false, waitFor: 2_500 };
   }
-  return [...selected].sort((a, b) => pageScore(b) - pageScore(a));
+  return { onlyMainContent: true, waitFor: 2_000 };
 }
 
 async function readSitePage(url: string): Promise<WebsitePage | null> {
-  const pricing = classifyPageRole(url) === "pricing";
   if (firecrawlConfigured()) {
-    const scraped = await firecrawlScrape(url, {
-      onlyMainContent: !pricing,
-      waitFor: pricing ? 3_000 : 2_000,
-    });
+    const scraped = await firecrawlScrape(url, scrapeOptionsFor(url));
     if (scraped?.markdown) {
-      return asWebsitePage(
-        pageFromMarkdown(
-          scraped.url || url,
-          scraped.markdown,
-          scraped.title,
-        ),
+      const page = asWebsitePage(
+        pageFromMarkdown(scraped.url || url, scraped.markdown, scraped.title),
       );
+      if (page.text.length < 80) return null;
+      return page;
     }
   }
 
@@ -636,7 +708,7 @@ export async function ingestWebsite(
       (candidate) => canonicalUrl(candidate) !== canonicalUrl(homePage.url),
     );
 
-    await mapPool(extras, 5, async (candidate) => {
+    await mapPool(extras, 4, async (candidate) => {
       const page = await readSitePage(candidate);
       if (!page) return null;
       const key = canonicalUrl(page.url);
@@ -646,9 +718,7 @@ export async function ingestWebsite(
       return page;
     });
 
-    const uniquePages = [...pages.values()].sort(
-      (a, b) => pageScore(b.url) - pageScore(a.url),
-    );
+    const uniquePages = keepBestPages([...pages.values()]);
 
     const pricingPage = uniquePages.find((page) => page.role === "pricing");
     const combinedText = uniquePages
@@ -659,8 +729,16 @@ export async function ingestWebsite(
       .toLowerCase()
       .search(/\bpricing\b|\bper month\b|\/mo\b|\$\d+/);
     const pricingText =
-      pricingPage?.text.slice(0, 4_000) ??
-      (pricingIndex >= 0 ? combinedText.slice(pricingIndex, pricingIndex + 2_000) : null);
+      pricingPage?.text.slice(0, 8_000) ??
+      (pricingIndex >= 0
+        ? combinedText.slice(pricingIndex, pricingIndex + 2_000)
+        : null);
+
+    const via = firecrawlConfigured() ? " via Firecrawl" : "";
+    const roles = uniquePages
+      .map((page) => page.role)
+      .filter((role, index, list) => list.indexOf(role) === index)
+      .join(", ");
 
     const source: WebsiteSource = {
       url: homeUrl,
@@ -668,7 +746,7 @@ export async function ingestWebsite(
       description: homeParsed.description || firecrawlHome?.description || "",
       headings: uniquePages.flatMap((page) => page.headings).slice(0, 60),
       ctas: [...new Set(homeParsed.ctas)],
-      text: combinedText.slice(0, 52_000),
+      text: combinedText.slice(0, 60_000),
       pricingText,
       pages: uniquePages,
     };
@@ -679,15 +757,13 @@ export async function ingestWebsite(
         kind: "website",
         url: homeUrl,
         ok: true,
-        detail: `Read ${uniquePages.length} public page${uniquePages.length === 1 ? "" : "s"} (${uniquePages
-          .map((page) => page.role)
-          .filter((role, index, list) => list.indexOf(role) === index)
-          .join(", ")}).`,
+        detail: `Read ${uniquePages.length} public page${uniquePages.length === 1 ? "" : "s"}${via} (${roles}).`,
         bytes: combinedText.length,
         pages: uniquePages.map((page) => ({
           url: page.url,
           title: page.title || page.role,
           role: page.role,
+          excerpt: page.text.slice(0, 320),
         })),
       },
     };
@@ -1118,11 +1194,16 @@ export async function ingestSources(
   const docsSource = docs as WebsiteSource | null;
   const websiteSource = website as WebsiteSource | null;
   if (docsSource && websiteSource) {
-    websiteSource.text = `${websiteSource.text}\n\n[documentation]\n${docsSource.text}`.slice(
-      0,
-      40_000,
+    const docsPages = docsSource.pages.map((page) =>
+      page.role === "home" ? { ...page, role: "docs" } : page,
     );
-    websiteSource.pages = [...websiteSource.pages, ...docsSource.pages];
+    websiteSource.pages = keepBestPages([...websiteSource.pages, ...docsPages]);
+    websiteSource.pricingText =
+      websiteSource.pricingText ?? docsSource.pricingText;
+    websiteSource.text = websiteSource.pages
+      .map((page) => `[${page.role} ${page.url}]\n${page.text}`)
+      .join("\n\n")
+      .slice(0, 60_000);
   }
 
   return {

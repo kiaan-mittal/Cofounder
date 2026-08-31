@@ -6,7 +6,7 @@ import type { Company } from "@/lib/types";
 import { generateCompanyBrain } from "@/server/brain";
 import { readGithubSession } from "@/server/github-oauth";
 import { fail, handleRouteError, parseBody } from "@/server/http";
-import { ingestGithub, ingestWebsite } from "@/server/ingest";
+import { ingestGithub, ingestWebsite, keepBestPages } from "@/server/ingest";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -70,16 +70,26 @@ export async function POST(request: Request) {
 
           let website = site?.source ?? null;
           if (docs?.source && website) {
+            const docsPages = docs.source.pages.map((page) =>
+              page.role === "home" ? { ...page, role: "docs" } : page,
+            );
+            const pages = keepBestPages([...website.pages, ...docsPages]);
             website = {
               ...website,
-              text: `${website.text}\n\n[documentation]\n${docs.source.text}`.slice(
-                0,
-                40_000,
-              ),
-              pages: [...website.pages, ...docs.source.pages],
+              pages,
+              pricingText: website.pricingText ?? docs.source.pricingText,
+              text: pages
+                .map((page) => `[${page.role} ${page.url}]\n${page.text}`)
+                .join("\n\n")
+                .slice(0, 60_000),
             };
           } else if (!website && docs?.source) {
-            website = docs.source;
+            website = {
+              ...docs.source,
+              pages: docs.source.pages.map((page) =>
+                page.role === "home" ? { ...page, role: "docs" } : page,
+              ),
+            };
           }
 
           if (!website && !repo?.source) {

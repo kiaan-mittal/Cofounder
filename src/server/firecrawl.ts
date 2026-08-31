@@ -30,6 +30,17 @@ export interface FirecrawlPage {
   links: string[];
 }
 
+type ScrapePayload = {
+  markdown?: string;
+  links?: string[];
+  metadata?: {
+    title?: string;
+    description?: string;
+    sourceURL?: string;
+  };
+  data?: ScrapePayload;
+};
+
 async function firecrawlPost<T>(
   path: string,
   body: Record<string, unknown>,
@@ -60,20 +71,7 @@ async function firecrawlPost<T>(
   }
 }
 
-function asPage(
-  url: string,
-  data:
-    | {
-        markdown?: string;
-        links?: string[];
-        metadata?: {
-          title?: string;
-          description?: string;
-          sourceURL?: string;
-        };
-      }
-    | undefined,
-): FirecrawlPage | null {
+function asPage(url: string, data: ScrapePayload | undefined): FirecrawlPage | null {
   const markdown = data?.markdown?.trim() ?? "";
   if (!markdown) return null;
   return {
@@ -100,49 +98,26 @@ export async function firecrawlScrape(
     blockAds: true,
   };
 
-  const v1 = await firecrawlPost<{
-    success?: boolean;
-    data?: {
-      markdown?: string;
-      links?: string[];
-      metadata?: {
-        title?: string;
-        description?: string;
-        sourceURL?: string;
-      };
-    };
-  }>("/v1/scrape", body);
+  // v2 is current. maxAge: 0 so a Brain rebuild is not a two-day-old cache.
+  const v2 = await firecrawlPost<ScrapePayload>("/v2/scrape", {
+    ...body,
+    maxAge: 0,
+  });
+  const fromV2 = asPage(url, v2?.data ?? v2 ?? undefined);
+  if (fromV2) return fromV2;
 
-  const fromV1 = asPage(url, v1?.data);
-  if (fromV1) return fromV1;
-
-  const v2 = await firecrawlPost<{
-    markdown?: string;
-    links?: string[];
-    metadata?: {
-      title?: string;
-      description?: string;
-      sourceURL?: string;
-    };
-    data?: {
-      markdown?: string;
-      links?: string[];
-      metadata?: {
-        title?: string;
-        description?: string;
-        sourceURL?: string;
-      };
-    };
-  }>("/v2/scrape", body);
-
-  return asPage(url, v2?.data ?? v2 ?? undefined);
+  const v1 = await firecrawlPost<{ success?: boolean; data?: ScrapePayload }>(
+    "/v1/scrape",
+    body,
+  );
+  return asPage(url, v1?.data);
 }
 
 export async function firecrawlMap(
   url: string,
-  options: { limit?: number; search?: string } | number = 80,
+  options: { limit?: number; search?: string } | number = 40,
 ): Promise<string[]> {
-  const limit = typeof options === "number" ? options : (options.limit ?? 80);
+  const limit = typeof options === "number" ? options : (options.limit ?? 40);
   const search = typeof options === "number" ? undefined : options.search;
   const body: Record<string, unknown> = {
     url,
@@ -151,19 +126,17 @@ export async function firecrawlMap(
   };
   if (search) body.search = search;
 
-  const payload = await firecrawlPost<{
+  const v2 = await firecrawlPost<{
+    links?: Array<string | { url?: string }>;
+  }>("/v2/map", body);
+  const fromV2 = readMapLinks(v2?.links);
+  if (fromV2.length) return fromV2;
+
+  const v1 = await firecrawlPost<{
     success?: boolean;
     links?: Array<string | { url?: string }>;
   }>("/v1/map", body);
-
-  const links = payload?.links;
-  if (!links?.length) {
-    const v2 = await firecrawlPost<{
-      links?: Array<string | { url?: string }>;
-    }>("/v2/map", body);
-    return readMapLinks(v2?.links);
-  }
-  return readMapLinks(links);
+  return readMapLinks(v1?.links);
 }
 
 function readMapLinks(

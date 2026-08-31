@@ -78,6 +78,11 @@ export interface CompanyBrain {
   facts: Fact[];
   assumptions: Assumption[];
   openQuestions: string[];
+  /**
+   * Verbatim excerpts from the pages we actually read. Debates and tools
+   * quote this every round — the scrape is not thrown away after summarising.
+   */
+  dossier?: BrainDossierPage[];
   /** True when a source failed and the brain was built from partial input. */
   degraded: boolean;
   /** Human-readable notes about what could not be read. */
@@ -85,10 +90,19 @@ export interface CompanyBrain {
   generatedAt: string;
 }
 
+/** A high-signal page kept on the Brain so later rounds can still quote it. */
+export interface BrainDossierPage {
+  url: string;
+  title: string;
+  role: string;
+  excerpt: string;
+}
+
 export interface IngestionPageReport {
   url: string;
   title: string;
   role: string;
+  excerpt?: string;
 }
 
 export interface IngestionSourceReport {
