@@ -36,8 +36,7 @@ a real company, from public sources — for anyone who is not signed in.
    say `IndieTerminal`, not `not loaded`.
 2. In ChatGPT desktop (Sol or Terra) or Chrome with WebMCP enabled, open the
    same HTTPS URL. Wait until tools finish registering.
-3. Say: *Use Decision Arena to stress-test whether IndieTerminal should ship a
-   public waitlist this week.*
+3. Say: *Use Decision Arena to stress-test whether /research should run without a Clerk session.*
 4. Watch `stress_test_decision` write on the table. Then try `confirm_commit`
    — refused. Then `share_decision` — a public `/share/…` link, no login.
 5. Optional, only if you want to try onboarding with **your** GitHub: `/login`.
@@ -73,11 +72,11 @@ Open with the part a prompt cannot.
 | Time | Where | What happens |
 | --- | --- | --- |
 | 0:00 | `/arena` | IndieTerminal and a live decision, no account. Do not type. Say: “I didn't use the website.” |
-| 0:10 | ChatGPT desktop | “Use Decision Arena to stress-test whether IndieTerminal should ship a public waitlist this week.” |
+| 0:10 | ChatGPT desktop | “Use Decision Arena to stress-test whether /research should run without a Clerk session.” |
 | 0:15 | Same page | `stress_test_decision` fires. The question appears. Seats write one by one. Contradictions land in red. |
 | 0:45 | `/arena` | Verdict. Deadlock or a lean. What would change the call. |
 | 0:55 | ChatGPT | `confirm_commit` — refused. “Agents propose. Founders commit.” |
-| 1:05 | Same page | `share_decision`. Open the public `/share/…` link. No login. |
+| 1:05 | Same page | `share_decision`. Slack unfurls a card of the question, not a URL. Open `/share/…`. No login. |
 | 1:15 | Slack or Notion | `share_decision` with a destination — or Connect, then send. The seats become a post. |
 | 1:20 | Cut | “I didn't use the website. My agent used it with me. The record left the chat.” |
 

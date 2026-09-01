@@ -17,6 +17,7 @@ import { SharedState } from "@/components/arena/the-loop";
 import { PerspectiveEmblem } from "@/components/ink/emblems";
 import { TableSketch } from "@/components/ink/table-drawings";
 import { RequireCompany } from "@/components/shell/require-company";
+import { SplitPane } from "@/components/shell/split-pane";
 import { Textarea } from "@/components/ui/textarea";
 import { PERSPECTIVES } from "@/lib/perspectives";
 import {
@@ -79,9 +80,10 @@ function ArenaShell({
       : null;
   const activeDecisionId = listingArenas
     ? null
-    : storeActive ??
-      snapshotActive ??
-      (decisions.length === 1 ? decisions[0].id : null);
+    : storeDecisions.length
+      ? storeActive
+      : (snapshotActive ??
+        (decisions.length === 1 ? decisions[0].id : null));
 
   useLayoutEffect(() => {
     if (!initialSnapshot || snapshotIsEmpty(initialSnapshot)) return;
@@ -112,6 +114,7 @@ function ArenaShell({
       decision={decision}
       company={company}
       initialSnapshot={initialSnapshot}
+      seed={decisions}
     />
   );
 }
@@ -280,18 +283,19 @@ function DecisionStart({
 
   return (
     <div className="flex h-[calc(100dvh-3.5rem)] flex-col overflow-hidden bg-paper">
-      <div className="flex shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-rule px-3 py-2">
+      <div className="flex h-11 shrink-0 items-center gap-3 border-b border-rule px-3">
         <DecisionRail seed={decisions} />
-        <p className="type-eyebrow shrink-0">Decision · {company.name}</p>
+        <p className="type-eyebrow hidden shrink-0 sm:block">
+          {company.name}
+        </p>
       </div>
-      <div className="grid min-h-0 min-w-0 flex-1 md:grid-cols-2">
-        <div className="flex min-h-0 min-w-0 flex-col border-r border-rule bg-paper">
-          <header className="flex shrink-0 items-baseline justify-between gap-3 border-b border-rule px-5 py-2">
-            <p className="type-eyebrow text-indigo">You</p>
-            <p className="min-w-0 truncate text-[13px] text-graphite">
-              The board waits until you name the decision.
-            </p>
-          </header>
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-paper">
+        <header className="flex shrink-0 items-baseline justify-between gap-3 border-b border-rule px-5 py-2">
+          <p className="type-eyebrow text-indigo">You</p>
+          <p className="min-w-0 truncate text-[13px] text-graphite">
+            The board waits until you name the decision.
+          </p>
+        </header>
           <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
             {decisions.length === 0 ? (
               <p className="text-[15px] leading-relaxed text-graphite">
@@ -301,9 +305,11 @@ function DecisionStart({
             ) : (
               <DecisionGallery
                 decisions={decisions}
-                onOpen={(id) =>
-                  founderCall("open_saved_decision", { decision_id: id })
-                }
+                onOpen={(id) => {
+                  useArena.getState().setActiveDecision(id);
+                  scheduleWorkspaceSave();
+                  void founderCall("open_saved_decision", { decision_id: id });
+                }}
               />
             )}
           </div>
@@ -328,7 +334,7 @@ function DecisionStart({
                 name="question"
                 value={question}
                 rows={3}
-                placeholder="Should I launch now or spend another month polishing?"
+                placeholder="Should /research run without a Clerk session?"
                 className="[field-sizing:fixed] min-h-[72px] w-full bg-paper px-3 py-2 text-[16px] leading-snug caret-indigo shadow-none"
                 onChange={(event) => {
                   const value = event.target.value;
@@ -350,7 +356,7 @@ function DecisionStart({
                   name="context"
                   value={context}
                   rows={2}
-                  placeholder="Nine months of runway. The waitlist has gone cold. (optional)"
+                  placeholder="The queue already gates Slack and X. (optional)"
                   className="[field-sizing:fixed] min-h-[44px] w-full bg-paper px-3 py-2 text-[14px] leading-snug shadow-none"
                   onChange={(event) => {
                     const value = event.target.value;
@@ -382,58 +388,6 @@ function DecisionStart({
               </div>
             ) : null}
           </form>
-        </div>
-        <div className="hidden min-h-0 min-w-0 flex-col bg-leaf md:flex">
-          <header className="shrink-0 border-b border-rule bg-paper px-5 py-3">
-            <p className="type-eyebrow">The board</p>
-            <p className="mt-1 text-[13.5px] text-graphite">
-              Technical, Product, GTM, Financial, Contrarian. Empty until they
-              write.
-            </p>
-          </header>
-          <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
-            <section className="border-b border-rule px-5 py-4">
-              <p className="type-eyebrow">Company Brain</p>
-              <p className="mt-2 text-[15px] leading-snug text-ink">
-                {company.brain.headline}
-              </p>
-              <p className="mt-2 text-[13px] leading-relaxed text-graphite">
-                {company.brain.facts.length}{" "}
-                {company.brain.facts.length === 1 ? "fact" : "facts"}
-                {" · "}
-                {company.brain.assumptions.length}{" "}
-                {company.brain.assumptions.length === 1
-                  ? "assumption"
-                  : "assumptions"}
-                {company.github
-                  ? ` · ${company.github.replace(/^https?:\/\/(www\.)?github\.com\//i, "")}`
-                  : ""}
-              </p>
-            </section>
-            <SharedState
-              risks={[]}
-              contradictions={[]}
-              evidence={[]}
-              stacked
-            />
-            <ul className="flex justify-between border-t border-rule px-5 py-4">
-              {PERSPECTIVES.map((perspective) => (
-                <li
-                  key={perspective.id}
-                  className="flex flex-col items-center gap-1"
-                >
-                  <PerspectiveEmblem
-                    perspective={perspective.id}
-                    className="size-10 opacity-50"
-                  />
-                  <span className="type-eyebrow text-pencil">
-                    {perspective.mark}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
       </div>
     </div>
   );
@@ -443,10 +397,12 @@ function Workspace({
   decision,
   company,
   initialSnapshot,
+  seed = [],
 }: {
   decision: Decision;
   company: Company;
   initialSnapshot?: Record<string, unknown> | null;
+  seed?: Decision[];
 }) {
   const { busy: hookBusy, error, defend, summarise, open: openRound } =
     useDebate();
@@ -563,42 +519,48 @@ function Workspace({
         round={decision.round}
         status={decision.status}
         decisionId={decision.id}
+        seed={seed}
       />
-      <div className="grid min-h-0 min-w-0 flex-1 lg:grid-cols-2">
-        <FloorTalk
-          defenses={defenses}
-          reassessments={reassessments}
-          arguments={args}
-          value={defense}
-          busy={busy === "defending" || busy === "opening"}
-          committed={committed}
-          targetLabel={targetSeatLabel(args, target)}
-          onChange={setDefense}
-          onSubmit={submitDefense}
-          onClearTarget={() => setTarget(null)}
-        />
-        <FloorBoard
-          decision={decision}
-          companyName={company.name}
-          args={args}
-          reassessments={reassessments}
-          risks={risks}
-          evidence={evidence}
-          contradictions={contradictions}
-          actionItems={actionItems}
-          spotlightId={spotlightId}
-          busy={busy}
-          openingReady={openingReady}
-          defense={defense}
-          target={target}
-          onDefenseChange={setDefense}
-          onTarget={setTarget}
-          onSubmitDefense={submitDefense}
-          onOpenRound={() =>
-            openRound(decision.question, decision.context, decision.id)
-          }
-        />
-      </div>
+      <SplitPane
+        storageKey="arena-floor"
+        left={
+          <FloorTalk
+            defenses={defenses}
+            reassessments={reassessments}
+            arguments={args}
+            value={defense}
+            busy={busy === "defending" || busy === "opening"}
+            committed={committed}
+            targetLabel={targetSeatLabel(args, target)}
+            onChange={setDefense}
+            onSubmit={submitDefense}
+            onClearTarget={() => setTarget(null)}
+          />
+        }
+        right={
+          <FloorBoard
+            decision={decision}
+            companyName={company.name}
+            args={args}
+            reassessments={reassessments}
+            risks={risks}
+            evidence={evidence}
+            contradictions={contradictions}
+            actionItems={actionItems}
+            spotlightId={spotlightId}
+            busy={busy}
+            openingReady={openingReady}
+            defense={defense}
+            target={target}
+            onDefenseChange={setDefense}
+            onTarget={setTarget}
+            onSubmitDefense={submitDefense}
+            onOpenRound={() =>
+              openRound(decision.question, decision.context, decision.id)
+            }
+          />
+        }
+      />
       {error ? (
         <div className="shrink-0 border-t border-rule bg-oxblood-wash px-4 py-2 text-sm text-ink">
           {error.message}

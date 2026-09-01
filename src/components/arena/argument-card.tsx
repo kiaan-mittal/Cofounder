@@ -55,7 +55,7 @@ export function ArgumentCard({
   return (
     <article
       className={cn(
-        "relative min-w-0 w-full bg-paper p-4 transition-colors",
+        "relative min-w-0 w-full border border-rule bg-paper p-4 transition-colors",
         spotlit && "bg-oxblood-wash",
         selected && !spotlit && "bg-indigo-wash",
         conceded && "opacity-60",

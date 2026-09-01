@@ -38,7 +38,7 @@ function evaluated(predictions: Prediction[]): Prediction[] {
  * decaying as the expected/actual ratio moves away from 1 in either direction.
  * Being 2x over and 2x under are penalised equally.
  */
-function accuracyOf(prediction: Prediction): number {
+export function accuracyOf(prediction: Prediction): number {
   const ratio = prediction.ratio ?? 1;
   const normalised = ratio >= 1 ? ratio : 1 / ratio;
   return Math.max(0, Math.round(100 - (normalised - 1) * 60));

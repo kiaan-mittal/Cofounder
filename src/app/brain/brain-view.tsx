@@ -70,8 +70,15 @@ function Brain({ company }: { company: Company }) {
       ) : null}
       {isShowcase ? (
         <p className="type-eyebrow mb-8 inline-block border border-rule bg-leaf px-3 py-1.5 text-graphite">
-          Public judging floor — IndieTerminal, from public sources. Sign in
-          only if you want to load your own repository.
+          Public judging floor —{" "}
+          <Href href={company.website}>IndieTerminal</Href>
+          {company.github ? (
+            <>
+              {", connected repo "}
+              <Href href={company.github}>kiaan-mittal/indieterminal</Href>
+            </>
+          ) : null}
+          . Sign in only if you want to load your own repository.
         </p>
       ) : null}
 
@@ -84,7 +91,18 @@ function Brain({ company }: { company: Company }) {
           <p className="mt-4 text-[16px] leading-relaxed text-graphite">
             {brain.summary}
           </p>
-          <p className="mt-3 text-[13px] leading-relaxed text-graphite">
+          <p className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] leading-relaxed text-graphite">
+            {company.website ? (
+              <Href href={company.website}>{sourceLabel(company.website)}</Href>
+            ) : null}
+            {commandHref(company.website) ? (
+              <Href href={commandHref(company.website)}>/command</Href>
+            ) : null}
+            {company.github ? (
+              <Href href={company.github}>{sourceLabel(company.github)}</Href>
+            ) : null}
+          </p>
+          <p className="mt-2 text-[13px] leading-relaxed text-graphite">
             {`Sources last read ${formatReadDate(brain.generatedAt)}. GitHub and the site resync every three days.`}
           </p>
         </div>
@@ -97,9 +115,9 @@ function Brain({ company }: { company: Company }) {
         <CompanyDna company={company} onOpen={takeToArena} />
       </div>
 
-      <div className="mt-4 grid gap-px bg-rule sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {company.sources.map((source) => (
-          <article key={`${source.kind}-${source.url}`} className="bg-paper px-4 py-4">
+          <article key={`${source.kind}-${source.url}`} className="border border-rule bg-paper px-4 py-4">
             <p
               className={
                 source.ok ? "type-eyebrow text-moss" : "type-eyebrow text-oxblood"
@@ -108,7 +126,7 @@ function Brain({ company }: { company: Company }) {
               {source.ok ? "read" : "failed"}
             </p>
             <p className="type-figure mt-2 truncate text-[12px] text-ink">
-              {source.url}
+              <Href href={source.url}>{sourceLabel(source.url)}</Href>
             </p>
             <p className="mt-1.5 line-clamp-2 text-[13px] leading-snug text-graphite">
               {source.detail}
@@ -116,7 +134,7 @@ function Brain({ company }: { company: Company }) {
           </article>
         ))}
         {brain.gaps.length ? (
-          <article className="bg-ochre-wash px-4 py-4">
+          <article className="border border-ochre bg-ochre-wash px-4 py-4">
             <p className="type-eyebrow text-ochre">Not known</p>
             <ul className="mt-2 space-y-1.5">
               {brain.gaps.slice(0, 3).map((gap) => (
@@ -127,7 +145,7 @@ function Brain({ company }: { company: Company }) {
             </ul>
           </article>
         ) : coverage.length ? (
-          <article className="bg-paper px-4 py-4">
+          <article className="border border-rule bg-paper px-4 py-4">
             <p className="type-eyebrow">
               Coverage · {coverage.length}
             </p>
@@ -218,6 +236,27 @@ function Brain({ company }: { company: Company }) {
       <section className="grid gap-12 lg:grid-cols-3 lg:gap-16">
         <Panel title="Product">
           <Line label="What it is">{brain.product.description}</Line>
+          {company.website || company.github ? (
+            <Line label="Live">
+              {company.website ? (
+                <Href href={company.website}>{sourceLabel(company.website)}</Href>
+              ) : null}
+              {commandHref(company.website) ? (
+                <>
+                  {" · "}
+                  <Href href={commandHref(company.website)}>
+                    /command
+                  </Href>
+                </>
+              ) : null}
+              {company.github ? (
+                <>
+                  {" · "}
+                  <Href href={company.github}>{sourceLabel(company.github)}</Href>
+                </>
+              ) : null}
+            </Line>
+          ) : null}
           <Line label="Maturity">{brain.product.maturity}</Line>
           <List label="Features" items={brain.product.features} />
           <List label="Roadmap signals" items={brain.product.roadmapSignals} />
@@ -277,15 +316,59 @@ function Brain({ company }: { company: Company }) {
   );
 }
 
+function commandHref(website?: string) {
+  if (!website || !/indieterminal\.com/i.test(website)) return "";
+  return `${website.replace(/\/$/, "")}/command`;
+}
+
+function Href({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className="underline decoration-rule underline-offset-4 hover:text-ink hover:decoration-ink"
+    >
+      {children}
+    </a>
+  );
+}
+
+function sourceLabel(url: string) {
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.replace(/^www\./, "");
+    if (host === "github.com") {
+      return parsed.pathname.replace(/^\/|\/$/g, "") || host;
+    }
+    return `${host}${parsed.pathname === "/" ? "" : parsed.pathname}`;
+  } catch {
+    return url;
+  }
+}
+
+function citeProvenance(kind: string, ref?: string) {
+  if (!ref) return kind;
+  try {
+    const url = new URL(ref);
+    if (url.hostname.replace(/^www\./, "") === "github.com") {
+      return `${kind} · ${url.pathname.replace(/^\/|\/$/g, "")}`;
+    }
+    return `${kind} · ${url.hostname.replace(/^www\./, "")}`;
+  } catch {
+    return `${kind} · ${ref}`;
+  }
+}
+
 function DossierCard({ page }: { page: BrainDossierPage }) {
   return (
     <li className="border border-rule bg-leaf px-5 py-4">
       <p className="type-eyebrow">{page.role}</p>
       <p className="mt-2 text-[15px] font-medium leading-snug text-ink">
-        {page.title}
+        <Href href={page.url}>{page.title}</Href>
       </p>
       <p className="type-figure mt-1 truncate text-[12px] text-graphite">
-        {page.url}
+        <Href href={page.url}>{page.url}</Href>
       </p>
       <p className="mt-3 line-clamp-6 whitespace-pre-wrap text-[13px] leading-relaxed text-graphite">
         {page.excerpt}
@@ -295,6 +378,9 @@ function DossierCard({ page }: { page: BrainDossierPage }) {
 }
 
 function FactCard({ fact }: { fact: Fact }) {
+  const ref = fact.provenance.ref;
+  const cited = citeProvenance(fact.provenance.kind, ref);
+  const linked = Boolean(ref && /^https?:\/\//i.test(ref));
   return (
     <li className="border border-rule bg-leaf px-5 py-4">
       <p className="text-[15px] leading-relaxed text-ink">{fact.statement}</p>
@@ -304,8 +390,7 @@ function FactCard({ fact }: { fact: Fact }) {
         </p>
       ) : null}
       <p className="type-eyebrow mt-2 truncate">
-        {fact.provenance.kind}
-        {fact.provenance.ref ? ` · ${fact.provenance.ref}` : ""}
+        {linked && ref ? <Href href={ref}>{cited}</Href> : cited}
       </p>
     </li>
   );

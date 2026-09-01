@@ -67,10 +67,10 @@ export function WebMCPStatus({ className }: { className?: string }) {
             ) : null}
           </Link>
         </TooltipTrigger>
-        <TooltipContent side="bottom" className="max-w-xs">
+        <TooltipContent side="bottom" align="end" className="max-w-xs">
           <p>{copy.detail}</p>
           {registered.length > 0 ? (
-            <p className="mt-2 text-pencil">
+            <p className="mt-2 text-[13px] text-graphite">
               {registered.length} tools registered. Open the tool surface for the
               full list.
             </p>

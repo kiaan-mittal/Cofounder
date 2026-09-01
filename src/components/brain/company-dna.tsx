@@ -158,12 +158,41 @@ export function CompanyDna({
     <section id="company-dna" className="border border-rule bg-leaf">
       <header className="flex flex-wrap items-baseline justify-between gap-3 border-b border-rule bg-paper px-4 py-3">
         <p className="type-eyebrow">Company DNA</p>
-        <p className="text-[13px] text-graphite">
-          What an agent walks when it enters the Arena.
+        <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-graphite">
+          {company.website ? (
+            <a
+              href={company.website}
+              target="_blank"
+              rel="noreferrer"
+              className="underline decoration-rule underline-offset-4 hover:text-ink hover:decoration-ink"
+            >
+              Site
+            </a>
+          ) : null}
+          {company.website && /indieterminal\.com/i.test(company.website) ? (
+            <a
+              href={`${company.website.replace(/\/$/, "")}/command`}
+              target="_blank"
+              rel="noreferrer"
+              className="underline decoration-rule underline-offset-4 hover:text-ink hover:decoration-ink"
+            >
+              /command
+            </a>
+          ) : null}
+          {company.github ? (
+            <a
+              href={company.github}
+              target="_blank"
+              rel="noreferrer"
+              className="underline decoration-rule underline-offset-4 hover:text-ink hover:decoration-ink"
+            >
+              Repo
+            </a>
+          ) : null}
         </p>
       </header>
 
-      <div className="grid gap-px bg-rule sm:grid-cols-2 lg:hidden">
+      <div className="grid gap-3 sm:grid-cols-2 lg:hidden">
         {bodies.map((body) => (
           <button
             key={`m-${body.id}`}
@@ -171,7 +200,7 @@ export function CompanyDna({
             aria-pressed={body.id === active}
             onClick={() => setActive(body.id)}
             className={cn(
-              "bg-paper px-4 py-3 text-left",
+              "border border-rule bg-paper px-4 py-3 text-left",
               body.id === active && "bg-leaf",
             )}
           >

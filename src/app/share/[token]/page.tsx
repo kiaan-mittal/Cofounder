@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { ArenaMark } from "@/components/ink/marks";
 import type { DecisionBrief } from "@/lib/decision-brief";
 import { readDecisionShare } from "@/server/shares";
 
@@ -31,7 +32,17 @@ export default async function SharePage({
 
   return (
     <div className="mx-auto max-w-[860px] px-5 py-12 lg:py-16">
-      <p className="type-eyebrow">{brief.company}</p>
+      <header className="flex items-center gap-2.5">
+        <Link href="/" className="flex items-center gap-2.5">
+          <ArenaMark />
+          <span className="type-display text-[17px] font-semibold text-ink">
+            Decision Arena
+          </span>
+        </Link>
+        <p className="type-eyebrow ml-auto text-graphite">Public record</p>
+      </header>
+
+      <p className="type-eyebrow mt-12">{brief.company}</p>
       <h1 className="type-display mt-4 text-[clamp(1.8rem,4vw,3rem)] font-semibold leading-[1.05]">
         {brief.question}
       </h1>

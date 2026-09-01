@@ -8,7 +8,7 @@ import {
   PerspectiveEmblem,
   SecondChair,
 } from "@/components/ink/emblems";
-import { InkRule, InkUnderline } from "@/components/ink/marks";
+import { ArenaMark, InkRule, InkUnderline } from "@/components/ink/marks";
 import {
   StructuredData,
   landingSchema,
@@ -86,7 +86,10 @@ export default async function LandingPage() {
       {/* Hero */}
       <section className="grid gap-12 pt-14 pb-20 lg:grid-cols-[1.15fr_1fr] lg:gap-20 lg:pt-20">
         <div className="max-w-[36ch]">
-          <p className="type-eyebrow">A decision ChatGPT can join, not own</p>
+          <p className="type-eyebrow flex items-center gap-2.5">
+            <ArenaMark className="size-6" />
+            A decision ChatGPT can join, not own
+          </p>
 
           <h1 className="type-display mt-6 text-[clamp(2.75rem,7vw,4.75rem)] font-semibold">
             AI that argues
@@ -164,9 +167,9 @@ export default async function LandingPage() {
           record it can send to Slack or Notion — a link that still works after
           the tab closes.
         </p>
-        <ol className="mt-10 grid gap-px bg-rule lg:grid-cols-3">
+        <ol className="mt-10 grid gap-3 lg:grid-cols-3">
           {NOT_A_CHAT.map((item) => (
-            <li key={item.mark} className="bg-paper p-6">
+            <li key={item.mark} className="border border-rule bg-paper p-6">
               <span className="type-figure text-[11px] text-pencil">
                 {item.mark}
               </span>
@@ -248,9 +251,9 @@ export default async function LandingPage() {
       {/* The loop — numbered because it genuinely is a sequence */}
       <section className="border-t border-rule py-16">
         <h2 className="type-eyebrow">The loop</h2>
-        <div className="mt-8 grid gap-px bg-rule sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           {LOOP.map((item, index) => (
-            <div key={item.step} className="bg-paper p-6">
+            <div key={item.step} className="border border-rule bg-paper p-6">
               <span className="type-figure text-[11px] text-pencil">
                 {String(index + 1).padStart(2, "0")}
               </span>

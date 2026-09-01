@@ -7,7 +7,8 @@ import {
   type OnboardingDraft,
 } from "@/lib/drafts";
 import type { ProjectSummary } from "@/lib/projects";
-import { isEphemeralSnapshot } from "@/lib/guest-workspace";
+import { isEphemeralSnapshot, withoutForeignArenas } from "@/lib/guest-workspace";
+import { isStaleShowcase } from "@/lib/showcase-seed";
 import {
   getWorkspaceSnapshot,
   snapshotIsEmpty,
@@ -62,6 +63,7 @@ export function shouldAdoptRemote(
   remote: Partial<WorkspaceSnapshot> | null | undefined,
 ) {
   if (!remote || snapshotIsEmpty(remote)) return false;
+  if (isStaleShowcase(remote)) return false;
   if (isEphemeralSnapshot(local) && !isEphemeralSnapshot(remote)) return true;
   if (!isEphemeralSnapshot(local) && isEphemeralSnapshot(remote)) return false;
   if (snapshotIsEmpty(local)) return true;
@@ -70,7 +72,10 @@ export function shouldAdoptRemote(
 
 function applySnapshot(snapshot: PersistedSnapshot) {
   const { arenaDraft, ...workspace } = snapshot;
-  useArena.getState().importWorkspace(workspace);
+  const cleaned = withoutForeignArenas(
+    workspace as unknown as Record<string, unknown>,
+  );
+  useArena.getState().importWorkspace(cleaned);
   if (arenaDraft && (arenaDraft.question || arenaDraft.context)) {
     const current = readArenaDraft();
     if (!current.question && !current.context) {

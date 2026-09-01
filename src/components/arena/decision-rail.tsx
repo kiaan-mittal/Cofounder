@@ -48,8 +48,14 @@ export function DecisionRail({
     onNew?.();
   }
 
+  function openDecision(id: string) {
+    useArena.getState().setActiveDecision(id);
+    scheduleWorkspaceSave();
+    void founderCall("open_saved_decision", { decision_id: id });
+  }
+
   return (
-    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+    <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden">
       <button
         type="button"
         onMouseDown={(event) => event.preventDefault()}
@@ -62,38 +68,44 @@ export function DecisionRail({
         New arena
       </button>
 
-      {decisions.map((decision) => {
-        const active = decision.id === currentId;
-        return (
-          <button
-            key={decision.id}
-            type="button"
-            onClick={() =>
-              founderCall("open_saved_decision", { decision_id: decision.id })
-            }
-            className={cn(
-              "inline-flex h-8 max-w-[280px] items-center gap-2 border px-2.5 text-left transition-colors",
-              active
-                ? "border-ink bg-paper"
-                : "border-rule bg-paper text-graphite hover:border-ink hover:text-ink",
-            )}
-          >
-            <span className="truncate text-[13px] leading-none">
-              {decision.question}
-            </span>
-            <span
+      <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto overscroll-x-contain [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+        {decisions.map((decision) => {
+          const active = decision.id === currentId;
+          return (
+            <button
+              key={decision.id}
+              type="button"
+              onClick={() => openDecision(decision.id)}
               className={cn(
-                "type-eyebrow shrink-0",
-                STATUS_TONE[decision.status],
+                "inline-flex h-8 max-w-[13.5rem] shrink-0 items-center gap-2 whitespace-nowrap border px-2.5 text-left transition-colors",
+                active
+                  ? "border-ink bg-paper"
+                  : "border-rule bg-paper text-graphite hover:border-ink hover:text-ink",
               )}
             >
-              {decision.status}
-            </span>
-          </button>
-        );
-      })}
+              <span className="truncate text-[13px] leading-none">
+                {railTitle(decision.question)}
+              </span>
+              <span
+                className={cn(
+                  "type-eyebrow shrink-0",
+                  STATUS_TONE[decision.status],
+                )}
+              >
+                {decision.status}
+              </span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
+}
+
+function railTitle(question: string) {
+  const cut = question.replace(/\?$/, "").trim();
+  const first = cut.split(/,|\bor\b/)[0]?.trim() ?? cut;
+  return first;
 }
 
 export function DecisionGallery({
@@ -110,7 +122,7 @@ export function DecisionGallery({
   return (
     <div>
       <p className="type-eyebrow">Your arenas</p>
-      <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+      <ul className="mt-4 grid items-start gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {decisions.map((decision, index) => {
           const seats = argumentList.filter(
             (argument) =>
@@ -124,7 +136,7 @@ export function DecisionGallery({
           return (
             <li
               key={decision.id}
-              className="flex h-full flex-col border border-rule bg-leaf transition-colors hover:border-ink hover:bg-paper"
+              className="flex flex-col border border-rule bg-leaf transition-colors hover:border-ink hover:bg-paper"
             >
               <button
                 type="button"

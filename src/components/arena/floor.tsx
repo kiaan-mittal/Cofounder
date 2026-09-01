@@ -3,20 +3,20 @@
 import { useEffect, useMemo, useRef } from "react";
 
 import { AgentTranscript } from "@/components/arena/agent-console";
+import { AgentPresence } from "@/components/arena/agent-presence";
 import { DecisionBoard } from "@/components/arena/decision-board";
+import { DecisionRail } from "@/components/arena/decision-rail";
 import { ExportDecision } from "@/components/arena/export-decision";
 import { PatternBanner } from "@/components/arena/pattern-banner";
 import { PromptComposer } from "@/components/arena/prompt-composer";
 import { SeatOpening, SeatReply } from "@/components/arena/seat-reply";
 import { SharedState } from "@/components/arena/the-loop";
 import { detectPatterns, warningsForDecision } from "@/lib/calibration";
-import { writeArenaDraft } from "@/lib/drafts";
 import { PERSPECTIVES, perspectiveName } from "@/lib/perspectives";
 import { stillOpenFrom } from "@/lib/selectors";
 import { useArena } from "@/lib/store";
 import { scheduleWorkspaceSave } from "@/lib/supabase/sync";
 import { AGENT_PROMPTS, useSparringChat } from "@/lib/use-sparring";
-import { founderCall } from "@/webmcp/run";
 import type {
   ActionItem,
   Argument,
@@ -102,7 +102,7 @@ export function FloorTalk({
   }, [reassessments, busy, sparring.messages, defenses]);
 
   return (
-    <div className="flex min-h-0 min-w-0 flex-col border-r border-rule bg-paper">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-paper">
       <header className="flex shrink-0 items-baseline justify-between gap-3 border-b border-rule px-5 py-1.5">
         <p className="type-eyebrow text-indigo">The floor</p>
         <p className="min-w-0 truncate text-[13px] text-graphite">
@@ -113,7 +113,7 @@ export function FloorTalk({
       </header>
       <PatternBanner warnings={warnings} />
 
-      <div ref={scrollerRef} className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
+      <div ref={scrollerRef} className="min-h-0 flex-1 overflow-y-auto px-5 py-5 lg:px-7">
         {!hasRecord ? (
           busy ? (
             <p className="type-eyebrow animate-pulse text-oxblood">
@@ -129,7 +129,7 @@ export function FloorTalk({
           <ol className="space-y-8">
             {openings.map((argument) => (
               <li key={argument.id}>
-                <SeatOpening argument={argument} />
+                <SeatOpening argument={argument} className="max-w-none w-full" />
               </li>
             ))}
             {defenseTurns.map((item) => {
@@ -146,7 +146,7 @@ export function FloorTalk({
                     <ol className="mt-5 space-y-4">
                       {replies.map((reply) => (
                         <li key={reply.id}>
-                          <SeatReply item={reply} />
+                          <SeatReply item={reply} className="max-w-none w-full" />
                         </li>
                       ))}
                     </ol>
@@ -235,7 +235,7 @@ export function FloorBoard({
   onOpenRound: () => void;
 }) {
   return (
-    <div className="flex min-h-0 min-w-0 flex-col bg-leaf">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-leaf">
       <header className="flex shrink-0 flex-wrap items-baseline justify-between gap-3 border-b border-rule bg-paper px-5 py-1.5">
         <p className="type-eyebrow">The board</p>
         <p className="min-w-0 truncate text-[13px] text-graphite">
@@ -314,41 +314,25 @@ export function FloorBar({
   round,
   status,
   decisionId,
+  seed,
 }: {
   question: string;
   round: number;
   status: string;
   decisionId: string;
+  seed?: Decision[];
 }) {
-  function startNew() {
-    writeArenaDraft({ question: "", context: "" });
-    const api = useArena.getState();
-    if (typeof api.beginNewArena === "function") {
-      api.beginNewArena();
-    } else {
-      api.setActiveDecision(null);
-    }
-    scheduleWorkspaceSave();
-  }
-
   function leave() {
-    founderCall("open_saved_decision", { list: true });
+    useArena.getState().setActiveDecision(null);
     scheduleWorkspaceSave();
   }
 
   return (
-    <div className="flex shrink-0 items-center gap-4 border-b border-rule px-4 py-2.5">
-      <button
-        type="button"
-        onMouseDown={(event) => event.preventDefault()}
-        onClick={startNew}
-        className="inline-flex h-8 shrink-0 items-center gap-1.5 bg-ink px-3 text-[13px] text-paper transition-colors hover:bg-ink/90"
-      >
-        <span aria-hidden className="type-figure text-[14px] leading-none">
-          +
-        </span>
-        New arena
-      </button>
+    <div
+      className="flex h-11 shrink-0 items-center gap-3 border-b border-rule px-3"
+      title={question}
+    >
+      <DecisionRail currentId={decisionId} seed={seed} />
       <button
         type="button"
         onClick={leave}
@@ -356,12 +340,10 @@ export function FloorBar({
       >
         Your arenas
       </button>
-      <p className="min-w-0 flex-1 truncate type-display text-[17px] font-semibold">
-        {question}
-      </p>
       <div className="flex shrink-0 items-center gap-3">
+        <AgentPresence />
         <ExportDecision decisionId={decisionId} compact />
-        <p className="type-eyebrow whitespace-nowrap">
+        <p className="type-eyebrow hidden whitespace-nowrap sm:block">
           Round {round} · {status}
         </p>
       </div>

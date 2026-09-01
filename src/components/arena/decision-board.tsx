@@ -133,10 +133,8 @@ export function DecisionBoard({
       ) : (
         <div
           className={cn(
-            "grid gap-px bg-rule",
-            cardsOnly
-              ? "grid-cols-1"
-              : "sm:grid-cols-2 xl:grid-cols-3",
+            "grid gap-3",
+            cardsOnly ? "grid-cols-1" : "sm:grid-cols-2",
           )}
         >
           {primary.map((argument) => (

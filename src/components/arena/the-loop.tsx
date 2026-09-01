@@ -47,7 +47,7 @@ export function ArenaPath({
           <li
             key={step.id}
             className={cn(
-              "flex min-w-[6.5rem] flex-1 items-center justify-center px-2 py-2.5",
+              "flex min-w-0 flex-1 items-center justify-center px-1.5 py-2.5 sm:px-2",
               index > 0 && "border-l border-rule",
               current ? "bg-ink text-paper" : "bg-paper text-ink",
             )}
@@ -93,8 +93,10 @@ export function SharedState({
       </header>
       <div
         className={cn(
-          "grid gap-px bg-rule",
-          stacked ? "grid-cols-1" : "lg:grid-cols-2 xl:grid-cols-4",
+          "grid",
+          stacked
+            ? "grid-cols-1 divide-y divide-rule"
+            : "grid-cols-1 divide-y divide-rule lg:grid-cols-2 lg:divide-x lg:divide-y-0 xl:grid-cols-4",
         )}
       >
         <Bucket

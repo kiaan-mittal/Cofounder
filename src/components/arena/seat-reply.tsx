@@ -165,7 +165,13 @@ export function formatSeatBody(reply: string | undefined) {
   };
 }
 
-export function SeatReply({ item }: { item: Reassessment }) {
+export function SeatReply({
+  item,
+  className,
+}: {
+  item: Reassessment;
+  className?: string;
+}) {
   const { quote, paragraphs, points, closing } = formatSeatBody(item.reply);
   const hasBody =
     Boolean(quote) ||
@@ -174,7 +180,7 @@ export function SeatReply({ item }: { item: Reassessment }) {
     closing.length > 0;
 
   return (
-    <article className="max-w-[54ch] border border-rule bg-leaf">
+    <article className={cn("max-w-[54ch] border border-rule bg-leaf", className)}>
       <header className="flex items-center gap-3 border-b border-rule bg-paper px-3 py-2.5">
         <PerspectiveEmblem
           perspective={item.perspective}
@@ -251,19 +257,26 @@ export function SeatReply({ item }: { item: Reassessment }) {
         {(item.addressed ||
           (item.unaddressed && item.verdict !== "conceded")) &&
         !item.streaming ? (
-          <dl className="grid gap-px border border-rule bg-rule sm:grid-cols-2">
+          <dl
+            className={cn(
+              "grid gap-3",
+              item.addressed &&
+                item.unaddressed &&
+                item.verdict !== "conceded"
+                ? "sm:grid-cols-2"
+                : "grid-cols-1",
+            )}
+          >
             {item.addressed ? (
-              <div className="bg-leaf px-3 py-2.5">
+              <div className="border border-rule bg-paper px-3 py-2.5">
                 <dt className="type-eyebrow text-indigo">Answered</dt>
                 <dd className="mt-1.5 text-[13.5px] leading-relaxed text-graphite">
                   {item.addressed}
                 </dd>
               </div>
-            ) : (
-              <div className="bg-leaf" />
-            )}
+            ) : null}
             {item.unaddressed && item.verdict !== "conceded" ? (
-              <div className="bg-leaf px-3 py-2.5">
+              <div className="border border-rule bg-paper px-3 py-2.5">
                 <dt className="type-eyebrow text-oxblood">Still open</dt>
                 <dd className="mt-1.5 text-[13.5px] leading-relaxed text-graphite">
                   {item.unaddressed}
@@ -284,7 +297,13 @@ const STANCE_COPY: Record<Argument["stance"], string> = {
 };
 
 /** First placement on the board: the full argument, not a caption. */
-export function SeatOpening({ argument }: { argument: Argument }) {
+export function SeatOpening({
+  argument,
+  className,
+}: {
+  argument: Argument;
+  className?: string;
+}) {
   const { paragraphs, points, closing } = formatSeatBody(argument.reasoning);
   const body =
     paragraphs.length || points.length || closing.length
@@ -298,7 +317,7 @@ export function SeatOpening({ argument }: { argument: Argument }) {
         };
 
   return (
-    <article className="max-w-[54ch] border border-rule bg-leaf">
+    <article className={cn("max-w-[54ch] border border-rule bg-leaf", className)}>
       <header className="flex items-center gap-3 border-b border-rule bg-paper px-3 py-2.5">
         <PerspectiveEmblem
           perspective={argument.perspective}

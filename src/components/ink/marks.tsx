@@ -140,41 +140,16 @@ export function HatchMeter({
   );
 }
 
-/** Opus's knot: two nibs facing each other. Square crop for icon use. */
+/** Filled bowtie. Same mark as the favicon — reads at 16px and at 180px. */
 export function ArenaMark({ className }: { className?: string }) {
   return (
     <svg
       aria-hidden
       viewBox="0 0 32 32"
       className={cn("size-7", className)}
-      style={{ filter: "url(#ink-rough)" }}
     >
-      <path
-        d="M4 16 H 11.5"
-        stroke="var(--ink)"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-      />
-      <path
-        d="M20.5 16 H 28"
-        stroke="var(--ink)"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-      />
-      <path
-        d="M11.5 7 L 16 16 L 11.5 25 Z"
-        fill="none"
-        stroke="var(--ink)"
-        strokeWidth="1.6"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M20.5 7 L 16 16 L 20.5 25 Z"
-        fill="none"
-        stroke="var(--oxblood)"
-        strokeWidth="1.6"
-        strokeLinejoin="round"
-      />
+      <polygon points="2,5 17,16 2,27" fill="var(--ink)" />
+      <polygon points="30,5 15,16 30,27" fill="var(--oxblood)" />
     </svg>
   );
 }

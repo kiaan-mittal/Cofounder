@@ -135,9 +135,31 @@ export function WebMCPView({
             <>
               The workspace is{" "}
               <span className="text-ink">{company.name}</span>
-              {company.id === SHOWCASE_COMPANY_ID
-                ? " — the public judging floor, already loaded. No account."
-                : "."}{" "}
+              {company.id === SHOWCASE_COMPANY_ID ? (
+                <>
+                  {" — the public judging floor at "}
+                  <a
+                    href="https://indieterminal.com"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline decoration-rule underline-offset-4 hover:text-ink hover:decoration-ink"
+                  >
+                    indieterminal.com
+                  </a>
+                  {", repo "}
+                  <a
+                    href="https://github.com/kiaan-mittal/indieterminal"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline decoration-rule underline-offset-4 hover:text-ink hover:decoration-ink"
+                  >
+                    kiaan-mittal/indieterminal
+                  </a>
+                  . No account.
+                </>
+              ) : (
+                "."
+              )}{" "}
               Tools read this company. Do not sign in unless you want to replace
               it with your own repository.
             </>
@@ -186,8 +208,8 @@ export function WebMCPView({
               /arena
             </Link>
             . IndieTerminal is already loaded. In ChatGPT say: “Use Decision
-            Arena to stress-test whether IndieTerminal should ship a public
-            waitlist this week.” Do not click. Watch{" "}
+            Arena to stress-test whether /research should run without a Clerk
+            session.” Do not click. Watch{" "}
             <code className="type-figure text-[13px] text-ink">
               stress_test_decision
             </code>{" "}
@@ -199,7 +221,7 @@ export function WebMCPView({
             <code className="type-figure text-[13px] text-ink">
               share_decision
             </code>{" "}
-            — the record leaves the chat. That is the product.
+            — Slack unfurls the public record. That is the product.
           </p>
         </div>
       ) : null}
@@ -235,7 +257,7 @@ export function WebMCPView({
               <p className="text-[15px] text-graphite">{group.blurb}</p>
             </div>
 
-            <ul className="mt-7 grid gap-px bg-rule md:grid-cols-2">
+            <ul className="mt-7 grid gap-3 md:grid-cols-2">
               {tools.map((tool) => {
                 const liveTool = discovered?.find((t) => t.name === tool.name);
                 const live = Boolean(liveTool);
@@ -246,7 +268,7 @@ export function WebMCPView({
                 const required = tool.inputSchema?.required ?? [];
 
                 return (
-                  <li key={tool.name} className="bg-paper p-6">
+                  <li key={tool.name} className="border border-rule bg-paper p-6">
                     <div className="flex items-baseline justify-between gap-3">
                       <code className="type-figure text-[14px] font-medium text-ink">
                         {tool.name}
@@ -306,7 +328,7 @@ export function WebMCPView({
           <ol className="mt-6 space-y-5">
             {[
               "Open /arena — no account. IndieTerminal and a live decision are already on the table. Do not type.",
-              "In ChatGPT (or the in-page agent): “Use Decision Arena to stress-test whether IndieTerminal should ship a public waitlist this week.”",
+              "In ChatGPT (or the in-page agent): “Use Decision Arena to stress-test whether /research should run without a Clerk session.”",
               "Watch stress_test_decision fill the table — seats, contradictions, evidence — without a click.",
               "Ask it to confirm_commit. The page says no. Then you accept, hold, or reject.",
               "Then share_decision — destination slack sends it too. Open the public /share link. The record left the chat.",

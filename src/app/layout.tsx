@@ -41,8 +41,8 @@ export const metadata: Metadata = {
     "A decision workspace where founders and AI agents challenge each other's reasoning, commit to predictions, and learn from outcomes. Built on WebMCP.",
   applicationName: "Decision Arena",
   icons: {
-    icon: "/brand/decision-arena-icon.png",
-    apple: "/apple-icon.png",
+    icon: "/icon",
+    apple: "/apple-icon",
   },
   openGraph: {
     type: "website",
