@@ -5,6 +5,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useShallow } from "zustand/react/shallow";
 
+import { ExportDecision } from "@/components/arena/export-decision";
 import { ArenaPath } from "@/components/arena/the-loop";
 import { PerspectiveEmblem } from "@/components/ink/emblems";
 import { InkRule } from "@/components/ink/marks";
@@ -183,18 +184,20 @@ function DecisionRecord({
             <OutcomeForm decision={decision} />
           ) : null}
 
-          <Button
-            asChild
-            variant="outline"
-            className="mt-6 h-10"
-            onClick={onReopen}
-          >
-            <Link href="/arena">
-              {decision.status === "committed"
-                ? "Review in the Arena"
-                : "Open in the Arena"}
-            </Link>
-          </Button>
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            <Button asChild variant="outline" className="h-10" onClick={onReopen}>
+              <Link href="/arena">
+                {decision.status === "committed"
+                  ? "Review in the Arena"
+                  : "Open in the Arena"}
+              </Link>
+            </Button>
+            <ExportDecision
+              decisionId={decision.id}
+              returnTo="/history"
+              compact
+            />
+          </div>
         </div>
 
         <div className="border-t border-rule pt-6 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">

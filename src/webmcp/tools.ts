@@ -6,6 +6,7 @@ import { contextTools } from "@/webmcp/context-tools";
 import { debateTools } from "@/webmcp/debate-tools";
 import { decisionTools } from "@/webmcp/decision-tools";
 import { outcomeTools } from "@/webmcp/outcome-tools";
+import { shareTools } from "@/webmcp/share-tools";
 import type { ArenaTool } from "@/webmcp/registry";
 
 /**
@@ -18,7 +19,7 @@ import type { ArenaTool } from "@/webmcp/registry";
  *
  *   context — understand the workspace       (read-only)
  *   debate  — participate in the reasoning   (writes and draws on the table)
- *   action  — turn reasoning into commitment (predictions, proposals)
+ *   action  — commitments, then take the record with you
  *   outcome — feed reality back in           (results, calibration)
  */
 export const ARENA_TOOLS: ArenaTool[] = [
@@ -27,6 +28,7 @@ export const ARENA_TOOLS: ArenaTool[] = [
   ...canvasTools,
   ...debateTools,
   ...decisionTools,
+  ...shareTools,
   ...outcomeTools,
 ];
 
@@ -44,7 +46,7 @@ export const TOOL_GROUPS = [
   {
     id: "action" as const,
     title: "Action",
-    blurb: "Turn reasoning into commitments reality can judge.",
+    blurb: "Turn reasoning into commitments, then take the record with you.",
   },
   {
     id: "outcome" as const,
@@ -60,4 +62,5 @@ export {
   debateTools,
   decisionTools,
   outcomeTools,
+  shareTools,
 };

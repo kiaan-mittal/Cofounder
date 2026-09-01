@@ -55,7 +55,23 @@ export type DebateDefendEvent =
 
 export type DebateOpenEvent =
   | { type: "started" }
-  | { type: "perspective"; perspective: import("@/lib/types").PerspectiveId }
+  | {
+      type: "frame";
+      frame: Pick<
+        DebateOpeningRound,
+        | "contextNote"
+        | "options"
+        | "arenaConfidence"
+        | "risks"
+        | "contradictions"
+        | "evidenceRequests"
+      >;
+    }
+  | {
+      type: "perspective";
+      perspective: import("@/lib/types").PerspectiveId;
+      argument?: DebateOpeningRound["arguments"][number];
+    }
   | { type: "done"; round: DebateOpeningRound }
   | { type: "error"; message: string; hint?: string };
 

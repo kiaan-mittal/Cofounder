@@ -1,5 +1,6 @@
 "use client";
 
+import { arenaVerdict } from "@/lib/arena-verdict";
 import { detectPatterns, warningsForDecision } from "@/lib/calibration";
 import { calibrationSnapshot, decisionHistory, decisionSnapshot, openRisksFor, activeDecision } from "@/lib/selectors";
 import { useArena } from "@/lib/store";
@@ -120,7 +121,47 @@ export const contextTools: ArenaTool[] = [
         );
       }
       const snapshot = decisionSnapshot(state(), decision.id);
-      return toolResult(`Decision: ${decision.question}`, snapshot);
+      const verdict = arenaVerdict(state(), decision.id);
+      return toolResult(`Decision: ${decision.question}`, {
+        ...snapshot,
+        verdict,
+      });
+    },
+  },
+
+  {
+    name: "get_arena_verdict",
+    group: "context",
+    humanLabel: "Read the arena verdict",
+    description:
+      "Read the decision matrix on the table right now: whether the seats are deadlocked, which way the weight leans, the strongest for and against claims, open contradictions, outstanding evidence, and the one thing that would change the call. Not an opinion — arithmetic on what is already written. Call this after stress_test_decision. Then tell the founder the unresolved questions. You still cannot confirm_commit.",
+    annotations: { readOnlyHint: true },
+    inputSchema: {
+      type: "object",
+      properties: {
+        decision_id: {
+          type: "string",
+          description: "Defaults to the open decision.",
+        },
+      },
+    },
+    execute: ({ decision_id }) => {
+      const decision = requireDecision(decision_id);
+      if (!decision) {
+        return toolError(
+          "There is no decision open. Call stress_test_decision first.",
+        );
+      }
+      const verdict = arenaVerdict(state(), decision.id);
+      if (!verdict) {
+        return toolError("There is no decision open.");
+      }
+      return toolResult(
+        verdict.deadlock
+          ? `Deadlock. ${verdict.deadlockNote}`
+          : verdict.leaningLabel,
+        verdict,
+      );
     },
   },
 

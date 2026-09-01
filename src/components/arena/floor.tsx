@@ -107,16 +107,23 @@ export function FloorTalk({
         <p className="min-w-0 truncate text-[13px] text-graphite">
           {committed
             ? "The seats wrote this round onto the record."
-            : "The board moves when they answer."}
+            : "Don't touch the site. Ask the agent to stress-test the decision."}
         </p>
       </header>
       <PatternBanner warnings={warnings} />
 
       <div ref={scrollerRef} className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
         {!hasRecord ? (
-          <p className="text-[15px] leading-relaxed text-graphite">
-            Your first line opens the floor.
-          </p>
+          busy ? (
+            <p className="type-eyebrow animate-pulse text-oxblood">
+              The seats are writing the first arguments.
+            </p>
+          ) : (
+            <p className="text-[15px] leading-relaxed text-graphite">
+              Say it in ChatGPT: “Use Decision Arena to stress-test whether I
+              should …” The seats write here. You do not have to type.
+            </p>
+          )
         ) : (
           <ol className="space-y-8">
             {openings.map((argument) => (
@@ -231,9 +238,30 @@ export function FloorBoard({
       <header className="shrink-0 border-b border-rule bg-paper px-5 py-3">
         <p className="type-eyebrow">The board</p>
         <p className="mt-1 text-[13.5px] text-graphite">
-          Technical, Product, GTM, Financial, Contrarian. Cards move when they
-          speak.
+          {busy === "opening"
+            ? "Seats are writing. The board moves as each one finishes."
+            : "Technical, Product, GTM, Financial, Contrarian. Cards move when they speak."}
         </p>
+        {busy === "opening" ? (
+          <ul className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
+            {PERSPECTIVES.map((seat) => {
+              const ready = openingReady.includes(seat.id);
+              return (
+                <li
+                  key={seat.id}
+                  className={
+                    ready
+                      ? "type-eyebrow text-moss"
+                      : "type-eyebrow animate-pulse text-pencil"
+                  }
+                >
+                  {seat.mark}
+                  {ready ? " · ready" : " · writing"}
+                </li>
+              );
+            })}
+          </ul>
+        ) : null}
       </header>
       <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
         <SharedState

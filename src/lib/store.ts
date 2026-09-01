@@ -20,6 +20,7 @@ import type {
   FounderPattern,
   Outcome,
   PatternAlert,
+  PerspectiveId,
   Prediction,
   Reassessment,
   Risk,
@@ -83,6 +84,12 @@ export interface ArenaState {
    * Stops a snapshot pull from putting them back inside the last round.
    */
   listingArenas: boolean;
+  /**
+   * Live opening of a round — ChatGPT or the founder. Not persisted.
+   * The board watches this so seats fill as they finish writing.
+   */
+  arenaPhase: null | "opening";
+  openingReady: PerspectiveId[];
 
   setCompany: (company: Company) => void;
   clearWorkspace: () => void;
@@ -93,6 +100,9 @@ export interface ArenaState {
   ) => Decision;
   setActiveDecision: (decisionId: string | null) => void;
   beginNewArena: () => void;
+  beginOpening: (decisionId: string) => void;
+  markSeatReady: (perspective: PerspectiveId) => void;
+  endOpening: () => void;
   updateDecision: (decisionId: string, patch: Partial<Decision>) => void;
 
   addArgument: (argument: Argument) => void;
@@ -154,12 +164,17 @@ type WorkspaceData = Omit<
   | "patternAlerts"
   | "composeNonce"
   | "listingArenas"
+  | "arenaPhase"
+  | "openingReady"
   | "setCompany"
   | "clearWorkspace"
   | "importWorkspace"
   | "createDecision"
   | "setActiveDecision"
   | "beginNewArena"
+  | "beginOpening"
+  | "markSeatReady"
+  | "endOpening"
   | "updateDecision"
   | "addArgument"
   | "addArguments"
@@ -296,11 +311,19 @@ function createArenaStore() {
   patternAlerts: [],
   composeNonce: 0,
   listingArenas: false,
+  arenaPhase: null,
+  openingReady: [],
   ...emptyWorkspace(),
 
       setCompany: (company) => set({ company }),
 
-      clearWorkspace: () => set({ ...emptyWorkspace(), patternAlerts: [] }),
+      clearWorkspace: () =>
+        set({
+          ...emptyWorkspace(),
+          patternAlerts: [],
+          arenaPhase: null,
+          openingReady: [],
+        }),
 
       importWorkspace: (snapshot) =>
         set((state) => ({
@@ -310,6 +333,8 @@ function createArenaStore() {
           patternAlerts: [],
           composeNonce: state.composeNonce ?? 0,
           listingArenas: state.listingArenas,
+          arenaPhase: null,
+          openingReady: [],
           activeDecisionId: state.listingArenas
             ? null
             : (snapshot.activeDecisionId ?? null),
@@ -342,6 +367,23 @@ function createArenaStore() {
           activeDecisionId: decisionId,
           listingArenas: decisionId === null,
         }),
+
+      beginOpening: (decisionId) =>
+        set({
+          arenaPhase: "opening",
+          openingReady: [],
+          activeDecisionId: decisionId,
+          listingArenas: false,
+        }),
+
+      markSeatReady: (perspective) =>
+        set((state) => ({
+          openingReady: state.openingReady.includes(perspective)
+            ? state.openingReady
+            : [...state.openingReady, perspective],
+        })),
+
+      endOpening: () => set({ arenaPhase: null }),
 
       beginNewArena: () =>
         set((state) => ({
@@ -654,6 +696,7 @@ function bindArenaStore(): ArenaStore {
     typeof existing.getState().addCanvasNode === "function" &&
     typeof existing.getState().upsertReassessment === "function" &&
     typeof existing.getState().beginNewArena === "function" &&
+    typeof existing.getState().beginOpening === "function" &&
     typeof existing.getState().listingArenas === "boolean"
   ) {
     const state = existing.getState();

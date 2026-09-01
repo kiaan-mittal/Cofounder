@@ -21,8 +21,14 @@ export async function POST(request: Request) {
 
         try {
           send({ type: "started" });
-          const round = await openingRound(input, (perspective) => {
-            send({ type: "perspective", perspective });
+          const round = await openingRound(input, {
+            onFrame: (frame) => send({ type: "frame", frame }),
+            onArgument: (argument) =>
+              send({
+                type: "perspective",
+                perspective: argument.perspective,
+                argument,
+              }),
           });
           send({ type: "done", round });
         } catch (error) {

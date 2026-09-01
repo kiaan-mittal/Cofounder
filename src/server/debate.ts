@@ -158,18 +158,28 @@ export interface DebateContext {
 
 export async function openingRound(
   context: DebateContext,
-  onPerspective?: (perspective: PerspectiveId) => void,
+  onEvent?: {
+    onFrame?: (frame: z.infer<typeof openingFrameSchema>) => void;
+    onArgument?: (argument: z.infer<typeof argumentSchema>) => void;
+  },
 ): Promise<OpeningRound> {
   const shared = debatePrompt(context);
 
+  const framePromise = generateOpeningFrame(context, shared).then((frame) => {
+    onEvent?.onFrame?.(frame);
+    return frame;
+  });
+
+  const argumentPromises = PERSPECTIVES.map((perspective) =>
+    generateOpeningArgument(context, shared, perspective.id).then((argument) => {
+      onEvent?.onArgument?.(argument);
+      return argument;
+    }),
+  );
+
   const [frame, ...generated] = await Promise.all([
-    generateOpeningFrame(context, shared),
-    ...PERSPECTIVES.map((perspective) =>
-      generateOpeningArgument(context, shared, perspective.id).then((argument) => {
-        onPerspective?.(perspective.id);
-        return argument;
-      }),
-    ),
+    framePromise,
+    ...argumentPromises,
   ]);
 
   return {
@@ -248,8 +258,18 @@ You write exactly one argument from a single seat: ${meta?.name ?? perspective}.
 Remit: ${meta?.remit ?? ""}
 Focus: ${meta?.focus.join(", ") ?? ""}.
 
+Take a hard stance. Do not write a both-sides paragraph.
+Seat rules:
+- contrarian: stance is against. You are here to break the founder's preferred path.
+- financial: default against spending or launching until unit economics are in the dossier.
+- technical: against if the work is months; conditional if it is days.
+- product: for only if a named user in the Brain would feel the difference this month.
+- gtm: for only if a distribution channel is in the Brain; otherwise against.
+
+If the founder is asking to spend money or launch, this seat's claim should make them uncomfortable unless the dossier already proves the bet.
+
 Speak only from this remit. Cite fact and assumption ids in basis when you have them.`,
-      prompt: `${shared}\n\nWrite the ${meta?.name ?? perspective} argument. One claim, two to four sentences of reasoning, and at least one basis entry.`,
+      prompt: `${shared}\n\nWrite the ${meta?.name ?? perspective} argument. One claim, two to four sentences of reasoning, and at least one basis entry. Stance must be for, against, or conditional — pick one and carry it.`,
       purpose: `Writing the ${meta?.name ?? perspective} argument`,
       models: fastModels(),
       timeoutMs: 35_000,
@@ -415,7 +435,10 @@ function fallbackArgument(
   const fact = context.brain.facts[0];
   return {
     perspective,
-    stance: perspective === "contrarian" ? "against" : "conditional",
+    stance:
+      perspective === "contrarian" || perspective === "financial"
+        ? "against"
+        : "conditional",
     claim: `From the ${perspective} seat, this decision is only as strong as the unproven bets in the Company Brain.`,
     reasoning: assumption
       ? `${assumption.statement} That is still unverified, so adding scope is a bet on it remaining true.`

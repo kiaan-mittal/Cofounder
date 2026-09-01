@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 
+import { ArenaVerdict } from "@/components/arena/arena-verdict";
 import { CommitFlow } from "@/components/arena/commit-flow";
+import { ExportDecision } from "@/components/arena/export-decision";
 import {
   FloorBar,
   FloorBoard,
@@ -32,7 +34,7 @@ import {
 } from "@/lib/selectors";
 import { detectPatterns } from "@/lib/calibration";
 import { readArenaDraft, writeArenaDraft } from "@/lib/drafts";
-import { useArena } from "@/lib/store";
+import { snapshotIsEmpty, useArena } from "@/lib/store";
 import { scheduleWorkspaceSave } from "@/lib/supabase/sync";
 import { useDebate, type ReadinessResponse } from "@/lib/use-debate";
 import { founderCall, runTool } from "@/webmcp/run";
@@ -67,7 +69,6 @@ function ArenaShell({
   company: Company;
   initialSnapshot?: Record<string, unknown> | null;
 }) {
-  const storeCompany = useArena((state) => state.company);
   const storeDecisions = useArena((state) => state.decisions);
   const storeActive = useArena((state) => state.activeDecisionId);
   const listingArenas = useArena((state) => state.listingArenas);
@@ -82,16 +83,34 @@ function ArenaShell({
       : null;
   const activeDecisionId = listingArenas
     ? null
-    : storeCompany
-      ? storeActive
-      : snapshotActive;
+    : storeActive ??
+      snapshotActive ??
+      (decisions.length === 1 ? decisions[0].id : null);
+
+  useLayoutEffect(() => {
+    if (!initialSnapshot || snapshotIsEmpty(initialSnapshot)) return;
+    const local = useArena.getState();
+    const remoteDecisions = Array.isArray(initialSnapshot.decisions)
+      ? initialSnapshot.decisions
+      : [];
+    if (local.decisions.length === 0 && remoteDecisions.length > 0) {
+      local.importWorkspace(initialSnapshot);
+    }
+  }, [initialSnapshot]);
 
   const decision = useMemo(() => {
     if (!activeDecisionId) return null;
     return decisions.find((item) => item.id === activeDecisionId) ?? null;
   }, [decisions, activeDecisionId]);
 
-  if (!decision) return <DecisionStart company={company} />;
+  if (!decision) {
+    return (
+      <DecisionStart
+        company={company}
+        seed={decisions}
+      />
+    );
+  }
   return (
     <Workspace
       decision={decision}
@@ -113,7 +132,13 @@ function queryContext(params: URLSearchParams) {
   return params.get("c")?.trim() || params.get("context")?.trim() || "";
 }
 
-function DecisionStart({ company }: { company: Company }) {
+function DecisionStart({
+  company,
+  seed = [],
+}: {
+  company: Company;
+  seed?: Decision[];
+}) {
   const { busy, error, open, openingReady } = useDebate();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -126,7 +151,8 @@ function DecisionStart({ company }: { company: Company }) {
     return fromQuery ? fromContext : readArenaDraft().context;
   });
   const [composerKey, setComposerKey] = useState(0);
-  const decisions = useArena((state) => state.decisions);
+  const storeDecisions = useArena((state) => state.decisions);
+  const decisions = storeDecisions.length ? storeDecisions : seed;
   const composeNonce = useArena((state) => state.composeNonce ?? 0);
   const seenNonce = useRef(composeNonce);
 
@@ -259,7 +285,7 @@ function DecisionStart({ company }: { company: Company }) {
   return (
     <div className="flex h-[calc(100dvh-3.5rem)] flex-col overflow-hidden bg-paper">
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-rule px-3 py-2">
-        <DecisionRail />
+        <DecisionRail seed={decisions} />
         <p className="type-eyebrow shrink-0">Decision · {company.name}</p>
       </div>
       <div className="grid min-h-0 min-w-0 flex-1 md:grid-cols-2">
@@ -348,7 +374,8 @@ function DecisionStart({ company }: { company: Company }) {
               </button>
             </div>
             <p className="mt-1.5 text-[12.5px] leading-snug text-graphite">
-              ⌘ Enter opens the round. Context is what the sources cannot see.
+              Or don&rsquo;t type. In ChatGPT: “Use Decision Arena to
+              stress-test whether I should …” The seats write on this board.
             </p>
             {error ? (
               <div className="mt-2 border border-rule bg-oxblood-wash px-3 py-2">
@@ -425,8 +452,11 @@ function Workspace({
   company: Company;
   initialSnapshot?: Record<string, unknown> | null;
 }) {
-  const { busy, error, defend, summarise, open: openRound, openingReady } =
+  const { busy: hookBusy, error, defend, summarise, open: openRound } =
     useDebate();
+  const arenaPhase = useArena((state) => state.arenaPhase);
+  const openingReady = useArena((state) => state.openingReady);
+  const busy = arenaPhase === "opening" ? "opening" : hookBusy;
 
   const storeArgs = useArena(
     useShallow((state) => argumentsFor(state, decision.id)),
@@ -614,7 +644,7 @@ function Workspace({
           reassessments={reassessments}
           arguments={args}
           value={defense}
-          busy={busy === "defending"}
+          busy={busy === "defending" || busy === "opening"}
           committed={committed}
           targetLabel={targetSeatLabel(args, target)}
           onChange={setDefense}
@@ -646,6 +676,15 @@ function Workspace({
       {error ? (
         <div className="shrink-0 border-t border-rule bg-oxblood-wash px-4 py-2 text-sm text-ink">
           {error.message}
+        </div>
+      ) : null}
+      {!committed && args.length > 0 ? (
+        <ArenaVerdict decisionId={decision.id} onAccept={openWeighUp} />
+      ) : null}
+      {args.length > 0 ? (
+        <div className="shrink-0 border-t border-rule bg-paper px-4 py-2.5">
+          <p className="type-eyebrow mb-2">Take the record with you</p>
+          <ExportDecision decisionId={decision.id} />
         </div>
       ) : null}
       {commitBar}

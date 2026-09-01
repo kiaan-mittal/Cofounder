@@ -33,7 +33,7 @@ export function SiteHeader({
 }) {
   const pathname = usePathname();
 
-  if (pathname === "/" || pathname === "/login") return null;
+  if (pathname === "/login") return null;
 
   return (
     <header className="sticky top-0 z-40 border-b border-rule bg-paper/90 backdrop-blur-sm">

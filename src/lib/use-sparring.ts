@@ -10,6 +10,10 @@ import {
 
 export const AGENT_PROMPTS = [
   {
+    label: "Stress-test a launch",
+    goal: "Call stress_test_decision with this question: Should I spend the next month of runway launching this product now? Then call get_arena_verdict and tell me whether the seats are deadlocked, the strongest attack, and the one thing that would change the call. Do not confirm_commit.",
+  },
+  {
     label: "Find my blind spot",
     goal: "Read get_company_brain and get_current_decision. Add one argument I am missing with add_argument, from the seat that should have said it. Then tell me, in a few sentences, what I am not seeing.",
   },
@@ -20,6 +24,10 @@ export const AGENT_PROMPTS = [
   {
     label: "Attack my weakest assumption",
     goal: "Find the weakest assumption in the Company Brain. challenge_argument or add_risk against the claim that rests on it. Then tell me which assumption you attacked and why.",
+  },
+  {
+    label: "Send this to Slack",
+    goal: "Call export_decision with destination slack. If the result has a connectUrl, tell me to open it, then stop. If it already sent, give me the share link and say the record left the chat. Do not confirm_commit.",
   },
 ] as const;
 

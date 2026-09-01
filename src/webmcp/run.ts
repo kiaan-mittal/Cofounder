@@ -79,6 +79,32 @@ export function parseToolData(text: string): Record<string, unknown> | null {
   return null;
 }
 
+/**
+ * Direct body — used when a tool is already inside `executeTool` (ChatGPT
+ * called `stress_test_decision`) and must not re-enter native executeTool.
+ * Still logged and attributed. The table still moves.
+ */
+export async function runToolDirect(
+  name: string,
+  args: Record<string, unknown> = {},
+  options?: { channel?: AgentChannel; signal?: AbortSignal },
+): Promise<ToolRun> {
+  const channel = options?.channel ?? "arena";
+  return withChannel(channel, async () => {
+    const tool = ARENA_TOOLS.find((entry) => entry.name === name);
+    if (!tool) {
+      return {
+        ok: false,
+        text: `No tool named "${name}" is registered on this page.`,
+        data: null,
+      };
+    }
+    const raw = await executeAndLog(tool, args, { signal: options?.signal });
+    const { text, ok } = readToolOutput(raw);
+    return { ok, text, data: parseToolData(text) };
+  });
+}
+
 export async function runTool(
   name: string,
   args: Record<string, unknown> = {},
