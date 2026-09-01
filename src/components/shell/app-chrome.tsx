@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { SiteHeader } from "@/components/shell/site-header";
 import { Toaster } from "@/components/ui/sonner";
 import type { ProjectSummary } from "@/lib/projects";
-import { WebMCPBoot } from "@/webmcp/provider";
+import { WebMcpInstall } from "@/webmcp/install";
 
 /**
  * Client chrome that sits *beside* the page slot, not around it.
@@ -25,7 +25,7 @@ export function AppChrome({
 }) {
   return (
     <>
-      <WebMCPBoot />
+      <WebMcpInstall />
       <SiteHeader
         account={account}
         signedIn={signedIn}

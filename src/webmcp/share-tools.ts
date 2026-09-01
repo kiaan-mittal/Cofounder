@@ -32,7 +32,7 @@ export const shareTools: ArenaTool[] = [
     group: "action",
     humanLabel: "Share a decision link",
     description:
-      "Creates a public read-only page for one decision record — the seat arguments, the verdict, open contradictions and outstanding evidence — and returns its URL and token. Anyone holding the link can read it without signing in. Destination \"slack\" also posts it into the founder's connected Slack channel and \"notion\" also creates a page in their connected Notion workspace; either returns a connectUrl and sends nothing when that workspace is not connected yet.",
+      "Creates a public read-only page for one decision record — the seat arguments, the verdict, open contradictions and outstanding evidence — and returns its URL and token. Anyone holding the link can read it without signing in. If an agent was refused on confirm_commit, that refusal is printed on the page and the Slack/Notion unfurl. Destination \"slack\" also posts it into the founder's connected Slack channel and \"notion\" also creates a page in their connected Notion workspace; either returns a connectUrl and sends nothing when that workspace is not connected yet.",
     annotations: { untrustedContentHint: true },
     inputSchema: {
       type: "object",
@@ -102,8 +102,12 @@ export const shareTools: ArenaTool[] = [
         }
         return toolResult(
           destination === "link"
-            ? `Share link: ${result.url}`
-            : `Shared to ${destination}. Live record: ${result.url}`,
+            ? brief.commitRefused
+              ? `Share link: ${result.url}. The card says confirm_commit was refused.`
+              : `Share link: ${result.url}`
+            : brief.commitRefused
+              ? `Shared to ${destination}. Live record: ${result.url}. The card says confirm_commit was refused.`
+              : `Shared to ${destination}. Live record: ${result.url}`,
           result,
         );
       } catch (error) {

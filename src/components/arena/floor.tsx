@@ -11,6 +11,7 @@ import { PatternBanner } from "@/components/arena/pattern-banner";
 import { PromptComposer } from "@/components/arena/prompt-composer";
 import { SeatOpening, SeatReply } from "@/components/arena/seat-reply";
 import { SharedState } from "@/components/arena/the-loop";
+import { WatchPublisher } from "@/components/arena/watch-publisher";
 import { detectPatterns, warningsForDecision } from "@/lib/calibration";
 import { PERSPECTIVES, perspectiveName } from "@/lib/perspectives";
 import { stillOpenFrom } from "@/lib/selectors";
@@ -39,6 +40,7 @@ export function FloorTalk({
   onChange,
   onSubmit,
   onClearTarget,
+  readOnly = false,
 }: {
   defenses: Defense[];
   reassessments: Reassessment[];
@@ -50,6 +52,7 @@ export function FloorTalk({
   onChange: (value: string) => void;
   onSubmit: () => void;
   onClearTarget: () => void;
+  readOnly?: boolean;
 }) {
   const sparring = useSparringChat();
   const companyId = useArena((state) => state.company?.id);
@@ -89,7 +92,7 @@ export function FloorTalk({
   const hasRecord =
     openings.length > 0 ||
     defenseTurns.length > 0 ||
-    sparring.messages.length > 0 ||
+    (!readOnly && sparring.messages.length > 0) ||
     busy;
 
   useEffect(() => {
@@ -106,12 +109,14 @@ export function FloorTalk({
       <header className="flex shrink-0 items-baseline justify-between gap-3 border-b border-rule px-5 py-1.5">
         <p className="type-eyebrow text-indigo">The floor</p>
         <p className="min-w-0 truncate text-[13px] text-graphite">
-          {committed
-            ? "The seats wrote this round onto the record."
-            : "Don't touch the site. Ask the agent to stress-test the decision."}
+          {readOnly
+            ? "The seats are writing on the other laptop."
+            : committed
+              ? "The seats wrote this round onto the record."
+              : "Don't touch the site. Ask the agent to stress-test the decision."}
         </p>
       </header>
-      <PatternBanner warnings={warnings} />
+      {readOnly ? null : <PatternBanner warnings={warnings} />}
 
       <div ref={scrollerRef} className="min-h-0 flex-1 overflow-y-auto px-5 py-5 lg:px-7">
         {!hasRecord ? (
@@ -121,8 +126,9 @@ export function FloorTalk({
             </p>
           ) : (
             <p className="text-[15px] leading-relaxed text-graphite">
-              Say it in ChatGPT: “Use Decision Arena to stress-test whether I
-              should …” The seats write here. You do not have to type.
+              {readOnly
+                ? "Waiting for the seats. They write on the other laptop."
+                : "Say it in ChatGPT: “Use Decision Arena to stress-test whether I should …” The seats write here. You do not have to type."}
             </p>
           )
         ) : (
@@ -161,14 +167,18 @@ export function FloorTalk({
           </ol>
         )}
 
-        {sparring.messages.length ? (
+        {sparring.messages.length && !readOnly ? (
           <div className="mt-8 border-t border-rule pt-5">
             <AgentTranscript messages={sparring.messages} />
           </div>
         ) : null}
       </div>
 
-      {committed ? (
+      {readOnly ? (
+        <p className="shrink-0 border-t border-rule px-5 py-4 text-[14px] text-graphite">
+          Spectating. This tab cannot write.
+        </p>
+      ) : committed ? (
         <p className="shrink-0 border-t border-rule px-5 py-4 text-[14px] text-graphite">
           This decision is committed.
         </p>
@@ -215,6 +225,7 @@ export function FloorBoard({
   onTarget,
   onSubmitDefense,
   onOpenRound,
+  readOnly = false,
 }: {
   decision: Decision;
   companyName: string;
@@ -232,7 +243,8 @@ export function FloorBoard({
   onDefenseChange: (value: string) => void;
   onTarget: (argumentId: string | null) => void;
   onSubmitDefense: () => void;
-  onOpenRound: () => void;
+  onOpenRound?: () => void;
+  readOnly?: boolean;
 }) {
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-leaf">
@@ -292,6 +304,7 @@ export function FloorBoard({
             onSubmitDefense={onSubmitDefense}
             onOpenRound={onOpenRound}
             cardsOnly
+            readOnly={readOnly}
           />
         </div>
       </div>
@@ -315,12 +328,18 @@ export function FloorBar({
   status,
   decisionId,
   seed,
+  spectator = false,
+  onCopyWatch,
+  agentInRoom = false,
 }: {
   question: string;
   round: number;
   status: string;
   decisionId: string;
   seed?: Decision[];
+  spectator?: boolean;
+  onCopyWatch?: () => void;
+  agentInRoom?: boolean;
 }) {
   function leave() {
     useArena.getState().setActiveDecision(null);
@@ -332,17 +351,46 @@ export function FloorBar({
       className="flex h-11 shrink-0 items-center gap-3 border-b border-rule px-3"
       title={question}
     >
-      <DecisionRail currentId={decisionId} seed={seed} />
-      <button
-        type="button"
-        onClick={leave}
-        className="type-eyebrow shrink-0 text-graphite underline underline-offset-4 hover:text-ink"
-      >
-        Your arenas
-      </button>
+      {spectator ? (
+        <p className="min-w-0 flex-1 truncate text-[13px] text-ink">{question}</p>
+      ) : (
+        <DecisionRail currentId={decisionId} seed={seed} />
+      )}
+      {spectator ? (
+        <p className="type-eyebrow shrink-0 text-oxblood">Spectating</p>
+      ) : (
+        <button
+          type="button"
+          onClick={leave}
+          className="type-eyebrow shrink-0 text-graphite underline underline-offset-4 hover:text-ink"
+        >
+          Your arenas
+        </button>
+      )}
       <div className="flex shrink-0 items-center gap-3">
-        <AgentPresence />
-        <ExportDecision decisionId={decisionId} compact />
+        {spectator ? (
+          agentInRoom ? (
+            <p className="type-eyebrow hidden whitespace-nowrap text-oxblood lg:block">
+              Agent in the room
+            </p>
+          ) : null
+        ) : (
+          <AgentPresence />
+        )}
+        {spectator ? (
+          <button
+            type="button"
+            onClick={onCopyWatch}
+            className="type-eyebrow shrink-0 text-graphite underline underline-offset-4 hover:text-ink"
+          >
+            Copy watch
+          </button>
+        ) : (
+          <>
+            <WatchPublisher compact />
+            <ExportDecision decisionId={decisionId} compact />
+          </>
+        )}
         <p className="type-eyebrow hidden whitespace-nowrap sm:block">
           Round {round} · {status}
         </p>

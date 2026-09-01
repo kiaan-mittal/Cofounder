@@ -21,10 +21,27 @@ export async function post<T>(
   body: unknown,
   signal?: AbortSignal,
 ): Promise<T> {
+  return write<T>("POST", path, body, signal);
+}
+
+export async function put<T>(
+  path: string,
+  body: unknown,
+  signal?: AbortSignal,
+): Promise<T> {
+  return write<T>("PUT", path, body, signal);
+}
+
+async function write<T>(
+  method: "POST" | "PUT",
+  path: string,
+  body: unknown,
+  signal?: AbortSignal,
+): Promise<T> {
   let response: Response;
   try {
     response = await fetch(path, {
-      method: "POST",
+      method,
       headers: { "content-type": "application/json" },
       body: JSON.stringify(body),
       signal,

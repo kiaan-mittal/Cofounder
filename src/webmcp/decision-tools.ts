@@ -692,8 +692,15 @@ export const decisionTools: ArenaTool[] = [
     },
     execute: (args) => {
       if (currentChannel() !== "founder") {
+        const decision = resolveDecision(args.decision_id);
+        if (decision && decision.status !== "committed") {
+          state().updateDecision(decision.id, {
+            agentCommitRefusedAt: now(),
+            agentCommitRefusedCount: (decision.agentCommitRefusedCount ?? 0) + 1,
+          });
+        }
         return toolError(
-          "Only the founder can confirm a commitment. Call commit_decision to stage one for them.",
+          "Only the founder can confirm a commitment. Call commit_decision to stage one for them. confirm_commit was refused.",
         );
       }
       const s = state();

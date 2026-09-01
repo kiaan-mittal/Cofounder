@@ -16,7 +16,9 @@ export async function generateMetadata({
   if (!brief) return { title: "Decision record" };
   return {
     title: brief.question,
-    description: `${brief.company} · ${brief.deadlock ? "Deadlock" : brief.leaningLabel}. What would change it: ${brief.whatWouldChangeIt}`,
+    description: brief.commitRefused
+      ? `${brief.company} · confirm_commit was refused. ${brief.deadlock ? "Deadlock" : brief.leaningLabel}`
+      : `${brief.company} · ${brief.deadlock ? "Deadlock" : brief.leaningLabel}. What would change it: ${brief.whatWouldChangeIt}`,
   };
 }
 
@@ -41,6 +43,18 @@ export default async function SharePage({
         </Link>
         <p className="type-eyebrow ml-auto text-graphite">Public record</p>
       </header>
+
+      {brief.commitRefused ? (
+        <p className="mt-12 border border-rule bg-oxblood-wash px-5 py-4">
+          <span className="type-eyebrow text-oxblood">
+            confirm_commit was refused
+          </span>
+          <span className="mt-2 block text-[15px] leading-relaxed text-ink">
+            An agent asked to finish this decision. The page said no. Agents
+            proposed. The founder commits.
+          </span>
+        </p>
+      ) : null}
 
       <p className="type-eyebrow mt-12">{brief.company}</p>
       <h1 className="type-display mt-4 text-[clamp(1.8rem,4vw,3rem)] font-semibold leading-[1.05]">
@@ -94,7 +108,9 @@ export default async function SharePage({
       <OpenItems brief={brief} />
 
       <p className="mt-14 max-w-[52ch] text-[14px] leading-relaxed text-graphite">
-        This is a record, not a chat. Agents proposed. The founder commits.
+        {brief.commitRefused
+          ? "This is a record, not a chat. confirm_commit was refused. Agents proposed. The founder commits."
+          : "This is a record, not a chat. Agents proposed. The founder commits."}
       </p>
       <Link
         href="/arena"

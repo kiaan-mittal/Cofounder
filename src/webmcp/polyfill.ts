@@ -113,6 +113,42 @@ class PolyfilledModelContext extends EventTarget implements ModelContext {
 }
 
 let installed: WebMCPSupport | null = null;
+let shim: PolyfilledModelContext | null = null;
+let skipNative = false;
+
+function earlyPolyfill(): ModelContext | null {
+  if (typeof document === "undefined") return null;
+  const own = Object.getOwnPropertyDescriptor(document, "modelContext");
+  const value = own?.value as
+    | (ModelContext & { isDecisionArenaPolyfill?: boolean })
+    | undefined;
+  if (value?.isDecisionArenaPolyfill && typeof value.registerTool === "function") {
+    return value;
+  }
+  return null;
+}
+
+/**
+ * Cursor's embedded browser (and some stubs) expose a `modelContext` whose
+ * `registerTool` never resolves. After a timeout we talk to our own shim
+ * even if `document.modelContext` stays a native object we cannot replace.
+ */
+export function forcePolyfill(): WebMCPSupport {
+  skipNative = true;
+  installed = null;
+  return ensureModelContext();
+}
+
+/** The context the page actually uses — native, or the shim after a hang. */
+export function resolveModelContext(): ModelContext | null {
+  if (typeof document === "undefined") return null;
+  if (skipNative) {
+    return earlyPolyfill() ?? shim ?? (shim = new PolyfilledModelContext());
+  }
+  return (
+    earlyPolyfill() ?? nativeModelContext() ?? document.modelContext ?? shim
+  );
+}
 
 /**
  * Idempotent. Returns which implementation the page ended up with, so the
@@ -122,26 +158,41 @@ export function ensureModelContext(): WebMCPSupport {
   if (typeof document === "undefined") return "unavailable";
   if (installed) return installed;
 
-  if (nativeModelContext()) {
+  const early = earlyPolyfill();
+  if (early) {
+    shim = early as PolyfilledModelContext;
+    installed = "polyfill";
+    return installed;
+  }
+
+  if (!skipNative && nativeModelContext()) {
     installed = "native";
     return installed;
   }
 
+  if (!shim) shim = new PolyfilledModelContext();
   try {
     Object.defineProperty(document, "modelContext", {
-      value: new PolyfilledModelContext(),
+      value: shim,
       configurable: true,
       writable: true,
     });
     installed = "polyfill";
   } catch {
-    installed = "unavailable";
+    try {
+      document.modelContext = shim;
+      installed = "polyfill";
+    } catch {
+      // Native stub is non-configurable. Tools still run through `shim`.
+      installed = "polyfill";
+    }
   }
 
   return installed;
 }
 
 export function isPolyfilled(): boolean {
+  if (skipNative && shim) return true;
   return (
     (document.modelContext as unknown as { isDecisionArenaPolyfill?: boolean })
       ?.isDecisionArenaPolyfill === true

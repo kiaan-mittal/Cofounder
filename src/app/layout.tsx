@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
+import Script from "next/script";
 
 import { InkFilters } from "@/components/ink/ink-filters";
 import { AccountGate } from "@/components/shell/account-gate";
@@ -7,6 +8,7 @@ import { AppChrome } from "@/components/shell/app-chrome";
 import { appOrigin } from "@/server/app-url";
 import { readGithubSession } from "@/server/github-oauth";
 import { loadHeaderProjects } from "@/server/projects";
+import { WEBMCP_BOOT_SCRIPT } from "@/webmcp/boot-script";
 
 import "./globals.css";
 
@@ -78,6 +80,9 @@ export default async function RootLayout({
       className={`${fraunces.variable} ${instrumentSans.variable} ${jetbrainsMono.variable}`}
     >
       <body suppressHydrationWarning>
+        <Script id="da-webmcp" strategy="beforeInteractive">
+          {WEBMCP_BOOT_SCRIPT}
+        </Script>
         <InkFilters />
         <div className="flex min-h-dvh flex-col">
           <AppChrome

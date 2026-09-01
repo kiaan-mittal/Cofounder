@@ -60,16 +60,18 @@ async function connectResponse(input: {
 export async function POST(request: Request) {
   try {
     const session = await readGithubSession();
-    if (!session) return fail("Sign in to export a decision.", 401);
     const body = await parseBody(request, bodySchema);
     if (!isDecisionBrief(body.brief)) {
       return fail("That is not a decision brief the Arena can export.");
     }
+    if (body.destination !== "link" && !session) {
+      return fail("Sign in to send this decision to Slack or Notion.", 401);
+    }
 
     const share = await createDecisionShare({
       brief: body.brief,
-      userLogin: session.login,
-      projectId: await readProjectCookie(),
+      userLogin: session?.login ?? null,
+      projectId: session ? await readProjectCookie() : null,
       decisionId: body.decisionId ?? null,
       request,
     });
@@ -77,6 +79,10 @@ export async function POST(request: Request) {
 
     if (body.destination === "link") {
       return Response.json({ url: share.url, token: share.token });
+    }
+
+    if (!session) {
+      return fail("Sign in to send this decision to Slack or Notion.", 401);
     }
 
     if (!composioConfigured()) {

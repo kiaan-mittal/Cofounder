@@ -103,7 +103,9 @@ export default async function ShareOpenGraphImage({
             textTransform: "uppercase",
           }}
         >
-          Agents propose. Founders commit.
+          {brief?.commitRefused
+            ? "confirm_commit was refused"
+            : "Agents propose. Founders commit."}
         </div>
       </div>
     ),

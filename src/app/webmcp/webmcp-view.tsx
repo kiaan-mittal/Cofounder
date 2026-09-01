@@ -68,8 +68,8 @@ export function WebMCPView({
         </h1>
         <p className="mt-7 text-[17px] leading-relaxed text-graphite">
           A chat is a room ChatGPT runs. This page is a room it visits. It
-          reads the company and the scoreboard through tools, writes onto the
-          same table the founder sees, and is refused if it tries to commit.
+          inherits the company from the tool map — no extra call — writes onto
+          the same table the founder sees, and is refused if it tries to commit.
           {GUEST_TOOLS.length} tools on{" "}
           <code className="type-figure text-[14px] text-ink">
             document.modelContext
@@ -221,7 +221,8 @@ export function WebMCPView({
             <code className="type-figure text-[13px] text-ink">
               share_decision
             </code>{" "}
-            — Slack unfurls the public record. That is the product.
+            — the public card says confirm_commit was refused. That is the
+            product.
           </p>
         </div>
       ) : null}
@@ -283,8 +284,8 @@ export function WebMCPView({
                       </span>
                     </div>
 
-                    <p className="mt-3 text-[14px] leading-relaxed text-graphite">
-                      {tool.description}
+                    <p className="mt-3 whitespace-pre-wrap text-[14px] leading-relaxed text-graphite">
+                      {liveTool?.description ?? tool.description}
                     </p>
 
                     {Object.keys(properties).length ? (
@@ -331,7 +332,7 @@ export function WebMCPView({
               "In ChatGPT (or the in-page agent): “Use Decision Arena to stress-test whether /research should run without a Clerk session.”",
               "Watch stress_test_decision fill the table — seats, contradictions, evidence — without a click.",
               "Ask it to confirm_commit. The page says no. Then you accept, hold, or reject.",
-              "Then share_decision — destination slack sends it too. Open the public /share link. The record left the chat.",
+              "Then share_decision. Open the public /share link. The card says confirm_commit was refused. The record left the chat.",
             ].map((step, index) => (
               <li key={step} className="flex gap-4">
                 <span className="type-figure w-6 shrink-0 text-[12px] text-pencil">

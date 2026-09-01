@@ -34,3 +34,7 @@ export function appOrigin(request?: Request): string {
 export function shareUrl(token: string, request?: Request): string {
   return `${appOrigin(request)}/share/${token}`;
 }
+
+export function watchUrl(token: string, request?: Request): string {
+  return `${appOrigin(request)}/arena?watch=${token}`;
+}

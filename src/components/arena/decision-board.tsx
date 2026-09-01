@@ -43,6 +43,7 @@ export function DecisionBoard({
   onSubmitDefense,
   onOpenRound,
   cardsOnly = false,
+  readOnly = false,
 }: {
   decision: Decision;
   companyName: string;
@@ -60,8 +61,9 @@ export function DecisionBoard({
   onDefenseChange: (value: string) => void;
   onTarget: (argumentId: string | null) => void;
   onSubmitDefense: () => void;
-  onOpenRound: () => void;
+  onOpenRound?: () => void;
   cardsOnly?: boolean;
+  readOnly?: boolean;
 }) {
   const challengesByTarget = new Map<string, Argument[]>();
   for (const argument of args) {
@@ -150,7 +152,7 @@ export function DecisionBoard({
               onAnswer={() =>
                 onTarget(target === argument.id ? null : argument.id)
               }
-              disabled={busy !== null || committed}
+              disabled={readOnly || busy !== null || committed}
               composer={
                 !cardsOnly && target === argument.id && !committed
                   ? {
@@ -286,26 +288,31 @@ function EmptyTable({
   onOpenRound,
 }: {
   busy: "opening" | "defending" | "readiness" | null;
-  onOpenRound: () => void;
+  onOpenRound?: () => void;
 }) {
   return (
     <div className="grid place-items-center px-6 py-14">
       <div className="max-w-[36ch] text-center">
         <p className="type-eyebrow">Empty table</p>
         <h2 className="type-display mt-3 text-[24px] font-semibold leading-snug">
-          Let the five seats write. Or don&rsquo;t click — ask the agent.
+          {onOpenRound
+            ? "Let the five seats write. Or don’t click — ask the agent."
+            : "The seats write on the other laptop."}
         </h2>
         <p className="mt-3 text-[14px] leading-relaxed text-graphite">
-          “Use Decision Arena to stress-test whether I should launch this
-          month.” The board fills as they write.
+          {onOpenRound
+            ? "“Use Decision Arena to stress-test whether I should launch this month.” The board fills as they write."
+            : "This tab cannot open a round."}
         </p>
-        <Button
-          className="mt-6 h-10 px-5"
-          disabled={busy !== null}
-          onClick={onOpenRound}
-        >
-          {busy === "opening" ? "Opening…" : "Let them write"}
-        </Button>
+        {onOpenRound ? (
+          <Button
+            className="mt-6 h-10 px-5"
+            disabled={busy !== null}
+            onClick={onOpenRound}
+          >
+            {busy === "opening" ? "Opening…" : "Let them write"}
+          </Button>
+        ) : null}
       </div>
     </div>
   );

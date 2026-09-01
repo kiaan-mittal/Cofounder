@@ -12,6 +12,7 @@ import {
   FloorTalk,
   targetSeatLabel,
 } from "@/components/arena/floor";
+import { SpectatorArena } from "@/components/arena/spectator-arena";
 import { DecisionGallery, DecisionRail } from "@/components/arena/decision-rail";
 import { SharedState } from "@/components/arena/the-loop";
 import { PerspectiveEmblem } from "@/components/ink/emblems";
@@ -34,6 +35,8 @@ import { readArenaDraft, writeArenaDraft } from "@/lib/drafts";
 import { snapshotIsEmpty, useArena } from "@/lib/store";
 import { scheduleWorkspaceSave } from "@/lib/supabase/sync";
 import { useDebate, type ReadinessResponse } from "@/lib/use-debate";
+import { isWatchPublisher, isWatchToken } from "@/lib/watch-session";
+import type { WatchSnapshot } from "@/lib/watch-snapshot";
 import { founderCall } from "@/webmcp/run";
 import type {
   Argument,
@@ -47,9 +50,29 @@ import type {
 
 export function ArenaView({
   initialSnapshot,
+  watchToken = null,
+  watchSnapshot = null,
 }: {
   initialSnapshot?: Record<string, unknown> | null;
+  watchToken?: string | null;
+  watchSnapshot?: WatchSnapshot | null;
 }) {
+  const [ready, setReady] = useState(false);
+  const [asSpectator, setAsSpectator] = useState(false);
+
+  useLayoutEffect(() => {
+    const token =
+      new URLSearchParams(window.location.search).get("watch") ?? watchToken;
+    setAsSpectator(isWatchToken(token) && !isWatchPublisher(token));
+    setReady(true);
+  }, [watchToken]);
+
+  if (isWatchToken(watchToken) && (!ready || asSpectator)) {
+    return (
+      <SpectatorArena token={watchToken} initialSnapshot={watchSnapshot} />
+    );
+  }
+
   return (
     <RequireCompany initialSnapshot={initialSnapshot}>
       {(company) => (
