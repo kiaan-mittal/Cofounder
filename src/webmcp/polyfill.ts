@@ -1,5 +1,6 @@
 import {
   isArenaPolyfill,
+  isChatGPTDesktopBrowser,
   nativeModelContext,
   nativePlatformBound,
   type GetToolsOptions,
@@ -26,9 +27,9 @@ import {
  * what makes the demo honest — the agent is never given a private back door
  * into the app, only `getTools()` and `executeTool()`.
  *
- * Never install an own data property over a native getter. ChatGPT desktop
- * Sol/Terra expose `document.modelContext` that way; shadowing it makes the
- * page look like a shim while the model talks to an empty native registry.
+ * Never put the shim on `document.modelContext` in ChatGPT desktop. Sol and
+ * Terra skip their native bind if the property is already taken, so Site
+ * tools stay empty and the page shows "About the shim".
  */
 
 interface Entry {
@@ -133,6 +134,7 @@ function earlyPolyfill(): ModelContext | null {
 }
 
 function canInstallOwnShim(): boolean {
+  if (isChatGPTDesktopBrowser()) return false;
   if (nativePlatformBound()) return false;
   const own = Object.getOwnPropertyDescriptor(document, "modelContext");
   if (own && typeof own.get === "function") return false;
@@ -140,6 +142,11 @@ function canInstallOwnShim(): boolean {
     return false;
   }
   return true;
+}
+
+function internalShim(): PolyfilledModelContext {
+  if (!shim) shim = new PolyfilledModelContext();
+  return shim;
 }
 
 /**
@@ -159,7 +166,12 @@ export function unshadowNative(): ModelContext | null {
         (typeof proto.get === "function" ||
           (proto.value && !isArenaPolyfill(proto.value))),
     );
-    if (protoNative || nativePlatformBound() || nativeModelContext()) {
+    if (
+      isChatGPTDesktopBrowser() ||
+      protoNative ||
+      nativePlatformBound() ||
+      nativeModelContext()
+    ) {
       try {
         delete (document as Document & { modelContext?: ModelContext })
           .modelContext;
@@ -195,15 +207,18 @@ export function adoptNativeIfPresent(): boolean {
  * a shim onto `document`. Ordinary Chrome has no binding, so we bail early.
  */
 export async function waitForNativeContext(
-  ms = 2000,
+  ms?: number,
 ): Promise<ModelContext | null> {
   if (typeof document === "undefined") return null;
+  const chatgpt = isChatGPTDesktopBrowser();
+  const budget = ms ?? (chatgpt ? 12000 : 2000);
+  const giveUpIfUnbound = chatgpt ? budget : 700;
   const started = Date.now();
-  while (Date.now() - started < ms) {
+  while (Date.now() - started < budget) {
     const native = unshadowNative();
     if (native) return native;
     const bound = nativePlatformBound();
-    if (!bound && Date.now() - started > 700) break;
+    if (!bound && Date.now() - started > giveUpIfUnbound) break;
     await new Promise<void>((resolve) => {
       window.setTimeout(resolve, 80);
     });
@@ -217,11 +232,16 @@ export async function waitForNativeContext(
  * but never if the platform bound a native getter (ChatGPT Sol / Chrome flag).
  */
 export function forcePolyfill(): WebMCPSupport {
-  if (nativePlatformBound() || nativeModelContext()) {
+  if (
+    isChatGPTDesktopBrowser() ||
+    nativePlatformBound() ||
+    nativeModelContext()
+  ) {
     skipNative = false;
     unshadowNative();
-    installed = "native";
-    return "native";
+    internalShim();
+    installed = nativeModelContext() ? "native" : "unavailable";
+    return installed;
   }
   skipNative = true;
   installed = null;
@@ -235,8 +255,11 @@ export function resolveModelContext(): ModelContext | null {
     const native = unshadowNative();
     if (native) return native;
   }
+  if (isChatGPTDesktopBrowser() && !skipNative) {
+    return internalShim();
+  }
   if (skipNative) {
-    return earlyPolyfill() ?? shim ?? (shim = new PolyfilledModelContext());
+    return earlyPolyfill() ?? internalShim();
   }
   return earlyPolyfill() ?? shim;
 }
@@ -260,6 +283,12 @@ export function ensureModelContext(): WebMCPSupport {
     }
   }
 
+  if (isChatGPTDesktopBrowser()) {
+    internalShim();
+    installed = "unavailable";
+    return installed;
+  }
+
   if (installed) return installed;
 
   if (!canInstallOwnShim()) {
@@ -267,17 +296,17 @@ export function ensureModelContext(): WebMCPSupport {
     return installed;
   }
 
-  if (!shim) shim = new PolyfilledModelContext();
+  const ctx = internalShim();
   try {
     Object.defineProperty(document, "modelContext", {
-      value: shim,
+      value: ctx,
       configurable: true,
       writable: true,
     });
     installed = "polyfill";
   } catch {
     try {
-      document.modelContext = shim;
+      document.modelContext = ctx;
       installed = "polyfill";
     } catch {
       // Native stub is non-configurable. Tools still run through `shim`.

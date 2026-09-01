@@ -4,9 +4,8 @@ import { useEffect } from "react";
 
 /**
  * Boot registration in a separate chunk so a stall in tools.ts cannot freeze
- * the chrome. Do not install the page shim here — ChatGPT Sol binds native
- * `document.modelContext` as a getter, and an eager own-property polyfill
- * would hide it.
+ * the chrome. Never install a page shim here — ChatGPT Sol/Terra skip their
+ * native bind if `document.modelContext` is already taken.
  */
 export function WebMcpInstall() {
   useEffect(() => {

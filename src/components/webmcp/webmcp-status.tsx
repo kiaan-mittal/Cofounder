@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 import {
   Tooltip,
@@ -10,6 +11,7 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { useWebMCP } from "@/webmcp/provider";
+import { isChatGPTDesktopBrowser } from "@/webmcp/spec";
 
 /**
  * An honest status indicator.
@@ -38,11 +40,24 @@ const COPY = {
     detail:
       "No WebMCP entry point could be installed. Every part of the Arena still works; only agent tool access is off.",
   },
+  waiting: {
+    label: "WebMCP waiting",
+    dot: "bg-ochre",
+    detail:
+      "This is ChatGPT desktop. The page will not install a shim — Site tools only see native document.modelContext. Keep the tab open until it binds.",
+  },
 } as const;
 
 export function WebMCPStatus({ className }: { className?: string }) {
   const { support, registered, ready, error } = useWebMCP();
-  const copy = COPY[support];
+  const [chatgpt, setChatgpt] = useState(false);
+  useEffect(() => {
+    setChatgpt(isChatGPTDesktopBrowser());
+  }, []);
+  const copy =
+    chatgpt && support === "unavailable"
+      ? COPY.waiting
+      : COPY[support];
 
   return (
     <TooltipProvider delayDuration={200}>
