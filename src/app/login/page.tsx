@@ -58,6 +58,13 @@ export default async function LoginPage({
             the repository. Then the website. Then a project that belongs to
             you.
           </p>
+          <p className="mx-auto mt-4 max-w-[36ch] text-[14px] leading-relaxed text-graphite">
+            Judging? You do not need this.{" "}
+            <Link href="/arena" className="text-ink underline underline-offset-4">
+              Open the public floor
+            </Link>{" "}
+            — IndieTerminal is already loaded.
+          </p>
 
           {error ? (
             <div className="mt-6 border border-rule bg-oxblood-wash px-4 py-3 text-left">

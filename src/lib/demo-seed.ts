@@ -1,4 +1,5 @@
 import { detectPatterns } from "@/lib/calibration";
+import { DEMO_COMPANY_ID as COMPANY_ID } from "@/lib/guest-workspace";
 import type {
   Argument,
   Company,
@@ -20,8 +21,6 @@ import type {
  * It is clearly labelled as sample data everywhere it appears. Nothing here is
  * presented as a real company.
  */
-
-const COMPANY_ID = "co_worked_example";
 
 function daysAgo(days: number): string {
   return new Date(Date.now() - days * 86_400_000).toISOString();
@@ -797,4 +796,4 @@ export function demoSnapshot() {
   };
 }
 
-export const DEMO_COMPANY_ID = COMPANY_ID;
+export { COMPANY_ID as DEMO_COMPANY_ID };

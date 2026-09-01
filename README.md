@@ -22,6 +22,30 @@ write in red. Same map. Close the chat: the map is still there.
 
 ---
 
+## For judges (no account)
+
+Do **not** sign in. Do **not** use `/arena?demo=1` (that is a fictional company
+named Kettle). The live site already loads **IndieTerminal** — a real company,
+from public sources — for anyone who is not signed in.
+
+1. Open [`/arena`](/arena) or [`/try`](/try). The header should say
+   `Public floor · IndieTerminal`. On `/webmcp` the workspace status should
+   say `IndieTerminal`, not `not loaded`.
+2. In ChatGPT desktop (Sol or Terra) or Chrome with WebMCP enabled, open the
+   same HTTPS URL. Wait until tools finish registering.
+3. Say: *Use Decision Arena to stress-test whether IndieTerminal should ship a
+   public waitlist this week.*
+4. Watch `stress_test_decision` write on the table. Then try `confirm_commit`
+   — refused. Then `share_decision` — a public `/share/…` link, no login.
+5. Optional, only if you want to try onboarding with **your** GitHub: `/login`.
+   That is not required, and it is not the founder's account.
+
+Brain, Arena, Canvas, History, Calibration, and WebMCP are all public on this
+floor. Sign-in exists so a visitor can load *their* repository. It is not a
+gate on the demo.
+
+---
+
 ## Why ChatGPT cannot just do this
 
 A judge who strips the protocol name off the UI should still have an answer.
@@ -45,8 +69,8 @@ Open with the part a prompt cannot.
 
 | Time | Where | What happens |
 | --- | --- | --- |
-| 0:00 | `/arena?demo=1` | A real company and a live decision, no account. Do not type. Say: “I didn't use the website.” |
-| 0:10 | ChatGPT desktop | “Use Decision Arena to stress-test whether I should spend $10,000 launching this month.” |
+| 0:00 | `/arena` | IndieTerminal and a live decision, no account. Do not type. Say: “I didn't use the website.” |
+| 0:10 | ChatGPT desktop | “Use Decision Arena to stress-test whether IndieTerminal should ship a public waitlist this week.” |
 | 0:15 | Same page | `stress_test_decision` fires. The question appears. Seats write one by one. Contradictions land in red. |
 | 0:45 | `/arena` | Verdict. Deadlock or a lean. What would change the call. |
 | 0:55 | ChatGPT | `confirm_commit` — refused. “Agents propose. Founders commit.” |
@@ -57,7 +81,7 @@ Open with the part a prompt cannot.
 **Spoken line, once:** ChatGPT is a guest. It calls `stress_test_decision`.
 The page fills. The page refuses `confirm_commit`. Then the record leaves.
 
-Full path with a key (if you have time after the worked example):
+Full path with a key (if you have time after the public floor):
 
 1. Onboard a real site + GitHub repo. Watch the Brain build.
 2. Ask: *Should I launch now or spend another month polishing?*
@@ -181,8 +205,8 @@ one for them.
 tool is never advertised where it cannot reach its target.
 
 All of these are live at `/webmcp`, which lists what `getTools()` actually
-returns. **Judges: no account needed.** Start at [`/webmcp`](/webmcp) to read
-the surface, or go straight to `/arena?demo=1` for a seeded floor.
+returns. **Judges: no account needed.** Start at [`/webmcp`](/webmcp) or go
+straight to [`/arena`](/arena). IndieTerminal is already loaded.
 
 ### Context — read the workspace
 

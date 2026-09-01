@@ -11,10 +11,8 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-// Ungated so a reviewer arriving from /webmcp with the worked example loaded
-// lands on a real floor instead of a login wall. Without a session there is
-// no snapshot, and RequireCompany offers the worked example rather than
-// redirecting.
+// Ungated. Anonymous visitors receive IndieTerminal already loaded. Signed-in
+// users receive their own project. There is no login wall on the floor.
 export default async function ArenaPage() {
   const snapshot = await loadWorkspaceSnapshot();
   return (
