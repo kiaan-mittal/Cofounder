@@ -4,6 +4,7 @@ import localFont from "next/font/local";
 import { InkFilters } from "@/components/ink/ink-filters";
 import { AccountGate } from "@/components/shell/account-gate";
 import { AppChrome } from "@/components/shell/app-chrome";
+import { appOrigin } from "@/server/app-url";
 import { readGithubSession } from "@/server/github-oauth";
 import { loadHeaderProjects } from "@/server/projects";
 
@@ -31,12 +32,30 @@ const jetbrainsMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Decision Arena — AI that argues with you before reality does",
+  metadataBase: new URL(appOrigin()),
+  title: {
+    default: "Decision Arena — AI that argues with you before reality does",
+    template: "%s · Decision Arena",
+  },
   description:
     "A decision workspace where founders and AI agents challenge each other's reasoning, commit to predictions, and learn from outcomes. Built on WebMCP.",
+  applicationName: "Decision Arena",
   icons: {
     icon: "/brand/decision-arena-icon.png",
     apple: "/apple-icon.png",
+  },
+  openGraph: {
+    type: "website",
+    siteName: "Decision Arena",
+    title: "Decision Arena — AI that argues with you before reality does",
+    description:
+      "Five seats argue your decision on a table an AI agent can write on but cannot close. Built on WebMCP.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Decision Arena — AI that argues with you before reality does",
+    description:
+      "Five seats argue your decision on a table an AI agent can write on but cannot close. Built on WebMCP.",
   },
 };
 

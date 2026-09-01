@@ -45,13 +45,13 @@ Open with the part a prompt cannot.
 
 | Time | Where | What happens |
 | --- | --- | --- |
-| 0:00 | `/arena` | Load the worked example. Do not type. Say: “I didn't use the website.” |
+| 0:00 | `/arena?demo=1` | A real company and a live decision, no account. Do not type. Say: “I didn't use the website.” |
 | 0:10 | ChatGPT desktop | “Use Decision Arena to stress-test whether I should spend $10,000 launching this month.” |
 | 0:15 | Same page | `stress_test_decision` fires. The question appears. Seats write one by one. Contradictions land in red. |
 | 0:45 | `/arena` | Verdict. Deadlock or a lean. What would change the call. |
 | 0:55 | ChatGPT | `confirm_commit` — refused. “Agents propose. Founders commit.” |
 | 1:05 | Same page | `share_decision`. Open the public `/share/…` link. No login. |
-| 1:15 | Slack or Notion | `export_decision` — or Connect, then send. The seats become a post. |
+| 1:15 | Slack or Notion | `share_decision` with a destination — or Connect, then send. The seats become a post. |
 | 1:20 | Cut | “I didn't use the website. My agent used it with me. The record left the chat.” |
 
 **Spoken line, once:** ChatGPT is a guest. It calls `stress_test_decision`.
@@ -177,8 +177,12 @@ one for them.
 
 ## WebMCP tools
 
-All of these are live at `/webmcp`. That page lists what `getTools()` actually
-returns. Judges should start there.
+31 tools register on every page; the 4 canvas tools arm only on `/canvas`, so a
+tool is never advertised where it cannot reach its target.
+
+All of these are live at `/webmcp`, which lists what `getTools()` actually
+returns. **Judges: no account needed.** Start at [`/webmcp`](/webmcp) to read
+the surface, or go straight to `/arena?demo=1` for a seeded floor.
 
 ### Context — read the workspace
 
@@ -223,8 +227,7 @@ returns. Judges should start there.
 | `write_decision_summary` | The framing paragraph at the top of the record |
 | `set_confidence` | Founder and/or Arena confidence, 0–100 |
 | `confirm_commit` | **Founder only.** Agents must `commit_decision` to propose |
-| `share_decision` | Public read-only link. Anyone can open it. No login. |
-| `export_decision` | Link, Slack, or Notion. Always creates the share first. |
+| `share_decision` | Public read-only link, and optionally Slack or Notion. No login to read. |
 | `set_decision_status` | Investigate or abandon |
 | `commit_decision` | **Proposes** a commitment for the founder to confirm |
 

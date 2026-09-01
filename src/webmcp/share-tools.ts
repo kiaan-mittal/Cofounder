@@ -19,17 +19,40 @@ function resolveDecision(decisionId?: unknown) {
   return activeDecision(s);
 }
 
+/**
+ * One tool, not two. `export_decision(destination: "link")` was byte-for-byte
+ * `share_decision`: both created the same public record through the same
+ * endpoint, so an agent asked to "share this" had two correct answers and no
+ * way to choose. Sending to Slack or Notion is the same act with a further
+ * delivery step, which is what `destination` now expresses.
+ */
 export const shareTools: ArenaTool[] = [
   {
     name: "share_decision",
     group: "action",
     humanLabel: "Share a decision link",
     description:
-      "Creates a public read-only page for one decision record: the seat arguments, the verdict, open contradictions and outstanding evidence. Anyone holding the link can read it without signing in. Returns the share URL and its token.",
+      "Creates a public read-only page for one decision record — the seat arguments, the verdict, open contradictions and outstanding evidence — and returns its URL and token. Anyone holding the link can read it without signing in. Destination \"slack\" also posts it into the founder's connected Slack channel and \"notion\" also creates a page in their connected Notion workspace; either returns a connectUrl and sends nothing when that workspace is not connected yet.",
     annotations: { untrustedContentHint: true },
     inputSchema: {
       type: "object",
       properties: {
+        destination: {
+          type: "string",
+          enum: ["link", "slack", "notion"],
+          description:
+            "Where the record goes: a link only, a Slack message, or a Notion page. Defaults to link.",
+        },
+        channel: {
+          type: "string",
+          description:
+            "Slack channel name or id, when destination is slack. Defaults to general.",
+        },
+        parent: {
+          type: "string",
+          description:
+            "Notion parent page title or id to create the page under, when destination is notion.",
+        },
         decision_id: {
           type: "string",
           description:
@@ -40,68 +63,21 @@ export const shareTools: ArenaTool[] = [
       additionalProperties: false,
     },
     execute: async (args) => {
-      const decision = resolveDecision(args.decision_id);
-      if (!decision) {
-        return toolError("There is no decision open to share.");
-      }
-      const brief = briefFromState(state(), decision.id);
-      if (!brief) return toolError("There is no decision open to share.");
-      try {
-        const created = await post<{ url: string; token: string }>("/api/share", {
-          brief,
-          decisionId: decision.id,
-        });
-        return toolResult(`Share link: ${created.url}`, created);
-      } catch (error) {
-        return toolError(
-          error instanceof Error ? error.message : "Could not create a share link.",
-        );
-      }
-    },
-  },
-  {
-    name: "export_decision",
-    group: "action",
-    humanLabel: "Export a decision",
-    description:
-      "Sends one decision record out of the Arena, creating its public share link first. Destination \"slack\" posts a message into the founder's connected Slack channel; \"notion\" creates a page in their connected Notion workspace; \"link\" only creates the link. Returns the share URL, or a connectUrl and no send when that workspace is not connected yet.",
-    annotations: { untrustedContentHint: true },
-    inputSchema: {
-      type: "object",
-      properties: {
-        destination: {
-          type: "string",
-          enum: ["link", "slack", "notion"],
-          description:
-            "Where the record goes: a link only, a Slack message, or a Notion page.",
-        },
-        channel: {
-          type: "string",
-          description: "Slack channel name or id. Defaults to general.",
-        },
-        parent: {
-          type: "string",
-          description:
-            "Notion parent page title or id to create the page under.",
-        },
-        decision_id: {
-          type: "string",
-          description:
-            "Which decision to send. Defaults to the decision the founder has open.",
-        },
-      },
-      required: ["destination"],
-      additionalProperties: false,
-    },
-    execute: async (args) => {
-      const destination = String(args.destination ?? "");
-      if (destination !== "link" && destination !== "slack" && destination !== "notion") {
+      const requested = args.destination ?? "link";
+      if (
+        requested !== "link" &&
+        requested !== "slack" &&
+        requested !== "notion"
+      ) {
         return toolError('destination must be "link", "slack", or "notion".');
       }
+      const destination = requested;
+
       const decision = resolveDecision(args.decision_id);
-      if (!decision) return toolError("There is no decision open to export.");
+      if (!decision) return toolError("There is no decision open to share.");
       const brief = briefFromState(state(), decision.id);
-      if (!brief) return toolError("There is no decision open to export.");
+      if (!brief) return toolError("There is no decision open to share.");
+
       try {
         const result = await post<{
           url: string;
@@ -127,12 +103,14 @@ export const shareTools: ArenaTool[] = [
         return toolResult(
           destination === "link"
             ? `Share link: ${result.url}`
-            : `Exported to ${destination}. Live record: ${result.url}`,
+            : `Shared to ${destination}. Live record: ${result.url}`,
           result,
         );
       } catch (error) {
         return toolError(
-          error instanceof Error ? error.message : "Could not export this decision.",
+          error instanceof Error
+            ? error.message
+            : "Could not create a share link.",
         );
       }
     },

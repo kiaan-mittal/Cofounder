@@ -1,7 +1,15 @@
+import type { Metadata } from "next";
 import { OnboardingView } from "@/app/onboarding/onboarding-view";
 import type { GithubRepoChoice } from "@/lib/github";
 import { listGithubRepos } from "@/server/github-repos";
 import { requireGithubLogin } from "@/server/require-session";
+
+export const metadata: Metadata = {
+  title: "Load the company",
+  description:
+    "Point Decision Arena at a repository and a site so the Arena opens already knowing what the company builds.",
+  robots: { index: false, follow: false },
+};
 
 export default async function OnboardingPage() {
   const session = await requireGithubLogin("/onboarding");

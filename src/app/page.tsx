@@ -9,10 +9,15 @@ import {
   SecondChair,
 } from "@/components/ink/emblems";
 import { InkRule, InkUnderline } from "@/components/ink/marks";
+import {
+  StructuredData,
+  landingSchema,
+} from "@/components/seo/structured-data";
 import { BalanceSketch, TableSketch } from "@/components/ink/table-drawings";
 import { Button } from "@/components/ui/button";
 import { PERSPECTIVES } from "@/lib/perspectives";
 import type { Reassessment } from "@/lib/types";
+import { appOrigin } from "@/server/app-url";
 import { readGithubSession } from "@/server/github-oauth";
 import { pathAfterLogin } from "@/server/login-path";
 
@@ -72,8 +77,12 @@ export default async function LandingPage() {
     redirect(await pathAfterLogin(session.login));
   }
 
+  const origin = appOrigin();
+
   return (
     <div className="mx-auto max-w-[1400px] px-5">
+      <StructuredData data={landingSchema(origin)} />
+
       {/* Hero */}
       <section className="grid gap-12 pt-14 pb-20 lg:grid-cols-[1.15fr_1fr] lg:gap-20 lg:pt-20">
         <div className="max-w-[36ch]">
