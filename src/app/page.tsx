@@ -111,7 +111,7 @@ export default async function LandingPage() {
 
           <div className="mt-10 flex flex-wrap items-center gap-3">
             <Button asChild size="lg" className="h-11 px-6 text-[15px]">
-              <Link href="/login">Get started</Link>
+              <Link href="/arena">Open the Arena</Link>
             </Button>
             <Button
               asChild
@@ -124,8 +124,8 @@ export default async function LandingPage() {
           </div>
 
           <p className="type-eyebrow mt-8 leading-relaxed">
-            The page is the room. ChatGPT is a guest. Runs in ChatGPT desktop
-            and in Chrome.
+            No account. IndieTerminal is already loaded. Sign in with GitHub
+            only if you want to point the Arena at your own repository.
           </p>
         </div>
 
@@ -189,11 +189,12 @@ export default async function LandingPage() {
               High-quality disagreement, before you ship.
             </p>
             <p className="mt-5 max-w-[46ch] text-[17px] leading-relaxed text-graphite">
-              Sign in with GitHub. You pick the repository. Then the website.
-              Then five seats argue the next decision you cannot take back.
+              The public floor is already loaded with a real company. Five seats
+              argue the next decision. Sign in with GitHub only if you want to
+              replace it with your own repository and site.
             </p>
             <Button asChild size="lg" className="mt-8 h-11 px-6 text-[15px]">
-              <Link href="/login">Get started</Link>
+              <Link href="/arena">Open the Arena</Link>
             </Button>
           </div>
           <div className="border border-rule bg-leaf px-5 py-5">
@@ -232,7 +233,7 @@ export default async function LandingPage() {
               scroll away.
             </p>
             <Button asChild size="lg" className="mt-8 h-11 px-6 text-[15px]">
-              <Link href="/login">Sit the board</Link>
+              <Link href="/arena">Sit the board</Link>
             </Button>
           </div>
           <figure>
@@ -342,7 +343,7 @@ export default async function LandingPage() {
               argument is made of.
             </p>
             <Button asChild size="lg" className="mt-8 h-11 px-6 text-[15px]">
-              <Link href="/login">Get started</Link>
+              <Link href="/arena">Open the Arena</Link>
             </Button>
           </div>
         </div>
@@ -404,10 +405,10 @@ export default async function LandingPage() {
           Decision Arena · MIT licensed · the page is the room
         </span>
         <Link
-          href="/login"
+          href="/arena"
           className="type-eyebrow ml-auto text-ink transition-opacity hover:opacity-60"
         >
-          Get started →
+          Open the Arena →
         </Link>
       </footer>
     </div>

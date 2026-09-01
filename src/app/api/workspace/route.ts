@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { isEphemeralCompanyId } from "@/lib/guest-workspace";
 import { supabaseConfigured } from "@/lib/supabase/env";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { persistGithubAccessToken } from "@/server/github-token";
@@ -128,11 +129,10 @@ export async function PUT(request: Request) {
         typeof active.snapshot.company === "object"
           ? (active.snapshot.company as { id?: string })
           : null;
-      const demoId = "co_worked_example";
       const skipDemoOverwrite =
-        incomingCompany?.id === demoId &&
+        isEphemeralCompanyId(incomingCompany?.id) &&
         Boolean(storedCompany?.id) &&
-        storedCompany?.id !== demoId;
+        !isEphemeralCompanyId(storedCompany?.id);
 
       const saved = await saveOwnedProject(user.id, active.id, {
         website: body.draft?.website,

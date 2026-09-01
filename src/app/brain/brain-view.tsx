@@ -8,7 +8,7 @@ import { CompanyDna } from "@/components/brain/company-dna";
 import { InkRule } from "@/components/ink/marks";
 import { RequireCompany } from "@/components/shell/require-company";
 import { Button } from "@/components/ui/button";
-import { DEMO_COMPANY_ID } from "@/lib/demo-seed";
+import { DEMO_COMPANY_ID, SHOWCASE_COMPANY_ID } from "@/lib/guest-workspace";
 import { writeArenaDraft } from "@/lib/drafts";
 import type { Assumption, BrainDossierPage, Company, Fact } from "@/lib/types";
 
@@ -49,6 +49,7 @@ function Brain({ company }: { company: Company }) {
   const router = useRouter();
   const { brain } = company;
   const isDemo = company.id === DEMO_COMPANY_ID;
+  const isShowcase = company.id === SHOWCASE_COMPANY_ID;
   const coverage = company.sources.flatMap((source) => source.pages ?? []);
   const dossier = brain.dossier ?? [];
 
@@ -65,6 +66,12 @@ function Brain({ company }: { company: Company }) {
       {isDemo ? (
         <p className="type-eyebrow mb-8 inline-block border border-ochre bg-ochre-wash px-3 py-1.5 text-ochre">
           Sample data — a fictional company, for demonstration
+        </p>
+      ) : null}
+      {isShowcase ? (
+        <p className="type-eyebrow mb-8 inline-block border border-rule bg-leaf px-3 py-1.5 text-graphite">
+          Public judging floor — IndieTerminal, from public sources. Sign in
+          only if you want to load your own repository.
         </p>
       ) : null}
 
