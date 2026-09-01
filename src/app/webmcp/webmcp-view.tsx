@@ -101,16 +101,14 @@ export function WebMCPView({
               ? "checking…"
               : support === "native"
                 ? "native document.modelContext"
-                : support === "pending"
-                  ? "holding the slot open"
-                  : support === "polyfill"
-                    ? "spec-shaped shim"
-                    : "unavailable"
+                : support === "page"
+                  ? "in-page context"
+                  : "unavailable"
           }
           tone={
             support === "native"
               ? "moss"
-              : support === "polyfill" || support === "pending"
+              : support === "page"
                 ? "ochre"
                 : "pencil"
           }
@@ -139,8 +137,7 @@ export function WebMCPView({
           Terra), with site tools enabled under Settings → Browser. Site tools
           read the browser&rsquo;s own{" "}
           <code className="type-figure text-[13px]">document.modelContext</code>
-          , so this page leaves that slot empty at first rather than filling it
-          — Implementation should settle on{" "}
+          , and this page never writes to it — Implementation should read{" "}
           <span className="text-ink">native document.modelContext</span>. Luna
           and most Enterprise builds do not expose the API. Chrome 149+ with{" "}
           <code className="type-figure text-[13px]">
@@ -249,35 +246,22 @@ export function WebMCPView({
         <p className="mt-4 text-[14px] text-oxblood">{error}</p>
       ) : null}
 
-      {support === "pending" && ready ? (
-        <div className="mt-8 max-w-[70ch] border border-rule bg-leaf px-5 py-4">
-          <p className="type-eyebrow">Holding the slot open</p>
-          <p className="mt-2 text-[14.5px] leading-relaxed text-ink">
-            All {GUEST_TOOLS.length} tools are registered and the Arena is fully
-            usable, but{" "}
-            <code className="type-figure text-[13px]">
-              document.modelContext
-            </code>{" "}
-            is deliberately still empty. A browser that implements WebMCP can
-            bind it after the first script runs, and a page-owned property
-            sitting there is the one thing that could get in the way. If nothing
-            native arrives, the shim is published there instead.
-          </p>
-        </div>
-      ) : null}
-
-      {support === "polyfill" ? (
+      {support === "page" && ready ? (
         <div className="mt-8 max-w-[70ch] border border-rule bg-ochre-wash px-5 py-4">
-          <p className="type-eyebrow text-ochre">About the shim</p>
+          <p className="type-eyebrow text-ochre">
+            Nothing is written to document.modelContext
+          </p>
           <p className="mt-2 text-[14.5px] leading-relaxed text-ink">
-            This browser did not expose WebMCP, so the Arena published a local
-            implementation of the same interface —{" "}
+            This browser does not implement WebMCP, so the{" "}
+            {GUEST_TOOLS.length} tools are registered on an object the page
+            constructed for its own sparring agent — the same{" "}
             <code className="type-figure text-[13px]">registerTool</code>,{" "}
             <code className="type-figure text-[13px]">getTools</code>,{" "}
-            <code className="type-figure text-[13px]">executeTool</code> and the{" "}
-            <code className="type-figure text-[13px]">toolchange</code> event.
-            If the browser binds a native context later, the page drops the shim
-            and moves every tool onto it.
+            <code className="type-figure text-[13px]">executeTool</code> and{" "}
+            <code className="type-figure text-[13px]">toolchange</code>{" "}
+            interface. The platform slot is left untouched, so a browser that
+            implements WebMCP finds it empty and the page moves every tool onto
+            the browser&rsquo;s context the moment it appears.
           </p>
         </div>
       ) : null}
@@ -320,6 +304,34 @@ export function WebMCPView({
           </p>
         </div>
       ) : null}
+
+      <div className="mt-4 max-w-[70ch] border border-rule bg-paper px-5 py-4">
+        <p className="type-eyebrow">Declarative API</p>
+        <p className="mt-2 text-[14.5px] leading-relaxed text-ink">
+          The {GUEST_TOOLS.length} tools above use the imperative API. The two
+          boxes the founder actually types into on{" "}
+          <Link href="/arena" className="underline underline-offset-4">
+            /arena
+          </Link>{" "}
+          are real HTML forms carrying{" "}
+          <code className="type-figure text-[13px]">toolname</code> and{" "}
+          <code className="type-figure text-[13px]">tooldescription</code>, so a
+          supporting browser synthesises two more tools straight from the
+          markup:{" "}
+          <code className="type-figure text-[13px]">draft_decision</code> for
+          the composer and{" "}
+          <code className="type-figure text-[13px]">write_founder_judgment</code>{" "}
+          for the judgment box on the floor.
+        </p>
+        <p className="mt-3 text-[14.5px] leading-relaxed text-graphite">
+          Neither carries{" "}
+          <code className="type-figure text-[13px]">toolautosubmit</code>, and
+          that is the point. The agent fills the founder&rsquo;s form and the
+          browser puts the submit button in focus; the founder presses it. A
+          chat can write the question. It cannot open the round, and it cannot
+          put words in the founder&rsquo;s mouth on the record.
+        </p>
+      </div>
 
       <InkRule className="my-12" />
 

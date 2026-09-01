@@ -95,35 +95,18 @@ declare global {
 }
 
 /**
- * `pending` is the window where the page has tools ready but has deliberately
- * left `document.modelContext` empty, so a host that binds WebMCP late still
- * finds the slot free.
+ * `page` means the browser does not implement WebMCP, so the tools live on an
+ * object the page constructed for its own agent. Nothing is ever written to
+ * `document.modelContext` in that case.
  */
-export type WebMCPSupport = "native" | "polyfill" | "pending" | "unavailable";
+export type WebMCPSupport = "native" | "page" | "unavailable";
 
-/**
- * A hint, never a gate. ChatGPT desktop can present a stock Chromium UA, so
- * this only lengthens how long the page waits before falling back — it never
- * decides whether WebMCP is native.
- */
-export function isChatGPTDesktopBrowser(): boolean {
-  if (typeof navigator === "undefined") return false;
-  const ua = navigator.userAgent ?? "";
-  if (/ChatGPT|OpenAI/i.test(ua)) return true;
-  const brands = (
-    navigator as Navigator & {
-      userAgentData?: { brands?: Array<{ brand: string }> };
-    }
-  ).userAgentData?.brands;
-  return Boolean(brands?.some((brand) => /ChatGPT|OpenAI/i.test(brand.brand)));
-}
-
-export function isArenaPolyfill(value: unknown): boolean {
+export function isPageContext(value: unknown): boolean {
   return Boolean(
     value &&
       typeof value === "object" &&
-      (value as { isDecisionArenaPolyfill?: boolean }).isDecisionArenaPolyfill ===
-        true,
+      (value as { isDecisionArenaPageContext?: boolean })
+        .isDecisionArenaPageContext === true,
   );
 }
 
@@ -132,7 +115,7 @@ function usableNative(value: unknown): ModelContext | null {
     value &&
     typeof value === "object" &&
     typeof (value as ModelContext).registerTool === "function" &&
-    !isArenaPolyfill(value)
+    !isPageContext(value)
   ) {
     return value as ModelContext;
   }
@@ -220,7 +203,7 @@ export function nativeModelContext(): ModelContext | null {
 
 export interface WebMCPDiagnostics {
   userAgent: string;
-  documentOwn: "absent" | "page shim" | "getter" | "object";
+  documentOwn: "absent" | "getter" | "object";
   documentPrototype: "absent" | "getter" | "object";
   navigatorSlot: "absent" | "object";
   nativeFound: boolean;
@@ -256,9 +239,7 @@ export function webmcpDiagnostics(): WebMCPDiagnostics {
       ? "absent"
       : typeof own.get === "function"
         ? "getter"
-        : isArenaPolyfill(own.value)
-          ? "page shim"
-          : "object",
+        : "object",
     documentPrototype: !proto
       ? "absent"
       : typeof proto.get === "function"

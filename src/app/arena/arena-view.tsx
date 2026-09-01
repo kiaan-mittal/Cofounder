@@ -336,9 +336,15 @@ function DecisionStart({
               />
             )}
           </div>
+          {/*
+            WebMCP Declarative API. No toolautosubmit on purpose: the agent
+            fills the founder's composer, the founder presses Open the round.
+          */}
           <form
             onSubmit={start}
             action="#"
+            toolname="draft_decision"
+            tooldescription="Writes a decision into the founder's composer on the Arena page and leaves it for them to open. The agent fills the form; the founder presses Open the round. To seat the five perspectives directly instead, call stress_test_decision."
             className="shrink-0 border-t border-rule bg-paper px-4 py-2.5"
           >
             <label htmlFor="question" className="sr-only">
@@ -355,6 +361,7 @@ function DecisionStart({
                 key={composerKey}
                 id="question"
                 name="question"
+                toolparamdescription="The decision as a question, for example 'Should /research run without a Clerk session?'"
                 value={question}
                 rows={3}
                 placeholder="Should /research run without a Clerk session?"
@@ -377,6 +384,7 @@ function DecisionStart({
                   key={`context-${composerKey}`}
                   id="context"
                   name="context"
+                  toolparamdescription="What the company's website and repository cannot show — a deadline, a number the founder already has, a constraint. Optional."
                   value={context}
                   rows={2}
                   placeholder="The queue already gates Slack and X. (optional)"

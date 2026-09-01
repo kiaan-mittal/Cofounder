@@ -195,6 +195,9 @@ export function FloorTalk({
             hint="One honest paragraph. The seats reassess from this."
             targetLabel={targetLabel}
             onClearTarget={onClearTarget}
+            toolName="write_founder_judgment"
+            toolDescription="Writes the founder's judgment into their box on the Arena floor, where the five seats will reassess against it. The agent fills the box; the founder presses Write. To put a defense straight onto the record instead, call add_defense."
+            toolParamDescription="What the founder actually believes about this decision, in one honest paragraph, answering the seats' claims."
             allowAgent
             onAgentSubmit={(goal, display) => void sparring.run(goal, display)}
             agentBusy={sparring.running}
