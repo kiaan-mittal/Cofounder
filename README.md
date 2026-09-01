@@ -24,9 +24,12 @@ write in red. Same map. Close the chat: the map is still there.
 
 ## For judges (no account)
 
+Live URL: **https://decisionarena.vercel.app**
+
 Do **not** sign in. Do **not** use `/arena?demo=1` (that is a fictional company
-named Kettle). The live site already loads **IndieTerminal** — a real company,
-from public sources — for anyone who is not signed in.
+named Kettle). Do **not** use a Vercel preview URL — those can sit behind
+Vercel Authentication. The production site already loads **IndieTerminal** —
+a real company, from public sources — for anyone who is not signed in.
 
 1. Open [`/arena`](/arena) or [`/try`](/try). The header should say
    `Public floor · IndieTerminal`. On `/webmcp` the workspace status should
