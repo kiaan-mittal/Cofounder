@@ -122,12 +122,15 @@ export function WebMCPView({
           is the other supported path.
         </p>
         <p className="mt-3 text-[14.5px] leading-relaxed text-graphite">
-          If the workspace is empty, tools will say there is no brain. Sign in
-          and{" "}
-          <Link href="/onboarding" className="underline underline-offset-4">
+          If the workspace is empty, tools will say there is no brain. No
+          account is needed to fix that —{" "}
+          <Link
+            href="/arena?demo=1"
+            className="underline underline-offset-4"
+          >
             open the worked example
           </Link>{" "}
-          first so a judge can read a company and a live decision.
+          and the tools read a real company and a live decision.
         </p>
         <div className="mt-4 flex flex-wrap gap-3">
           <Button
@@ -138,7 +141,7 @@ export function WebMCPView({
             Load worked example
           </Button>
           <Button asChild variant="outline" className="h-10 px-4">
-            <Link href="/arena">Open Arena</Link>
+            <Link href="/arena?demo=1">Open Arena</Link>
           </Button>
         </div>
       </div>
@@ -148,7 +151,7 @@ export function WebMCPView({
           <p className="type-eyebrow text-oxblood">Judge quickstart</p>
           <p className="mt-2 text-[14.5px] leading-relaxed text-graphite">
             Load the worked example, open{" "}
-            <Link href="/arena" className="underline underline-offset-4">
+            <Link href="/arena?demo=1" className="underline underline-offset-4">
               /arena
             </Link>
             , then in ChatGPT say: “Use Decision Arena to stress-test whether I
@@ -270,11 +273,11 @@ export function WebMCPView({
           </h2>
           <ol className="mt-6 space-y-5">
             {[
-              "Open the worked example, then open /arena. Do not type.",
+              "Open /arena?demo=1 — no account, a real company and a live decision already on the table. Do not type.",
               "In ChatGPT (or the in-page agent): “Use Decision Arena to stress-test whether I should spend $10,000 launching this month.”",
               "Watch stress_test_decision fill the table — seats, contradictions, evidence — without a click.",
               "Ask it to confirm_commit. The page says no. Then you accept, hold, or reject.",
-              "Then share_decision — or export_decision to Slack. Open the public /share link. The record left the chat.",
+              "Then share_decision — destination slack sends it too. Open the public /share link. The record left the chat.",
             ].map((step, index) => (
               <li key={step} className="flex gap-4">
                 <span className="type-figure w-6 shrink-0 text-[12px] text-pencil">
@@ -287,7 +290,7 @@ export function WebMCPView({
             ))}
           </ol>
           <Button asChild className="mt-8 h-10 px-5">
-            <Link href="/arena">Open the Arena</Link>
+            <Link href="/arena?demo=1">Open the Arena</Link>
           </Button>
         </div>
 

@@ -27,7 +27,7 @@ export const AGENT_PROMPTS = [
   },
   {
     label: "Send this to Slack",
-    goal: "Call export_decision with destination slack. If the result has a connectUrl, tell me to open it, then stop. If it already sent, give me the share link and say the record left the chat. Do not confirm_commit.",
+    goal: "Call share_decision with destination slack. If the result has a connectUrl, tell me to open it, then stop. If it already sent, give me the share link and say the record left the chat. Do not confirm_commit.",
   },
 ] as const;
 

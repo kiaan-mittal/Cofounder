@@ -8,6 +8,12 @@ export function appOrigin(request?: Request): string {
     const proto = request.headers.get("x-forwarded-proto") ?? "http";
     if (host) return `${proto}://${host}`.replace(/\/$/, "");
   }
+  // sitemap.ts and robots.ts run without a Request, so without these the
+  // production sitemap would advertise localhost URLs.
+  const vercel =
+    process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim() ||
+    process.env.VERCEL_URL?.trim();
+  if (vercel) return `https://${vercel.replace(/^https?:\/\//, "")}`;
   return "http://localhost:3000";
 }
 

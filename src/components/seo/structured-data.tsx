@@ -1,0 +1,60 @@
+/**
+ * JSON-LD for agents and crawlers that read structured data before they read
+ * prose. Rendered server-side so it is present in the initial HTML.
+ */
+export function StructuredData({ data }: { data: Record<string, unknown> }) {
+  return (
+    <script
+      type="application/ld+json"
+      // The payload is built from our own literals, never from user input.
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+    />
+  );
+}
+
+export function landingSchema(origin: string) {
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": `${origin}/#website`,
+        url: origin,
+        name: "Decision Arena",
+        description:
+          "A decision workspace where founders and AI agents challenge each other's reasoning, commit to predictions, and learn from outcomes.",
+        publisher: { "@id": `${origin}/#organization` },
+      },
+      {
+        "@type": "Organization",
+        "@id": `${origin}/#organization`,
+        name: "Decision Arena",
+        url: origin,
+        logo: `${origin}/brand/decision-arena-icon.png`,
+      },
+      {
+        "@type": "SoftwareApplication",
+        "@id": `${origin}/#app`,
+        name: "Decision Arena",
+        applicationCategory: "BusinessApplication",
+        operatingSystem: "Web",
+        url: origin,
+        description:
+          "Five perspectives argue one founder decision on a shared table. AI agents read the company's real context and write arguments, contradictions and evidence requests as structured objects through WebMCP, but cannot commit the decision themselves.",
+        featureList: [
+          "WebMCP tool surface exposed at document.modelContext",
+          "Company Brain built from a repository and site, split into facts and assumptions",
+          "Five-perspective stress test of a single decision",
+          "Contradictions and open evidence that block commit",
+          "Prediction scoring and per-domain founder calibration",
+          "Read-only shareable decision records",
+        ],
+        offers: {
+          "@type": "Offer",
+          price: "0",
+          priceCurrency: "USD",
+        },
+      },
+    ],
+  };
+}

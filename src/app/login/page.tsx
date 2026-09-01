@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -6,6 +7,12 @@ import { ArenaMark, InkUnderline } from "@/components/ink/marks";
 import { githubErrorMessage } from "@/lib/github";
 import { readGithubSession } from "@/server/github-oauth";
 import { pathAfterLogin } from "@/server/login-path";
+
+export const metadata: Metadata = {
+  title: "Sign in",
+  description:
+    "Sign in with GitHub. Decision Arena reads the repository and site you point it at so the first decision opens already knowing the company.",
+};
 
 export default async function LoginPage({
   searchParams,

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useLayoutEffect } from "react";
 
 import { Button } from "@/components/ui/button";
+import { demoSnapshot } from "@/lib/demo-seed";
 import {
   snapshotIsEmpty,
   useArena,
@@ -29,6 +30,7 @@ export function RequireCompany({
   initialSnapshot?: Record<string, unknown> | null;
 }) {
   const storeCompany = useArena((state) => state.company);
+  const importWorkspace = useArena((state) => state.importWorkspace);
   const snapshotCompany =
     initialSnapshot &&
     typeof initialSnapshot.company === "object" &&
@@ -40,6 +42,16 @@ export function RequireCompany({
   useLayoutEffect(() => {
     adoptSnapshotIfRicher(initialSnapshot as WorkspaceSnapshot | null);
   }, [initialSnapshot]);
+
+  // ?demo=1 seeds the worked example so a single URL shows a working floor
+  // with no account. Nothing is persisted for an anonymous visitor, so this
+  // is what survives a shared link — and it must never overwrite a real
+  // company that is already loaded.
+  useEffect(() => {
+    if (company) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("demo") === "1") importWorkspace(demoSnapshot());
+  }, [company, importWorkspace]);
 
   useEffect(() => {
     let unsub: (() => void) | undefined;
@@ -77,9 +89,20 @@ export function RequireCompany({
                 and your history are just startup advice.
               </p>
             </div>
-            <div className="shrink-0 border-t border-rule bg-paper px-4 py-3">
+            <div className="flex shrink-0 flex-wrap gap-2 border-t border-rule bg-paper px-4 py-3">
               <Button asChild className="h-8 rounded-none px-3.5 text-[13px]">
                 <Link href="/onboarding?existing=1">Build your Company Brain</Link>
+              </Button>
+              {/* Signing in to see anything is the wrong first impression for
+                  a reviewer. The worked example is seeded client-side, so it
+                  needs no account. */}
+              <Button
+                type="button"
+                variant="outline"
+                className="h-8 rounded-none px-3.5 text-[13px]"
+                onClick={() => importWorkspace(demoSnapshot())}
+              >
+                Load the worked example
               </Button>
             </div>
           </div>
