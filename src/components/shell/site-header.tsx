@@ -14,7 +14,6 @@ import { cn } from "@/lib/utils";
 const NAV = [
   { href: "/brain", label: "Brain" },
   { href: "/arena", label: "Arena" },
-  { href: "/canvas", label: "Canvas" },
   { href: "/history", label: "History" },
   { href: "/calibration", label: "Calibration" },
   { href: "/webmcp", label: "WebMCP" },

@@ -63,6 +63,12 @@ export function actorFromChannel(channel: AgentChannel = currentChannel()): Acto
 export interface ArenaTool extends Omit<ToolDefinition, "execute"> {
   /** Grouping used by the README and the tool-surface panel. */
   group: "context" | "debate" | "action" | "outcome";
+  /**
+   * When false, founder clicks and Arena seats can still invoke this
+   * through runTool. It is not registered on document.modelContext, so a
+   * judge's getTools() does not see a kitchen-sink CRUD dump.
+   */
+  expose?: boolean;
   /** What the founder sees in the log when the tool runs. */
   humanLabel: string;
   execute: (
@@ -169,9 +175,8 @@ export async function registerArenaTools(
 
   const audience = toolAudience();
 
-  // Registered concurrently: awaiting each tool in turn made the last of ~40
-  // land well past the point an agent reading the registry at first paint
-  // would still be waiting.
+  // Registered concurrently so a judge's agent reading the registry at
+  // first paint is not waiting on a serial queue.
   const outcomes = await Promise.all(
     tools.map(async (tool) => {
       try {

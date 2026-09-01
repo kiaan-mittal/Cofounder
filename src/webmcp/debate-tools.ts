@@ -237,6 +237,7 @@ export const debateTools: ArenaTool[] = [
   {
     name: "challenge_argument",
     group: "debate",
+    expose: false,
     humanLabel: "Challenge an existing argument",
     description:
       "Attaches a counter-claim to an argument already on the table and marks the original unresolved, reducing its strength. The original stays visible so the founder can see the disagreement. Returns the challenge id and the argument's new strength.",
@@ -582,6 +583,7 @@ export const debateTools: ArenaTool[] = [
   {
     name: "resolve_contradiction",
     group: "debate",
+    expose: false,
     humanLabel: "Resolve a contradiction",
     description:
       "Writes a resolution onto a flagged contradiction and closes it, recording how both sides can now stand or which one was dropped. Commitment stays blocked until every contradiction on the round is closed this way. Returns the contradiction id.",
@@ -626,6 +628,7 @@ export const debateTools: ArenaTool[] = [
   {
     name: "set_risk_status",
     group: "debate",
+    expose: false,
     humanLabel: "Mitigate or accept a risk",
     description:
       "Changes a risk's status to mitigated, accepted, or open again. Mitigated records that a concrete control is in place; accepted records that the founder is taking the risk on knowingly. Returns the new status.",
@@ -675,6 +678,7 @@ export const debateTools: ArenaTool[] = [
   {
     name: "mark_evidence",
     group: "debate",
+    expose: false,
     humanLabel: "Mark evidence provided or unavailable",
     description:
       "Updates an evidence request to provided, when the founder produced the checkable thing, or unavailable, when it cannot be produced. Requests left outstanding continue to block commitment. Returns the new status.",
@@ -787,6 +791,7 @@ export const debateTools: ArenaTool[] = [
   {
     name: "add_reassessment",
     group: "debate",
+    expose: false,
     humanLabel: "Record a seat's reply",
     description:
       "Writes one seat's reassessment of a founder defense onto the record: the full reply, what the defense addressed, what it left open, and the verdict, which adjusts the original argument's strength. Passing an existing id updates a reply that is still streaming. Returns the reassessment id.",

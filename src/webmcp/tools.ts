@@ -1,7 +1,6 @@
 "use client";
 
 import { boardTools } from "@/webmcp/board-tools";
-import { canvasTools } from "@/webmcp/canvas-tools";
 import { contextTools } from "@/webmcp/context-tools";
 import { debateTools } from "@/webmcp/debate-tools";
 import { decisionTools } from "@/webmcp/decision-tools";
@@ -12,20 +11,20 @@ import type { ArenaTool } from "@/webmcp/registry";
 /**
  * The Decision Arena tool surface.
  *
- * Every durable write in the Arena — seats opening a round, the founder
- * defending, an external agent challenging — goes through these tools.
- * The page decides how a semantic action is rendered. There is no private
- * store API beside this surface.
+ * Two layers, on purpose:
  *
- *   context — understand the workspace       (read-only)
- *   debate  — participate in the reasoning   (writes and draws on the table)
- *   action  — commitments, then take the record with you
- *   outcome — feed reality back in           (results, calibration)
+ *   GUEST_TOOLS  — registered on document.modelContext. This is the protocol
+ *                  a judge's agent sees: inherit the company, write on the
+ *                  table, propose, do not finish, share the record.
+ *   ARENA_TOOLS  — every implementation, including founder-only housekeeping
+ *                  (open a saved round, tick an action item). Those stay
+ *                  callable from the page so clicks still go through
+ *                  executeTool. They are not advertised.
+ *
+ * Board marks stay as founder internals. There is no canvas tool surface —
+ * the drawing on /arena is the same objects the table already holds.
  */
-/**
- * Registered on every page: the decision surface an agent needs wherever the
- * founder is standing.
- */
+
 export const ARENA_TOOLS: ArenaTool[] = [
   ...contextTools,
   ...boardTools,
@@ -35,12 +34,10 @@ export const ARENA_TOOLS: ArenaTool[] = [
   ...outcomeTools,
 ];
 
-/**
- * Registered only while /canvas is mounted. The canvas is the one surface
- * that exists on a single route, and a tool that cannot reach its target is
- * a broken contract, so these arm and disarm with the page.
- */
-export const CANVAS_TOOLS: ArenaTool[] = canvasTools;
+/** What an agent discovers with getTools(). */
+export const GUEST_TOOLS: ArenaTool[] = ARENA_TOOLS.filter(
+  (tool) => tool.expose !== false,
+);
 
 export const TOOL_GROUPS = [
   {
@@ -51,12 +48,12 @@ export const TOOL_GROUPS = [
   {
     id: "debate" as const,
     title: "Debate",
-    blurb: "Participate in the reasoning: argue, challenge, demand evidence.",
+    blurb: "Write objects onto the table: arguments, contradictions, evidence.",
   },
   {
     id: "action" as const,
     title: "Action",
-    blurb: "Turn reasoning into commitments, then take the record with you.",
+    blurb: "Seat the round, propose a commit, take the record with you.",
   },
   {
     id: "outcome" as const,
@@ -67,7 +64,6 @@ export const TOOL_GROUPS = [
 
 export {
   boardTools,
-  canvasTools,
   contextTools,
   debateTools,
   decisionTools,
