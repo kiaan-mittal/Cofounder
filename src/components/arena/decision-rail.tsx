@@ -1,6 +1,5 @@
 "use client";
 
-import { ExportDecision } from "@/components/arena/export-decision";
 import { writeArenaDraft } from "@/lib/drafts";
 import { PERSPECTIVES } from "@/lib/perspectives";
 import { useArena } from "@/lib/store";
@@ -187,13 +186,6 @@ export function DecisionGallery({
                   </div>
                 ) : null}
               </button>
-              <div className="border-t border-rule px-3 py-2">
-                <ExportDecision
-                  decisionId={decision.id}
-                  returnTo="/arena"
-                  compact
-                />
-              </div>
             </li>
           );
         })}

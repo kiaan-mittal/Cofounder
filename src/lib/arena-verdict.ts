@@ -41,12 +41,12 @@ export function arenaVerdict(
   decisionId: string,
 ): ArenaVerdict | null {
   const decision = state.decisions.find((item) => item.id === decisionId);
-  if (!decision) return null;
-
-  const ready = readiness(state, decisionId);
   const args = argumentsFor(state, decisionId).filter(
     (item) => !item.challengesId && item.status !== "conceded",
   );
+  if (!decision && args.length === 0) return null;
+
+  const ready = readiness(state, decisionId);
   const forScore = args
     .filter((item) => item.stance === "for")
     .reduce((sum, item) => sum + item.strength, 0);
@@ -105,12 +105,12 @@ export function arenaVerdict(
 
   return {
     decisionId,
-    question: decision.question,
+    question: decision?.question ?? "",
     deadlock,
     deadlockNote,
     leaning,
     leaningLabel,
-    arenaConfidence: decision.agentConfidence,
+    arenaConfidence: decision?.agentConfidence ?? 0,
     strongestFor: ready.strongestFor ? clip(ready.strongestFor) : null,
     strongestAgainst: ready.strongestAgainst
       ? clip(ready.strongestAgainst)

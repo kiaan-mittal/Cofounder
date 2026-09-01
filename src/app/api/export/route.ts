@@ -122,8 +122,11 @@ export async function POST(request: Request) {
           error: sent.error,
         });
       }
+      const crashed = /maximum call stack/i.test(sent.error ?? "");
       return fail(
-        sent.error || "Could not send this decision.",
+        crashed
+          ? "Slack or Notion answered in a shape the Arena could not read."
+          : sent.error || "Could not send this decision.",
         400,
         `The share link still works: ${share.url}`,
       );
@@ -135,6 +138,12 @@ export async function POST(request: Request) {
       exported: toolkit,
     });
   } catch (error) {
+    if (error instanceof RangeError) {
+      return fail(
+        "Could not finish sending. Copy the share link instead.",
+        500,
+      );
+    }
     return handleRouteError(error);
   }
 }

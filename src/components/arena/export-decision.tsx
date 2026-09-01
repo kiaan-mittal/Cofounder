@@ -142,7 +142,12 @@ export function ExportDecision({
     : "Connect Notion";
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div
+      className={cn(
+        "flex items-center gap-2",
+        compact ? "flex-nowrap" : "flex-wrap",
+      )}
+    >
       <Button
         type="button"
         variant="outline"

@@ -140,39 +140,39 @@ export function HatchMeter({
   );
 }
 
-/** The Arena's mark: two nibs facing each other across a line. */
+/** Opus's knot: two nibs facing each other. Square crop for icon use. */
 export function ArenaMark({ className }: { className?: string }) {
   return (
     <svg
       aria-hidden
-      viewBox="0 0 40 24"
-      className={cn("h-6 w-10", className)}
+      viewBox="0 0 32 32"
+      className={cn("size-7", className)}
       style={{ filter: "url(#ink-rough)" }}
     >
       <path
-        d="M3 12 H 15"
+        d="M4 16 H 11.5"
         stroke="var(--ink)"
-        strokeWidth="1.4"
+        strokeWidth="1.6"
         strokeLinecap="round"
       />
       <path
-        d="M25 12 H 37"
+        d="M20.5 16 H 28"
         stroke="var(--ink)"
-        strokeWidth="1.4"
+        strokeWidth="1.6"
         strokeLinecap="round"
       />
       <path
-        d="M15 4 L 20 12 L 15 20 Z"
+        d="M11.5 7 L 16 16 L 11.5 25 Z"
         fill="none"
         stroke="var(--ink)"
-        strokeWidth="1.4"
+        strokeWidth="1.6"
         strokeLinejoin="round"
       />
       <path
-        d="M25 4 L 20 12 L 25 20 Z"
+        d="M20.5 7 L 16 16 L 20.5 25 Z"
         fill="none"
         stroke="var(--oxblood)"
-        strokeWidth="1.4"
+        strokeWidth="1.6"
         strokeLinejoin="round"
       />
     </svg>

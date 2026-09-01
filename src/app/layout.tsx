@@ -34,6 +34,10 @@ export const metadata: Metadata = {
   title: "Decision Arena — AI that argues with you before reality does",
   description:
     "A decision workspace where founders and AI agents challenge each other's reasoning, commit to predictions, and learn from outcomes. Built on WebMCP.",
+  icons: {
+    icon: "/brand/decision-arena-icon.png",
+    apple: "/apple-icon.png",
+  },
 };
 
 // Next 15.5 webpack can omit clientReferenceManifest for statically
