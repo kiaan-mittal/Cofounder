@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef } from "react";
 
 import { AgentTranscript } from "@/components/arena/agent-console";
 import { DecisionBoard } from "@/components/arena/decision-board";
+import { ExportDecision } from "@/components/arena/export-decision";
 import { PatternBanner } from "@/components/arena/pattern-banner";
 import { PromptComposer } from "@/components/arena/prompt-composer";
 import { SeatOpening, SeatReply } from "@/components/arena/seat-reply";
@@ -102,7 +103,7 @@ export function FloorTalk({
 
   return (
     <div className="flex min-h-0 min-w-0 flex-col border-r border-rule bg-paper">
-      <header className="flex shrink-0 items-baseline justify-between gap-3 border-b border-rule px-5 py-2">
+      <header className="flex shrink-0 items-baseline justify-between gap-3 border-b border-rule px-5 py-1.5">
         <p className="type-eyebrow text-indigo">The floor</p>
         <p className="min-w-0 truncate text-[13px] text-graphite">
           {committed
@@ -235,15 +236,15 @@ export function FloorBoard({
 }) {
   return (
     <div className="flex min-h-0 min-w-0 flex-col bg-leaf">
-      <header className="shrink-0 border-b border-rule bg-paper px-5 py-3">
+      <header className="flex shrink-0 flex-wrap items-baseline justify-between gap-3 border-b border-rule bg-paper px-5 py-1.5">
         <p className="type-eyebrow">The board</p>
-        <p className="mt-1 text-[13.5px] text-graphite">
+        <p className="min-w-0 truncate text-[13px] text-graphite">
           {busy === "opening"
             ? "Seats are writing. The board moves as each one finishes."
             : "Technical, Product, GTM, Financial, Contrarian. Cards move when they speak."}
         </p>
         {busy === "opening" ? (
-          <ul className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
+          <ul className="flex w-full flex-wrap gap-x-3 gap-y-1">
             {PERSPECTIVES.map((seat) => {
               const ready = openingReady.includes(seat.id);
               return (
@@ -312,10 +313,12 @@ export function FloorBar({
   question,
   round,
   status,
+  decisionId,
 }: {
   question: string;
   round: number;
   status: string;
+  decisionId: string;
 }) {
   function startNew() {
     writeArenaDraft({ question: "", context: "" });
@@ -349,16 +352,19 @@ export function FloorBar({
       <button
         type="button"
         onClick={leave}
-        className="type-eyebrow text-graphite underline underline-offset-4 hover:text-ink"
+        className="type-eyebrow shrink-0 text-graphite underline underline-offset-4 hover:text-ink"
       >
         Your arenas
       </button>
       <p className="min-w-0 flex-1 truncate type-display text-[17px] font-semibold">
         {question}
       </p>
-      <p className="type-eyebrow shrink-0">
-        Round {round} · {status}
-      </p>
+      <div className="flex shrink-0 items-center gap-3">
+        <ExportDecision decisionId={decisionId} compact />
+        <p className="type-eyebrow whitespace-nowrap">
+          Round {round} · {status}
+        </p>
+      </div>
     </div>
   );
 }

@@ -1,13 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 
-import { ArenaVerdict } from "@/components/arena/arena-verdict";
+import { ArenaCallDock } from "@/components/arena/arena-verdict";
 import { CommitFlow } from "@/components/arena/commit-flow";
-import { ExportDecision } from "@/components/arena/export-decision";
 import {
   FloorBar,
   FloorBoard,
@@ -17,10 +15,8 @@ import {
 import { DecisionGallery, DecisionRail } from "@/components/arena/decision-rail";
 import { SharedState } from "@/components/arena/the-loop";
 import { PerspectiveEmblem } from "@/components/ink/emblems";
-import { HatchMeter } from "@/components/ink/marks";
 import { TableSketch } from "@/components/ink/table-drawings";
 import { RequireCompany } from "@/components/shell/require-company";
-import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { PERSPECTIVES } from "@/lib/perspectives";
 import {
@@ -37,7 +33,7 @@ import { readArenaDraft, writeArenaDraft } from "@/lib/drafts";
 import { snapshotIsEmpty, useArena } from "@/lib/store";
 import { scheduleWorkspaceSave } from "@/lib/supabase/sync";
 import { useDebate, type ReadinessResponse } from "@/lib/use-debate";
-import { founderCall, runTool } from "@/webmcp/run";
+import { founderCall } from "@/webmcp/run";
 import type {
   Argument,
   Company,
@@ -522,7 +518,6 @@ function Workspace({
       : [];
   const spotlightId = useArena((state) => state.spotlightId);
   const pendingCommit = useArena((state) => state.pendingCommit);
-  const updateDecision = useArena((state) => state.updateDecision);
 
   const [defense, setDefense] = useState("");
   const [target, setTarget] = useState<string | null>(null);
@@ -561,82 +556,13 @@ function Workspace({
     setSummary(result);
   }
 
-  const commitBar = (
-    <div className="relative z-20 flex shrink-0 flex-wrap items-end gap-6 border-t border-rule bg-paper px-4 py-3">
-      <div className="min-w-[160px] flex-1">
-        <label
-          htmlFor="founder-confidence"
-          className="type-eyebrow flex items-baseline justify-between"
-        >
-          <span className="text-indigo">Your confidence</span>
-          <span className="type-figure text-ink">
-            {decision.founderConfidence}
-          </span>
-        </label>
-        <input
-          id="founder-confidence"
-          type="range"
-          min={0}
-          max={100}
-          value={decision.founderConfidence}
-          disabled={committed}
-          onChange={(event) =>
-            updateDecision(decision.id, {
-              founderConfidence: Number(event.target.value),
-            })
-          }
-          onPointerUp={() => {
-            const value = useArena
-              .getState()
-              .decisions.find((item) => item.id === decision.id)
-              ?.founderConfidence;
-            if (typeof value !== "number") return;
-            void runTool(
-              "set_confidence",
-              { founder: value, decision_id: decision.id },
-              { channel: "founder" },
-            );
-          }}
-          className="mt-2 w-full accent-[var(--indigo)]"
-        />
-      </div>
-      <div className="min-w-[160px] flex-1">
-        <p className="type-eyebrow flex items-baseline justify-between">
-          <span className="text-oxblood">The Arena&rsquo;s confidence</span>
-          <span className="type-figure text-ink">
-            {decision.agentConfidence}
-          </span>
-        </p>
-        <HatchMeter
-          value={decision.agentConfidence}
-          tone="oxblood"
-          className="mt-2"
-        />
-      </div>
-      <div className="flex flex-wrap items-center gap-2">
-        {committed ? (
-          <Button asChild variant="outline" className="h-10">
-            <Link href="/history">Open the record</Link>
-          </Button>
-        ) : (
-          <Button
-            onClick={() => void openWeighUp()}
-            disabled={busy !== null || args.length === 0}
-            className="h-10 px-6"
-          >
-            Weigh it up
-          </Button>
-        )}
-      </div>
-    </div>
-  );
-
   return (
     <div className="flex h-[calc(100dvh-3.5rem)] flex-col overflow-hidden bg-paper">
       <FloorBar
         question={decision.question}
         round={decision.round}
         status={decision.status}
+        decisionId={decision.id}
       />
       <div className="grid min-h-0 min-w-0 flex-1 lg:grid-cols-2">
         <FloorTalk
@@ -678,16 +604,17 @@ function Workspace({
           {error.message}
         </div>
       ) : null}
-      {!committed && args.length > 0 ? (
-        <ArenaVerdict decisionId={decision.id} onAccept={openWeighUp} />
-      ) : null}
-      {args.length > 0 ? (
-        <div className="shrink-0 border-t border-rule bg-paper px-4 py-2.5">
-          <p className="type-eyebrow mb-2">Take the record with you</p>
-          <ExportDecision decisionId={decision.id} />
-        </div>
-      ) : null}
-      {commitBar}
+      <ArenaCallDock
+        decision={decision}
+        committed={committed}
+        weighDisabled={busy !== null || args.length === 0}
+        onCommit={() => void openWeighUp()}
+        arguments={args}
+        risks={risks}
+        evidence={evidence}
+        contradictions={contradictions}
+        reassessments={reassessments}
+      />
       <CommitFlow
         decision={decision}
         summary={summary}

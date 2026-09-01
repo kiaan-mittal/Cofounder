@@ -85,11 +85,10 @@ export function SharedState({
 
   return (
     <section className="min-w-0 overflow-hidden border border-rule">
-      <header className="border-b border-rule bg-paper px-4 py-3">
+      <header className="flex items-baseline justify-between gap-3 border-b border-rule bg-paper px-4 py-1.5">
         <p className="type-eyebrow">Shared arena state</p>
-        <p className="mt-1 text-[13.5px] text-graphite">
-          Risks, contradictions, evidence, and what the seats have not been
-          paid.
+        <p className="min-w-0 truncate text-[13px] text-graphite">
+          Risks, contradictions, evidence, and what is still unpaid.
         </p>
       </header>
       <div
