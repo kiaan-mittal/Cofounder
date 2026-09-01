@@ -7,13 +7,18 @@ import {
   withInheritedDescriptions,
 } from "@/lib/inherited-room";
 import { useArena } from "@/lib/store";
-import { forcePolyfill, ensureModelContext } from "@/webmcp/polyfill";
+import {
+  adoptNativeIfPresent,
+  ensureModelContext,
+  forcePolyfill,
+  waitForNativeContext,
+} from "@/webmcp/polyfill";
 import {
   registerArenaTools,
   type ArenaTool,
   type RegistrationOutcome,
 } from "@/webmcp/registry";
-import type { WebMCPSupport } from "@/webmcp/spec";
+import { nativeModelContext, nativePlatformBound, type WebMCPSupport } from "@/webmcp/spec";
 
 /**
  * Registers the Arena's tool surface for the lifetime of the tab.
@@ -22,6 +27,9 @@ import type { WebMCPSupport } from "@/webmcp/spec";
  * soon as the page's JS runs. Aborting on React Strict Mode unmount was
  * unregistering every tool before a judge's agent could see them — so the
  * stable tools are started once per tab and never aborted from here.
+ *
+ * Native must win over the page shim. ChatGPT Sol/Terra bind a getter;
+ * we wait for it, never shadow it, and re-register if it appears late.
  *
  * WebMCP has no provideContext. The room the agent inherits lives in three
  * tool descriptions (`the_room`, plus a line on `stress_test_decision` and
@@ -48,11 +56,13 @@ const LIVE_TOOL_NAMES = new Set([
 let snapshot: WebMCPSnapshot = idle;
 const listeners = new Set<() => void>();
 let started = false;
-const lifetime = new AbortController();
+let lifetime = new AbortController();
 let liveCtl = new AbortController();
 let lastFingerprint = "";
 let timer: number | null = null;
 let bootDone = false;
+let nativeWatch: number | null = null;
+let generation = 0;
 
 function publish(next: WebMCPSnapshot) {
   snapshot = next;
@@ -63,6 +73,13 @@ function tick() {
   return new Promise<void>((resolve) => {
     window.setTimeout(resolve, 0);
   });
+}
+
+function rotateSignals() {
+  lifetime.abort();
+  lifetime = new AbortController();
+  liveCtl.abort();
+  liveCtl = new AbortController();
 }
 
 async function loadGuestTools(): Promise<ArenaTool[]> {
@@ -77,7 +94,12 @@ async function loadGuestTools(): Promise<ArenaTool[]> {
   }
 }
 
+function nativeWins(): boolean {
+  return Boolean(nativeModelContext() || nativePlatformBound());
+}
+
 async function registerFull() {
+  const gen = ++generation;
   try {
     const tools = await loadGuestTools();
     const stable = tools.filter((tool) => !LIVE_TOOL_NAMES.has(tool.name));
@@ -87,16 +109,27 @@ async function registerFull() {
       registerArenaTools(stable, lifetime.signal),
       registerArenaTools(live, liveCtl.signal),
     ]);
+    if (gen !== generation) return;
     if (
       stableResult.registered.length === 0 &&
       liveResult.registered.length === 0
     ) {
-      forcePolyfill();
-      [stableResult, liveResult] = await Promise.all([
-        registerArenaTools(stable, lifetime.signal),
-        registerArenaTools(live, liveCtl.signal),
-      ]);
+      if (nativeWins()) {
+        await tick();
+        if (gen !== generation) return;
+        [stableResult, liveResult] = await Promise.all([
+          registerArenaTools(stable, lifetime.signal),
+          registerArenaTools(live, liveCtl.signal),
+        ]);
+      } else {
+        forcePolyfill();
+        [stableResult, liveResult] = await Promise.all([
+          registerArenaTools(stable, lifetime.signal),
+          registerArenaTools(live, liveCtl.signal),
+        ]);
+      }
     }
+    if (gen !== generation) return;
     bootDone = true;
     publish({
       support: stableResult.support,
@@ -110,12 +143,14 @@ async function registerFull() {
       void reregisterLive();
     }
   } catch (error) {
+    if (gen !== generation) return;
     try {
-      forcePolyfill();
+      if (!nativeWins()) forcePolyfill();
       const fallback = await registerArenaTools(
         await loadGuestTools(),
         lifetime.signal,
       );
+      if (gen !== generation) return;
       bootDone = true;
       publish({
         ...fallback,
@@ -126,6 +161,7 @@ async function registerFull() {
         ready: true,
       });
     } catch (inner) {
+      if (gen !== generation) return;
       bootDone = true;
       publish({
         support: "unavailable",
@@ -175,24 +211,38 @@ function scheduleReregister() {
   }, opening ? 250 : 400);
 }
 
+function watchNativeAdopt() {
+  if (nativeWatch !== null) return;
+  const startedAt = Date.now();
+  nativeWatch = window.setInterval(() => {
+    if (adoptNativeIfPresent()) {
+      rotateSignals();
+      void registerFull();
+    }
+    if (Date.now() - startedAt > 4500 && nativeWatch !== null) {
+      window.clearInterval(nativeWatch);
+      nativeWatch = null;
+    }
+  }, 150);
+}
+
 export function bootWebMCP() {
   if (started || typeof window === "undefined") return;
   started = true;
-  try {
-    ensureModelContext();
-  } catch {
-    forcePolyfill();
-  }
-  void registerFull();
+  watchNativeAdopt();
+  void (async () => {
+    await waitForNativeContext();
+    try {
+      ensureModelContext();
+    } catch {
+      if (!nativeWins()) forcePolyfill();
+    }
+    void registerFull();
+  })();
   useArena.subscribe(() => scheduleReregister());
 }
 
 if (typeof window !== "undefined") {
-  try {
-    ensureModelContext();
-  } catch {
-    forcePolyfill();
-  }
   window.setTimeout(() => bootWebMCP(), 0);
 }
 

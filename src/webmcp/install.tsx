@@ -2,15 +2,12 @@
 
 import { useEffect } from "react";
 
-import { ensureModelContext } from "@/webmcp/polyfill";
-
 /**
- * Install document.modelContext before the tool graph loads, then boot
- * registration in a separate chunk so a stall in tools.ts cannot freeze
- * the chrome.
+ * Boot registration in a separate chunk so a stall in tools.ts cannot freeze
+ * the chrome. Do not install the page shim here — ChatGPT Sol binds native
+ * `document.modelContext` as a getter, and an eager own-property polyfill
+ * would hide it.
  */
-ensureModelContext();
-
 export function WebMcpInstall() {
   useEffect(() => {
     void import("@/webmcp/provider").then((mod) => {
