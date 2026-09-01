@@ -33,13 +33,25 @@ a real company, from public sources — for anyone who is not signed in.
 
 1. Open [`/arena`](/arena) or [`/try`](/try). The header should say
    `Public floor · IndieTerminal`. On `/webmcp` the workspace status should
-   say `IndieTerminal`, not `not loaded`.
-2. In ChatGPT desktop (Sol or Terra) or Chrome with WebMCP enabled, open the
-   same HTTPS URL. Wait until tools finish registering.
+   say `IndieTerminal`, not `not loaded`. Implementation should read
+   `native document.modelContext`.
+2. You are talking to **the agent that can see this page**, not to a person
+   and not to Codex. In ChatGPT desktop that is the chat on the left while
+   the Arena is open in the in-app browser (ChatGPT mode, Sol or Terra, site
+   tools on). In Chrome it is the same HTTPS tab after the flag below, or the
+   in-page agent on `/arena` → **The agent**.
 3. Say: *Use Decision Arena to stress-test whether /research should run without a Clerk session.*
-4. Watch `stress_test_decision` write on the table. Then try `confirm_commit`
-   — refused. Then `share_decision` — a public `/share/…` link whose card says
+4. Watch `stress_test_decision` write on the table. Then say *confirm the
+   commit* (the tool is `confirm_commit`) — refused. Then *share this
+   decision* (`share_decision`) — a public `/share/…` link whose card says
    **confirm_commit was refused**. No login.
+
+**Native WebMCP in Chrome 149+ with `chrome://flags/#enable-webmcp-testing`.**
+ChatGPT desktop Sol/Terra with site tools uses the same
+`document.modelContext` slot. Codex and free ChatGPT do not expose the API;
+the page leaves the slot untouched in those browsers. Luna, Enterprise, and
+Edu builds usually do not expose it either. The header never claims native
+when the browser has not bound the API.
 5. Optional backup if ChatGPT desktop is dead: click **Watch**, open
    `/arena?watch=…` on a second laptop. That tab cannot write.
 6. Optional, only if you want to try onboarding with **your** GitHub: `/login`.
@@ -160,12 +172,15 @@ store is not a back door.
 
 ### Registration
 
-Tools live on `document.modelContext` for the lifetime of the app shell. The
-spec has no `unregisterTool()`, so lifetime is an `AbortSignal`:
+When the browser implements WebMCP, tools live on its
+`document.modelContext` for the lifetime of the app shell. The spec has no
+`unregisterTool()`, so lifetime is an `AbortSignal`. The page never writes
+to that slot. If the browser has not bound it, the same tools sit on a
+private page object used only by the Arena’s own seats and sparring agent.
 
 ```ts
 // src/webmcp/registry.ts
-const modelContext = nativeModelContext() ?? document.modelContext;
+const modelContext = resolveModelContext(); // native, else a private page object
 
 for (const tool of GUEST_TOOLS) {
   await modelContext.registerTool(instrument(tool), { signal });
@@ -175,12 +190,13 @@ for (const tool of GUEST_TOOLS) {
 Every call is timed, logged, attributed, and spotlighted. A founder watching
 the screen can see that something changed, and who changed it.
 
-### Native first, shim only as a fallback
+### Native when the browser offers it
 
-WebMCP is not in any stable browser yet. Native when it exists; a spec-shaped
-shim only when the platform provides nothing (`src/webmcp/polyfill.ts`). The
-header says `native`, `shim`, or `unavailable`. It never claims support it
-does not have.
+Native `document.modelContext` in Chrome 149+ with
+`chrome://flags/#enable-webmcp-testing`, and in ChatGPT desktop Sol/Terra
+with site tools. Codex and free ChatGPT do not expose the API; the page
+leaves the slot untouched. The header says `native`, `in-page`, or
+`unavailable`. It never claims support it does not have.
 
 ### The in-page sparring agent
 
@@ -356,7 +372,7 @@ model when the first returns something unparseable.
 - GitHub access is read-only.
 - Ingested content cannot issue instructions.
 - API keys are server-side only.
-- The WebMCP shim is page-local.
+- The in-page WebMCP context is private to the page. Nothing is published to `document.modelContext`.
 - Agents cannot commit decisions. They can only propose.
 
 ---
