@@ -1,11 +1,10 @@
 import "server-only";
 
+import { isEphemeralCompanyId } from "@/lib/guest-workspace";
 import { createServerSupabase } from "@/lib/supabase/server";
 import type { Company } from "@/lib/types";
 import { buildCompanyFromSources } from "@/server/build-company";
 import { readSealedGithubToken } from "@/server/github-token";
-
-const WORKED_EXAMPLE_ID = "co_worked_example";
 
 /** Skip a brain that was rebuilt in the last 60 hours so overlapping crons do not double-charge. */
 const STALE_AFTER_MS = 60 * 60 * 1000 * 60;
@@ -195,7 +194,7 @@ export async function refreshStaleBrains(): Promise<{
       return { row, snapshot, company };
     })
     .filter(({ row, company }) => {
-      if (company?.id === WORKED_EXAMPLE_ID) return false;
+      if (isEphemeralCompanyId(company?.id)) return false;
       const sources = sourcesFor(row, company);
       return Boolean(sources.website || sources.github);
     })

@@ -7,6 +7,7 @@ import {
   type OnboardingDraft,
 } from "@/lib/drafts";
 import type { ProjectSummary } from "@/lib/projects";
+import { isEphemeralSnapshot } from "@/lib/guest-workspace";
 import {
   getWorkspaceSnapshot,
   snapshotIsEmpty,
@@ -37,8 +38,6 @@ type RemoteWorkspace = {
 let saveTimer: number | undefined;
 let adoptedProjectId: string | null = null;
 
-const DEMO_COMPANY_ID = "co_worked_example";
-
 async function request(
   method: "GET" | "PUT",
   body?: unknown,
@@ -58,21 +57,13 @@ async function request(
   }
 }
 
-function companyIdOf(snapshot: Partial<WorkspaceSnapshot> | null | undefined) {
-  return snapshot?.company?.id ?? null;
-}
-
-function isDemoSnapshot(snapshot: Partial<WorkspaceSnapshot> | null | undefined) {
-  return companyIdOf(snapshot) === DEMO_COMPANY_ID;
-}
-
 export function shouldAdoptRemote(
   local: Partial<WorkspaceSnapshot>,
   remote: Partial<WorkspaceSnapshot> | null | undefined,
 ) {
   if (!remote || snapshotIsEmpty(remote)) return false;
-  if (isDemoSnapshot(local) && !isDemoSnapshot(remote)) return true;
-  if (!isDemoSnapshot(local) && isDemoSnapshot(remote)) return false;
+  if (isEphemeralSnapshot(local) && !isEphemeralSnapshot(remote)) return true;
+  if (!isEphemeralSnapshot(local) && isEphemeralSnapshot(remote)) return false;
   if (snapshotIsEmpty(local)) return true;
   return snapshotWeight(remote) > snapshotWeight(local);
 }
@@ -135,7 +126,7 @@ export async function flushWorkspaceSave(draft?: OnboardingDraft) {
   if (typeof window === "undefined") return;
   window.clearTimeout(saveTimer);
   const snapshot = getWorkspaceSnapshot();
-  if (isDemoSnapshot(snapshot)) return;
+  if (isEphemeralSnapshot(snapshot)) return;
   await request("PUT", {
     draft: draft ?? readOnboardingDraft(),
     snapshot: {

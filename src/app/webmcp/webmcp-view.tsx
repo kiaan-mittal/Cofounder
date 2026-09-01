@@ -6,8 +6,10 @@ import { useEffect, useState } from "react";
 import { InkRule } from "@/components/ink/marks";
 import { HydrateWorkspace } from "@/components/shell/require-company";
 import { Button } from "@/components/ui/button";
-import { demoSnapshot } from "@/lib/demo-seed";
+import { SHOWCASE_COMPANY_ID } from "@/lib/guest-workspace";
+import { showcaseSnapshot } from "@/lib/showcase-seed";
 import { useArena } from "@/lib/store";
+import type { Company } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { readToolOutput } from "@/webmcp/compat";
 import { getModelContext } from "@/webmcp/registry";
@@ -22,8 +24,15 @@ export function WebMCPView({
 }) {
   const { support, registered, ready, error } = useWebMCP();
   const toolCalls = useArena((state) => state.toolCalls);
-  const company = useArena((state) => state.company);
+  const storeCompany = useArena((state) => state.company);
   const importWorkspace = useArena((state) => state.importWorkspace);
+  const snapshotCompany =
+    initialSnapshot &&
+    typeof initialSnapshot.company === "object" &&
+    initialSnapshot.company
+      ? (initialSnapshot.company as Company)
+      : null;
+  const company = storeCompany ?? snapshotCompany;
   const [discovered, setDiscovered] = useState<RegisteredTool[] | null>(null);
 
   useEffect(() => {
@@ -122,40 +131,63 @@ export function WebMCPView({
           is the other supported path.
         </p>
         <p className="mt-3 text-[14.5px] leading-relaxed text-graphite">
-          If the workspace is empty, tools will say there is no brain. No
-          account is needed to fix that —{" "}
-          <Link
-            href="/arena?demo=1"
-            className="underline underline-offset-4"
-          >
-            open the worked example
-          </Link>{" "}
-          and the tools read a real company and a live decision.
+          {company ? (
+            <>
+              The workspace is{" "}
+              <span className="text-ink">{company.name}</span>
+              {company.id === SHOWCASE_COMPANY_ID
+                ? " — the public judging floor, already loaded. No account."
+                : "."}{" "}
+              Tools read this company. Do not sign in unless you want to replace
+              it with your own repository.
+            </>
+          ) : (
+            <>
+              If the workspace is empty, tools will say there is no brain.{" "}
+              <button
+                type="button"
+                onClick={() => importWorkspace(showcaseSnapshot())}
+                className="underline underline-offset-4"
+              >
+                Load IndieTerminal
+              </button>{" "}
+              and the tools read a real company and a live decision.
+            </>
+          )}
         </p>
         <div className="mt-4 flex flex-wrap gap-3">
-          <Button
-            type="button"
-            onClick={() => importWorkspace(demoSnapshot())}
-            className="h-10 px-4"
-          >
-            Load worked example
-          </Button>
-          <Button asChild variant="outline" className="h-10 px-4">
-            <Link href="/arena?demo=1">Open Arena</Link>
-          </Button>
+          {company ? (
+            <Button asChild className="h-10 px-4">
+              <Link href="/arena">Open Arena</Link>
+            </Button>
+          ) : (
+            <>
+              <Button
+                type="button"
+                onClick={() => importWorkspace(showcaseSnapshot())}
+                className="h-10 px-4"
+              >
+                Load IndieTerminal
+              </Button>
+              <Button asChild variant="outline" className="h-10 px-4">
+                <Link href="/arena">Open Arena</Link>
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
-      {!company ? (
+      {!company || company.id === SHOWCASE_COMPANY_ID ? (
         <div className="mt-6 max-w-[62ch] border border-rule bg-paper px-5 py-4">
           <p className="type-eyebrow text-oxblood">Judge quickstart</p>
           <p className="mt-2 text-[14.5px] leading-relaxed text-graphite">
-            Load the worked example, open{" "}
-            <Link href="/arena?demo=1" className="underline underline-offset-4">
+            Open{" "}
+            <Link href="/arena" className="underline underline-offset-4">
               /arena
             </Link>
-            , then in ChatGPT say: “Use Decision Arena to stress-test whether I
-            should spend $10,000 launching this month.” Do not click. Watch{" "}
+            . IndieTerminal is already loaded. In ChatGPT say: “Use Decision
+            Arena to stress-test whether IndieTerminal should ship a public
+            waitlist this week.” Do not click. Watch{" "}
             <code className="type-figure text-[13px] text-ink">
               stress_test_decision
             </code>{" "}
@@ -273,8 +305,8 @@ export function WebMCPView({
           </h2>
           <ol className="mt-6 space-y-5">
             {[
-              "Open /arena?demo=1 — no account, a real company and a live decision already on the table. Do not type.",
-              "In ChatGPT (or the in-page agent): “Use Decision Arena to stress-test whether I should spend $10,000 launching this month.”",
+              "Open /arena — no account. IndieTerminal and a live decision are already on the table. Do not type.",
+              "In ChatGPT (or the in-page agent): “Use Decision Arena to stress-test whether IndieTerminal should ship a public waitlist this week.”",
               "Watch stress_test_decision fill the table — seats, contradictions, evidence — without a click.",
               "Ask it to confirm_commit. The page says no. Then you accept, hold, or reject.",
               "Then share_decision — destination slack sends it too. Open the public /share link. The record left the chat.",
@@ -290,7 +322,7 @@ export function WebMCPView({
             ))}
           </ol>
           <Button asChild className="mt-8 h-10 px-5">
-            <Link href="/arena?demo=1">Open the Arena</Link>
+            <Link href="/arena">Open the Arena</Link>
           </Button>
         </div>
 

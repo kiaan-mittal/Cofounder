@@ -64,11 +64,17 @@ export function SiteHeader({
         </nav>
 
         <div className="ml-auto flex items-center gap-3">
-          <ProjectSwitcher
-            signedIn={signedIn}
-            initialProjects={projects}
-            initialActiveId={activeProjectId}
-          />
+          {signedIn ? (
+            <ProjectSwitcher
+              signedIn={signedIn}
+              initialProjects={projects}
+              initialActiveId={activeProjectId}
+            />
+          ) : (
+            <p className="hidden type-eyebrow text-graphite sm:block">
+              Public floor · IndieTerminal
+            </p>
+          )}
           {account}
           <WebMCPStatus />
         </div>

@@ -3,9 +3,8 @@ import type { MetadataRoute } from "next";
 import { appOrigin } from "@/server/app-url";
 
 /**
- * Only routes an unauthenticated visitor can actually read. The workspace
- * routes redirect to /login, and listing a redirect as a sitemap entry
- * advertises a page that does not exist for the reader.
+ * Routes an unauthenticated visitor can actually read. The judging floor
+ * (Arena, Brain, WebMCP) is public; sign-in is only for loading your own repo.
  */
 const PUBLIC_ROUTES: Array<{
   path: string;
@@ -14,6 +13,8 @@ const PUBLIC_ROUTES: Array<{
 }> = [
   { path: "/", priority: 1, changeFrequency: "weekly" },
   { path: "/webmcp", priority: 0.9, changeFrequency: "monthly" },
+  { path: "/arena", priority: 0.9, changeFrequency: "weekly" },
+  { path: "/try", priority: 0.8, changeFrequency: "weekly" },
   { path: "/login", priority: 0.3, changeFrequency: "yearly" },
 ];
 

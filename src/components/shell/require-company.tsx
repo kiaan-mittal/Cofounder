@@ -5,6 +5,8 @@ import { useEffect, useLayoutEffect } from "react";
 
 import { Button } from "@/components/ui/button";
 import { demoSnapshot } from "@/lib/demo-seed";
+import { isEphemeralSnapshot } from "@/lib/guest-workspace";
+import { showcaseSnapshot } from "@/lib/showcase-seed";
 import {
   snapshotIsEmpty,
   useArena,
@@ -16,6 +18,12 @@ import {
   scheduleWorkspaceSave,
 } from "@/lib/supabase/sync";
 import type { Company } from "@/lib/types";
+
+function seedFromQuery() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("demo") === "1") return demoSnapshot();
+  return showcaseSnapshot();
+}
 
 /**
  * Every screen after onboarding needs a Company Brain. Rather than redirecting
@@ -43,14 +51,19 @@ export function RequireCompany({
     adoptSnapshotIfRicher(initialSnapshot as WorkspaceSnapshot | null);
   }, [initialSnapshot]);
 
-  // ?demo=1 seeds the worked example so a single URL shows a working floor
-  // with no account. Nothing is persisted for an anonymous visitor, so this
-  // is what survives a shared link — and it must never overwrite a real
-  // company that is already loaded.
+  // Anonymous Vercel visits have no GitHub session, so they used to land on
+  // an empty floor ("not loaded"). Seed IndieTerminal unless a real company
+  // is already in the page. `?demo=1` still loads the fictional Kettle
+  // sample. Neither is written to a signed-in account.
   useEffect(() => {
-    if (company) return;
+    if (company && !isEphemeralSnapshot({ company })) return;
     const params = new URLSearchParams(window.location.search);
-    if (params.get("demo") === "1") importWorkspace(demoSnapshot());
+    if (params.get("demo") === "1") {
+      importWorkspace(demoSnapshot());
+      return;
+    }
+    if (company) return;
+    importWorkspace(showcaseSnapshot());
   }, [company, importWorkspace]);
 
   useEffect(() => {
@@ -90,19 +103,15 @@ export function RequireCompany({
               </p>
             </div>
             <div className="flex shrink-0 flex-wrap gap-2 border-t border-rule bg-paper px-4 py-3">
-              <Button asChild className="h-8 rounded-none px-3.5 text-[13px]">
-                <Link href="/onboarding?existing=1">Build your Company Brain</Link>
-              </Button>
-              {/* Signing in to see anything is the wrong first impression for
-                  a reviewer. The worked example is seeded client-side, so it
-                  needs no account. */}
               <Button
                 type="button"
-                variant="outline"
                 className="h-8 rounded-none px-3.5 text-[13px]"
-                onClick={() => importWorkspace(demoSnapshot())}
+                onClick={() => importWorkspace(showcaseSnapshot())}
               >
-                Load the worked example
+                Open IndieTerminal
+              </Button>
+              <Button asChild variant="outline" className="h-8 rounded-none px-3.5 text-[13px]">
+                <Link href="/onboarding?existing=1">Build your Company Brain</Link>
               </Button>
             </div>
           </div>
@@ -133,6 +142,8 @@ export function HydrateWorkspace({
 }: {
   initialSnapshot?: Record<string, unknown> | null;
 }) {
+  const importWorkspace = useArena((state) => state.importWorkspace);
+
   useLayoutEffect(() => {
     if (
       initialSnapshot &&
@@ -141,6 +152,11 @@ export function HydrateWorkspace({
       adoptSnapshotIfRicher(initialSnapshot as WorkspaceSnapshot);
     }
   }, [initialSnapshot]);
+
+  useEffect(() => {
+    if (useArena.getState().company) return;
+    importWorkspace(seedFromQuery());
+  }, [importWorkspace]);
 
   useEffect(() => {
     let unsub: (() => void) | undefined;
