@@ -31,10 +31,10 @@ export default async function LandingPage() {
     <div className="mx-auto max-w-[1120px] px-5">
       <StructuredData data={landingSchema(origin)} />
 
-      <section className="grid items-center gap-12 pt-16 pb-16 lg:grid-cols-[1.05fr_0.95fr] lg:gap-20 lg:pt-24 lg:pb-20">
+      <section className="grid items-center gap-10 pt-12 pb-12 md:grid-cols-2 md:gap-14 lg:gap-20 lg:pt-20 lg:pb-16">
         <div>
           <p className="type-eyebrow">No account · {JUDGE_COMPANY} is loaded</p>
-          <h1 className="type-display mt-5 text-[clamp(2.6rem,6.4vw,4.4rem)] font-semibold">
+          <h1 className="type-display mt-5 text-[clamp(2.4rem,5.8vw,4.1rem)] font-semibold">
             A live decision.
             <br />
             ChatGPT can join.
@@ -67,9 +67,9 @@ export default async function LandingPage() {
           </div>
         </div>
 
-        <div>
-          <SecondChair className="max-w-[440px]" />
-          <div className="mt-8 border border-rule bg-leaf px-5 py-4">
+        <div className="border border-rule bg-leaf px-5 py-5 sm:px-7 sm:py-6">
+          <SecondChair className="mx-auto max-w-[420px]" />
+          <div className="mt-6 border-t border-rule pt-4">
             <p className="type-eyebrow">Loaded example</p>
             <p className="type-display mt-2 text-[22px] font-semibold">
               {JUDGE_COMPANY}
