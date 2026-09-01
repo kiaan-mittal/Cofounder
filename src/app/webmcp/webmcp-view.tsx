@@ -296,9 +296,20 @@ export function WebMCPView({
               label="native found"
               value={probe.nativeFound ? "yes" : "no"}
             />
+            <Probe
+              label="origin-isolated"
+              value={probe.originIsolated ? "yes" : "no"}
+            />
+            <Probe
+              label="secure context"
+              value={probe.secureContext ? "yes" : "no"}
+            />
           </dl>
           <p className="mt-3 text-[13px] leading-relaxed text-graphite">
-            If every row reads{" "}
+            A browser only exposes WebMCP to an origin-isolated, secure
+            document, so those two rows must read{" "}
+            <span className="type-figure text-[12.5px]">yes</span> before the
+            rest can. If they do and every slot is still{" "}
             <span className="type-figure text-[12.5px]">absent</span>, this
             browser is not offering WebMCP to the page — in ChatGPT desktop that
             means site tools are off, or the model is one of the builds without
