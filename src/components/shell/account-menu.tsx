@@ -44,9 +44,8 @@ export function AccountMenu({
     return (
       <Link
         href="/login"
-        className="inline-flex h-9 items-center gap-2 bg-ink px-3 text-[13px] font-medium text-paper transition-colors hover:bg-ink/90"
+        className="type-eyebrow px-2 py-1.5 text-graphite transition-colors hover:text-ink"
       >
-        <GithubMark className="h-3.5 w-3.5 text-paper" />
         Sign in
       </Link>
     );

@@ -12,11 +12,11 @@ import type { ProjectSummary } from "@/lib/projects";
 import { cn } from "@/lib/utils";
 
 const NAV = [
-  { href: "/brain", label: "Brain" },
   { href: "/arena", label: "Arena" },
+  { href: "/webmcp", label: "WebMCP" },
+  { href: "/brain", label: "Brain" },
   { href: "/history", label: "History" },
   { href: "/calibration", label: "Calibration" },
-  { href: "/webmcp", label: "WebMCP" },
 ];
 
 export function SiteHeader({
@@ -75,7 +75,9 @@ export function SiteHeader({
             </p>
           )}
           {account}
-          <WebMCPStatus />
+          {pathname === "/" || pathname.startsWith("/arena") ? null : (
+            <WebMCPStatus />
+          )}
         </div>
       </div>
     </header>

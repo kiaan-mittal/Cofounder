@@ -3,9 +3,9 @@ import { WebMCPView } from "@/app/webmcp/webmcp-view";
 import { loadWorkspaceSnapshot } from "@/server/workspace";
 
 export const metadata: Metadata = {
-  title: "The guest protocol",
+  title: "WebMCP",
   description:
-    "The rules an AI agent plays by inside Decision Arena: the tools it can call, the objects it writes on the shared table, and the one act it is never allowed to perform.",
+    "The tools ChatGPT can call on this page, in one line each, plus the prompt to run them on IndieTerminal.",
 };
 
 // Deliberately ungated. Anonymous visitors receive the IndieTerminal

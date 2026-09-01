@@ -28,23 +28,21 @@ Live URL: **https://decisionarena.vercel.app**
 
 Do **not** sign in. Do **not** use `/arena?demo=1` (that is a fictional company
 named Kettle). Do **not** use a Vercel preview URL — those can sit behind
-Vercel Authentication. The production site already loads **IndieTerminal** —
-a real company, from public sources — for anyone who is not signed in.
+Vercel Authentication.
 
-1. Open [`/arena`](/arena) or [`/try`](/try). The header should say
-   `Public floor · IndieTerminal`. On `/webmcp` the workspace status should
-   say `IndieTerminal`, not `not loaded`. Implementation should read
-   `native document.modelContext`.
-2. You are talking to **the agent that can see this page**, not to a person
-   and not to Codex. In ChatGPT desktop that is the chat on the left while
-   the Arena is open in the in-app browser (ChatGPT mode, Sol or Terra, site
-   tools on). In Chrome it is the same HTTPS tab after the flag below, or the
-   in-page agent on `/arena` → **The agent**.
-3. Say: *Use Decision Arena to stress-test whether /research should run without a Clerk session.*
-4. Watch `stress_test_decision` write on the table. Then say *confirm the
-   commit* (the tool is `confirm_commit`) — refused. Then *share this
-   decision* (`share_decision`) — a public `/share/…` link whose card says
-   **confirm_commit was refused**. No login.
+1. Open the home page. One button: **Open IndieTerminal**. A live decision is
+   already loaded. Header: `Public floor · IndieTerminal`.
+2. Copy the prompt on the page (or from the WebMCP badge on the Arena):
+   *Use Decision Arena to stress-test whether /research and /scan should run without a Clerk session.*
+3. You are talking to **the agent that can see this page**. In ChatGPT desktop
+   that is the chat on the left while the Arena is open in the in-app browser
+   (Sol or Terra, site tools on). In Chrome it is the same HTTPS tab after the
+   flag below, or the in-page agent on `/arena`.
+4. Watch `stress_test_decision` write on the table — the floating **WebMCP**
+   badge shows the calls. Then say *confirm the commit* (`confirm_commit`) —
+   refused. Then *share this decision* (`share_decision`).
+5. Optional: [`/webmcp`](/webmcp) lists the tools in one line each. You can
+   run the read-only ones from that page.
 
 **Native WebMCP in Chrome 149+ with `chrome://flags/#enable-webmcp-testing`.**
 ChatGPT desktop Sol/Terra with site tools uses the same
@@ -86,9 +84,10 @@ Open with the part a prompt cannot.
 
 | Time | Where | What happens |
 | --- | --- | --- |
-| 0:00 | `/arena` | IndieTerminal and a live decision, no account. Do not type. Say: “I didn't use the website.” |
-| 0:10 | ChatGPT desktop | “Use Decision Arena to stress-test whether /research should run without a Clerk session.” |
-| 0:15 | Same page | `stress_test_decision` fires. The question appears. Seats write one by one. Contradictions land in red. |
+| 0:00 | `/` | One button: Open IndieTerminal. No account. |
+| 0:08 | `/arena` | Live decision on the table. WebMCP badge bottom-right. Do not type. |
+| 0:15 | ChatGPT desktop | “Use Decision Arena to stress-test whether /research and /scan should run without a Clerk session.” |
+| 0:20 | Same page | `stress_test_decision` fires. Seats write. The badge lists the calls. |
 | 0:45 | `/arena` | Verdict. Deadlock or a lean. What would change the call. |
 | 0:55 | ChatGPT | `confirm_commit` — refused. “Agents propose. Founders commit.” |
 | 1:05 | Same page | `share_decision`. Slack unfurls a card that says **confirm_commit was refused**. Open `/share/…`. No login. |
@@ -231,8 +230,8 @@ is not advertised. There is no canvas tool surface, and board marks are not
 registered.
 
 All of these are live at `/webmcp`, which lists what `getTools()` actually
-returns. **Judges: no account needed.** Start at [`/webmcp`](/webmcp) or go
-straight to [`/arena`](/arena). IndieTerminal is already loaded.
+returns in one line each. **Judges: no account needed.** Start at
+[`/`](/) → Open IndieTerminal.
 
 ### Context — read the workspace
 
