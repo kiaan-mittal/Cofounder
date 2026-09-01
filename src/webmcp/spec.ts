@@ -94,26 +94,28 @@ declare global {
   }
 }
 
-export type WebMCPSupport = "native" | "polyfill" | "unavailable";
+/**
+ * `pending` is the window where the page has tools ready but has deliberately
+ * left `document.modelContext` empty, so a host that binds WebMCP late still
+ * finds the slot free.
+ */
+export type WebMCPSupport = "native" | "polyfill" | "pending" | "unavailable";
 
 /**
- * ChatGPT desktop's in-app browser (Sol / Terra) includes `ChatGPT` in the
- * UA. If we put a shim on `document.modelContext`, that browser treats the
- * slot as taken and never binds native WebMCP — Site tools stay empty and
- * the page lies that "this browser does not implement WebMCP".
+ * A hint, never a gate. ChatGPT desktop can present a stock Chromium UA, so
+ * this only lengthens how long the page waits before falling back — it never
+ * decides whether WebMCP is native.
  */
 export function isChatGPTDesktopBrowser(): boolean {
   if (typeof navigator === "undefined") return false;
   const ua = navigator.userAgent ?? "";
-  if (/ChatGPT/i.test(ua)) return true;
+  if (/ChatGPT|OpenAI/i.test(ua)) return true;
   const brands = (
     navigator as Navigator & {
       userAgentData?: { brands?: Array<{ brand: string }> };
     }
   ).userAgentData?.brands;
-  return Boolean(
-    brands?.some((brand) => /ChatGPT|OpenAI/i.test(brand.brand)),
-  );
+  return Boolean(brands?.some((brand) => /ChatGPT|OpenAI/i.test(brand.brand)));
 }
 
 export function isArenaPolyfill(value: unknown): boolean {
@@ -214,6 +216,52 @@ export function nativeModelContext(): ModelContext | null {
   }
 
   return null;
+}
+
+export interface WebMCPDiagnostics {
+  userAgent: string;
+  documentOwn: "absent" | "page shim" | "getter" | "object";
+  documentPrototype: "absent" | "getter" | "object";
+  navigatorSlot: "absent" | "object";
+  nativeFound: boolean;
+}
+
+/**
+ * What this browser actually exposes, read straight off the property
+ * descriptors. Shown on /webmcp so a browser that never binds WebMCP can be
+ * told apart from one whose binding the page shadowed.
+ */
+export function webmcpDiagnostics(): WebMCPDiagnostics {
+  if (typeof document === "undefined") {
+    return {
+      userAgent: "",
+      documentOwn: "absent",
+      documentPrototype: "absent",
+      navigatorSlot: "absent",
+      nativeFound: false,
+    };
+  }
+
+  const own = descriptor(document, "modelContext");
+  const proto = descriptor(Document.prototype, "modelContext");
+
+  return {
+    userAgent: navigator.userAgent ?? "",
+    documentOwn: !own
+      ? "absent"
+      : typeof own.get === "function"
+        ? "getter"
+        : isArenaPolyfill(own.value)
+          ? "page shim"
+          : "object",
+    documentPrototype: !proto
+      ? "absent"
+      : typeof proto.get === "function"
+        ? "getter"
+        : "object",
+    navigatorSlot: navigator.modelContext ? "object" : "absent",
+    nativeFound: Boolean(nativeModelContext()),
+  };
 }
 
 export function toolResult(summary: string, data?: unknown): ToolResult {
