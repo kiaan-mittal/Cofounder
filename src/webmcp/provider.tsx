@@ -199,14 +199,26 @@ async function reregisterLive() {
   });
 }
 
+/**
+ * Trailing debounce, longest while a round is running.
+ *
+ * Every seat that writes an argument, risk, contradiction or evidence request
+ * changes the inherited room, and re-registering on each one would rewrite the
+ * tool set dozens of times during a single round — churn an agent reading the
+ * list has to see through. Waiting for the floor to go quiet collapses a whole
+ * round into one update.
+ */
 function scheduleReregister() {
   if (!bootDone) return;
   const opening = useArena.getState().arenaPhase === "opening";
   if (timer !== null) window.clearTimeout(timer);
-  timer = window.setTimeout(() => {
-    timer = null;
-    void reregisterLive();
-  }, opening ? 250 : 400);
+  timer = window.setTimeout(
+    () => {
+      timer = null;
+      void reregisterLive();
+    },
+    opening ? 1500 : 400,
+  );
 }
 
 /**

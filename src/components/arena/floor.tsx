@@ -11,6 +11,7 @@ import { PatternBanner } from "@/components/arena/pattern-banner";
 import { PromptComposer } from "@/components/arena/prompt-composer";
 import { SeatOpening, SeatReply } from "@/components/arena/seat-reply";
 import { SharedState } from "@/components/arena/the-loop";
+import { ToolRail } from "@/components/arena/tool-rail";
 import { WatchPublisher } from "@/components/arena/watch-publisher";
 import { detectPatterns, warningsForDecision } from "@/lib/calibration";
 import { PERSPECTIVES, perspectiveName } from "@/lib/perspectives";
@@ -279,6 +280,7 @@ export function FloorBoard({
           </ul>
         ) : null}
       </header>
+      <ToolRail />
       <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
         <SharedState
           risks={risks}
