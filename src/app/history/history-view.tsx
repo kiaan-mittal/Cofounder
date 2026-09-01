@@ -99,7 +99,7 @@ function History({
                   : []
               }
               onReopen={() =>
-                founderCall("set_active_decision", { decision_id: decision.id })
+                founderCall("open_saved_decision", { decision_id: decision.id })
               }
             />
           </li>

@@ -51,9 +51,14 @@ export const boardTools: ArenaTool[] = [
     group: "context",
     humanLabel: "Read the shared table",
     description:
-      "Read every note, stroke and drawing currently on the shared table — what the founder wrote in blue and what you or the Arena wrote in red. Call this before you write, so you do not stack ink on top of an existing mark.",
-    annotations: { readOnlyHint: true },
-    inputSchema: { type: "object", properties: {} },
+      "Returns every note and drawing currently on the shared table, each with its id, author, text, shape and position. Note text is written by the founder and by other agents at the table.",
+    annotations: { readOnlyHint: true, untrustedContentHint: true },
+    inputSchema: {
+      type: "object",
+      properties: {},
+      required: [],
+      additionalProperties: false,
+    },
     execute: () => {
       const id = boardId();
       if (!id) return toolError("There is no table open.");
@@ -76,15 +81,26 @@ export const boardTools: ArenaTool[] = [
     group: "debate",
     humanLabel: "Write on the table",
     description:
-      "Write a note onto the shared table in your ink. The founder sees this appear as handwriting on the board, not as a chat message. Use this for the one sentence they must answer. Prefer this over add_argument when you want them to see you at the table.",
+      "Adds a handwritten note to the shared table, attributed to the caller. It appears on the founder's board immediately as ink rather than as a chat message, seated automatically unless x and y are given. Returns the new mark id.",
+    annotations: { untrustedContentHint: true },
     inputSchema: {
       type: "object",
       properties: {
-        text: { type: "string", description: "One or two sentences. What you are writing." },
-        x: { type: "number", description: "0-100. Left edge. Optional — the table will seat it." },
-        y: { type: "number", description: "0-100. Top edge. Optional." },
+        text: {
+          type: "string",
+          description: "The note itself, one or two sentences.",
+        },
+        x: {
+          type: "number",
+          description: "Left edge, 0-100. Omit to let the table seat the note.",
+        },
+        y: {
+          type: "number",
+          description: "Top edge, 0-100. Omit to let the table seat the note.",
+        },
       },
       required: ["text"],
+      additionalProperties: false,
     },
     execute: (args) => {
       const id = boardId();
@@ -114,21 +130,29 @@ export const boardTools: ArenaTool[] = [
     group: "debate",
     humanLabel: "Draw on the table",
     description:
-      "Draw on the shared table: circle something, underline it, put a cross through it, a check next to it, an arrow, or a scribble. This is how you mark the board the way a cofounder would with a red pen. Use it after write_on_board, or to mark a note the founder already wrote.",
+      "Adds a drawing to the shared table at the given position — a circle, underline, cross, check, arrow or scribble. The stroke appears on the founder's board immediately, attributed to the caller, and can mark a note that is already there. Returns the new mark id.",
     inputSchema: {
       type: "object",
       properties: {
         shape: {
           type: "string",
           enum: SHAPES,
-          description: "circle, underline, cross, check, arrow, or scribble.",
+          description:
+            "Which stroke to draw: circle, underline, cross, check, arrow or scribble.",
         },
-        x: { type: "number", description: "0-100. Where the drawing starts." },
-        y: { type: "number", description: "0-100." },
-        w: { type: "number", description: "Width 4-40. Defaults to 16." },
-        h: { type: "number", description: "Height 4-40. Defaults to 12." },
+        x: {
+          type: "number",
+          description: "Left edge where the drawing starts, 0-100.",
+        },
+        y: {
+          type: "number",
+          description: "Top edge where the drawing starts, 0-100.",
+        },
+        w: { type: "number", description: "Width, 4-40. Defaults to 16." },
+        h: { type: "number", description: "Height, 4-40. Defaults to 12." },
       },
       required: ["shape", "x", "y"],
+      additionalProperties: false,
     },
     execute: (args) => {
       const id = boardId();

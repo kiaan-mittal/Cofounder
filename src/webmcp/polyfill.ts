@@ -68,7 +68,9 @@ class PolyfilledModelContext extends EventTarget implements ModelContext {
     return [...this.#tools.values()].map(({ tool }) => ({
       name: tool.name,
       description: tool.description,
+      title: tool.title,
       inputSchema: tool.inputSchema,
+      annotations: tool.annotations,
       origin: window.location.origin,
       window,
     }));

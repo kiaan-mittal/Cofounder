@@ -133,7 +133,8 @@ export const debateTools: ArenaTool[] = [
     group: "debate",
     humanLabel: "Add an argument",
     description:
-      "Write a structured argument onto the shared table, attributed to one of the five Arena seats. The founder sees this as ink, not a chat reply. Use it when you have found something the current round missed — grounded in the Company Brain or the founder's history. Prefer write_on_board and draw_on_board when you just need them to see a sentence or a mark. State the claim in one sentence and put the support in reasoning.",
+      "Adds a structured argument to the shared table, attributed to one of the five Arena seats and weighted by strength. It lands as ink on the founder's board rather than as a chat reply, and can be marked as challenging an argument already there. Returns the new argument id.",
+    annotations: { untrustedContentHint: true },
     inputSchema: {
       type: "object",
       properties: {
@@ -159,19 +160,34 @@ export const debateTools: ArenaTool[] = [
         },
         basis_items: {
           type: "array",
-          description: "Structured basis list. Preferred over the single basis string.",
+          description:
+            "The basis as a structured list, which supersedes the single basis string.",
+          items: {
+            type: "object",
+            properties: {
+              id: { type: "string", description: "Fact, assumption or pattern id." },
+              label: { type: "string", description: "What that source says." },
+            },
+            required: ["id"],
+          },
         },
         challenges_id: {
           type: "string",
-          description: "If this argument directly challenges another, that argument's id.",
+          description:
+            "Id of the argument this one directly challenges, when it challenges one.",
         },
         strength: {
           type: "number",
-          description: "0-100. How much weight this deserves. Defaults to 60.",
+          description: "How much weight the argument deserves, 0-100. Defaults to 60.",
         },
-        decision_id: { type: "string", description: "Defaults to the open decision." },
+        decision_id: {
+          type: "string",
+          description:
+            "Which decision to write on. Defaults to the decision the founder has open.",
+        },
       },
       required: ["perspective", "stance", "claim", "reasoning"],
+      additionalProperties: false,
     },
     execute: (args) => {
       const decision = resolveDecision(args.decision_id);
@@ -223,25 +239,32 @@ export const debateTools: ArenaTool[] = [
     group: "debate",
     humanLabel: "Challenge an existing argument",
     description:
-      "Challenge an argument already on the table. This attaches your counter-claim to it and marks the original unresolved — it does not delete it, because the founder needs to see the disagreement. Use it when an argument rests on something the Company Brain contradicts, or when it assumes a number the founder's history shows is unreliable. Call get_current_decision first to get the argument id.",
+      "Attaches a counter-claim to an argument already on the table and marks the original unresolved, reducing its strength. The original stays visible so the founder can see the disagreement. Returns the challenge id and the argument's new strength.",
+    annotations: { untrustedContentHint: true },
     inputSchema: {
       type: "object",
       properties: {
         argument_id: {
           type: "string",
-          description: "The id of the argument being challenged, e.g. arg_x1y2z3.",
+          description:
+            "Id of the argument being challenged, as returned by get_current_decision.",
         },
         challenge: {
           type: "string",
           description: "One sentence naming what is wrong with it.",
         },
-        reasoning: { type: "string", description: "Why, specifically, for this company." },
+        reasoning: {
+          type: "string",
+          description: "Why it is wrong, specifically for this company.",
+        },
         weakens_by: {
           type: "number",
-          description: "0-40. How much this should reduce the argument's strength. Defaults to 15.",
+          description:
+            "How much to reduce the argument's strength, 0-40. Defaults to 15.",
         },
       },
       required: ["argument_id", "challenge"],
+      additionalProperties: false,
     },
     execute: (args) => {
       const s = state();
@@ -299,21 +322,27 @@ export const debateTools: ArenaTool[] = [
     group: "debate",
     humanLabel: "Request evidence",
     description:
-      "Put a specific, checkable evidence request on the record — something the founder could look up that would settle a disagreement. The Arena blocks commitment while requests are outstanding, so ask only for things that would actually change the decision. 'Do more research' is not a request; 'the completion rate for the last 20 signups' is.",
+      "Puts a specific, checkable evidence request on the record — something the founder could look up that would settle a disagreement. The Arena blocks commitment while any request is outstanding. Returns the evidence id.",
     inputSchema: {
       type: "object",
       properties: {
         statement: {
           type: "string",
-          description: "The specific thing the founder should check.",
+          description:
+            "The exact thing to check, such as the completion rate for the last 20 signups.",
         },
         argument_id: {
           type: "string",
-          description: "The argument that hinges on this, if any.",
+          description: "Id of the argument that hinges on this, when one does.",
         },
-        decision_id: { type: "string", description: "Defaults to the open decision." },
+        decision_id: {
+          type: "string",
+          description:
+            "Which decision to record it against. Defaults to the decision the founder has open.",
+        },
       },
       required: ["statement"],
+      additionalProperties: false,
     },
     execute: (args) => {
       const decision = resolveDecision(args.decision_id);
@@ -351,16 +380,29 @@ export const debateTools: ArenaTool[] = [
     group: "debate",
     humanLabel: "Flag a contradiction",
     description:
-      "Record two things the founder appears to believe that cannot both be true — for example a stated priority that this decision reverses, or a past rationale that contradicts today's. This is the sharpest tool in the Arena, so it must be earned: quote both sides from the Company Brain, the decision history or the founder's own defenses. Do not flag mere tension or trade-offs.",
+      "Records two things the founder appears to believe that cannot both be true, such as a stated priority this decision reverses. It blocks commitment until the founder resolves it, and it holds only for a direct conflict, not a trade-off. Returns the contradiction id.",
+    annotations: { untrustedContentHint: true },
     inputSchema: {
       type: "object",
       properties: {
         summary: { type: "string", description: "One line naming the tension." },
-        side_a: { type: "string", description: "The first belief, quoted or cited." },
-        side_b: { type: "string", description: "The second belief that conflicts with it." },
-        decision_id: { type: "string", description: "Defaults to the open decision." },
+        side_a: {
+          type: "string",
+          description:
+            "The first belief, quoted from the Company Brain, the history or a defense.",
+        },
+        side_b: {
+          type: "string",
+          description: "The second belief, quoted, that conflicts with the first.",
+        },
+        decision_id: {
+          type: "string",
+          description:
+            "Which decision to flag it on. Defaults to the decision the founder has open.",
+        },
       },
       required: ["summary", "side_a", "side_b"],
+      additionalProperties: false,
     },
     execute: (args) => {
       const decision = resolveDecision(args.decision_id);
@@ -436,18 +478,38 @@ export const debateTools: ArenaTool[] = [
     group: "debate",
     humanLabel: "Add a risk",
     description:
-      "Add a risk to the open decision. A risk is a specific way this decision could go wrong for this company, with a severity from 1 to 5 and a likelihood. Check get_open_risks first — sharpening an existing risk is more useful than adding a near-duplicate.",
+      "Adds a risk to a decision: a specific way it could go wrong for this company, carrying a severity from 1 to 5 and a likelihood. The risk stays open until the founder mitigates or accepts it. Returns the risk id.",
+    annotations: { untrustedContentHint: true },
     inputSchema: {
       type: "object",
       properties: {
         title: { type: "string", description: "Short name for the risk." },
-        detail: { type: "string", description: "What goes wrong, and how it would show up." },
-        severity: { type: "number", description: "1-5. Defaults to 3." },
-        likelihood: { type: "string", enum: ["low", "medium", "high"] },
-        perspective: { type: "string", enum: PERSPECTIVE_VALUES },
-        decision_id: { type: "string", description: "Defaults to the open decision." },
+        detail: {
+          type: "string",
+          description: "What goes wrong, and how it would show up.",
+        },
+        severity: {
+          type: "number",
+          description: "How bad it would be, 1-5. Defaults to 3.",
+        },
+        likelihood: {
+          type: "string",
+          enum: ["low", "medium", "high"],
+          description: "How likely it is to happen. Defaults to medium.",
+        },
+        perspective: {
+          type: "string",
+          enum: PERSPECTIVE_VALUES,
+          description: "Which seat is raising the risk.",
+        },
+        decision_id: {
+          type: "string",
+          description:
+            "Which decision to add it to. Defaults to the decision the founder has open.",
+        },
       },
       required: ["title", "detail"],
+      additionalProperties: false,
     },
     execute: (args) => {
       const decision = resolveDecision(args.decision_id);
@@ -522,13 +584,15 @@ export const debateTools: ArenaTool[] = [
     group: "debate",
     humanLabel: "Resolve a contradiction",
     description:
-      "Mark a flagged contradiction as resolved, with the explanation of how both sides can now stand. Use the contradiction id from get_current_decision. Commitment stays blocked until every contradiction on the round is resolved.",
+      "Writes a resolution onto a flagged contradiction and closes it, recording how both sides can now stand or which one was dropped. Commitment stays blocked until every contradiction on the round is closed this way. Returns the contradiction id.",
+    annotations: { untrustedContentHint: true },
     inputSchema: {
       type: "object",
       properties: {
         contradiction_id: {
           type: "string",
-          description: "From get_current_decision, e.g. con_…",
+          description:
+            "The contradiction id, as returned by get_current_decision, for example con_7b1c.",
         },
         resolution: {
           type: "string",
@@ -536,6 +600,7 @@ export const debateTools: ArenaTool[] = [
         },
       },
       required: ["contradiction_id", "resolution"],
+      additionalProperties: false,
     },
     execute: (args) => {
       const contradictionId = str(args.contradiction_id);
@@ -563,18 +628,24 @@ export const debateTools: ArenaTool[] = [
     group: "debate",
     humanLabel: "Mitigate or accept a risk",
     description:
-      "Change a risk's status to mitigated, accepted, or open again. Use the risk id from get_open_risks or get_current_decision. Mitigated means a concrete control is in place; accepted means the founder is taking it on the record.",
+      "Changes a risk's status to mitigated, accepted, or open again. Mitigated records that a concrete control is in place; accepted records that the founder is taking the risk on knowingly. Returns the new status.",
+    annotations: { untrustedContentHint: true },
     inputSchema: {
       type: "object",
       properties: {
-        risk_id: { type: "string", description: "From get_open_risks, e.g. risk_…" },
+        risk_id: {
+          type: "string",
+          description:
+            "The risk id, as returned by get_current_decision, for example risk_3d90.",
+        },
         status: {
           type: "string",
           enum: ["open", "mitigated", "accepted"],
-          description: "The new status.",
+          description: "The status to move the risk to.",
         },
       },
       required: ["risk_id", "status"],
+      additionalProperties: false,
     },
     execute: (args) => {
       const riskId = str(args.risk_id);
@@ -589,7 +660,7 @@ export const debateTools: ArenaTool[] = [
       const target = state().risks.find((r) => r.id === riskId);
       if (!target) {
         return toolError(
-          `No risk with id "${riskId}". Call get_open_risks or get_current_decision for valid ids.`,
+          `No risk with id "${riskId}". Call get_current_decision for valid ids.`,
         );
       }
       state().updateRisk(riskId, { status });
@@ -606,17 +677,24 @@ export const debateTools: ArenaTool[] = [
     group: "debate",
     humanLabel: "Mark evidence provided or unavailable",
     description:
-      "Update an evidence request: provided (the founder produced the checkable thing) or unavailable (it cannot be produced). Use the evidence id from get_current_decision. Outstanding requests still block commitment.",
+      "Updates an evidence request to provided, when the founder produced the checkable thing, or unavailable, when it cannot be produced. Requests left outstanding continue to block commitment. Returns the new status.",
+    annotations: { untrustedContentHint: true },
     inputSchema: {
       type: "object",
       properties: {
-        evidence_id: { type: "string", description: "From get_current_decision, e.g. ev_…" },
+        evidence_id: {
+          type: "string",
+          description:
+            "The evidence id, as returned by get_current_decision, for example ev_2a51.",
+        },
         status: {
           type: "string",
           enum: ["provided", "unavailable", "requested"],
+          description: "The status to move the request to.",
         },
       },
       required: ["evidence_id", "status"],
+      additionalProperties: false,
     },
     execute: (args) => {
       const evidenceId = str(args.evidence_id);
@@ -648,18 +726,25 @@ export const debateTools: ArenaTool[] = [
     group: "debate",
     humanLabel: "Record a founder defense",
     description:
-      "Write the founder's defense onto the record — the sentence they are putting against a seat's claim, or against the round as a whole. The Arena then reassesses. Use argument_id when they are answering a specific opening.",
+      "Writes the founder's defense onto the record — what they are putting against one seat's claim, or against the round as a whole — and shows it as a note on the board. The seats reassess afterwards. Returns the defense id.",
+    annotations: { untrustedContentHint: true },
     inputSchema: {
       type: "object",
       properties: {
         text: { type: "string", description: "What the founder is saying." },
         argument_id: {
           type: "string",
-          description: "The argument they are answering, if any.",
+          description:
+            "Id of the argument they are answering. Omit when answering the round as a whole.",
         },
-        decision_id: { type: "string", description: "Defaults to the open decision." },
+        decision_id: {
+          type: "string",
+          description:
+            "Which decision to record it on. Defaults to the decision the founder has open.",
+        },
       },
       required: ["text"],
+      additionalProperties: false,
     },
     execute: (args) => {
       const decision = resolveDecision(args.decision_id);
@@ -704,24 +789,51 @@ export const debateTools: ArenaTool[] = [
     group: "debate",
     humanLabel: "Record a seat's reply",
     description:
-      "Write one seat's reassessment of a founder defense: the full reply, what the defense addressed, what it did not, and the verdict. Pass id to update a streaming draft of the same reply. This is how the five seats talk — not a chat message.",
+      "Writes one seat's reassessment of a founder defense onto the record: the full reply, what the defense addressed, what it left open, and the verdict, which adjusts the original argument's strength. Passing an existing id updates a reply that is still streaming. Returns the reassessment id.",
+    annotations: { untrustedContentHint: true },
     inputSchema: {
       type: "object",
       properties: {
-        argument_id: { type: "string" },
-        defense_id: { type: "string" },
+        argument_id: {
+          type: "string",
+          description: "Id of the argument the seat is reassessing.",
+        },
+        defense_id: {
+          type: "string",
+          description: "Id of the founder defense being answered.",
+        },
         verdict: {
           type: "string",
           enum: ["conceded", "weakened", "unmoved", "reinforced"],
+          description: "How the defense moved the seat's original position.",
         },
-        addressed: { type: "string" },
-        unaddressed: { type: "string" },
+        addressed: {
+          type: "string",
+          description: "What the defense did answer.",
+        },
+        unaddressed: {
+          type: "string",
+          description: "What the defense left open.",
+        },
         reply: { type: "string", description: "The seat speaking in full." },
-        strength_delta: { type: "number" },
-        id: { type: "string", description: "Reuse to finish a streaming reply." },
-        decision_id: { type: "string" },
+        strength_delta: {
+          type: "number",
+          description:
+            "How much to move the argument's strength, positive or negative. Inferred from verdict when omitted.",
+        },
+        id: {
+          type: "string",
+          description:
+            "Id of a reassessment already started, to finish a streaming reply.",
+        },
+        decision_id: {
+          type: "string",
+          description:
+            "Which decision this belongs to. Defaults to the decision the founder has open.",
+        },
       },
       required: ["argument_id", "defense_id", "verdict"],
+      additionalProperties: false,
     },
     execute: (args) => {
       const decision = resolveDecision(args.decision_id);

@@ -8,7 +8,23 @@ import {
   withChannel,
 } from "@/webmcp/registry";
 import { nativeModelContext, type RegisteredTool } from "@/webmcp/spec";
+import { canvasTools } from "@/webmcp/canvas-tools";
 import { ARENA_TOOLS } from "@/webmcp/tools";
+
+/**
+ * Lookup pool for the fallback path. Wider than what any single page
+ * registers, because a contextual tool is still callable from the page that
+ * armed it even if discovery has not caught up.
+ *
+ * Resolved on call, not at module load: tools.ts reaches back through this
+ * module, so reading the arrays at import time hits the cycle uninitialised.
+ */
+function knownTool(name: string) {
+  return (
+    ARENA_TOOLS.find((entry) => entry.name === name) ??
+    canvasTools.find((entry) => entry.name === name)
+  );
+}
 
 /**
  * The only write path the app uses.
@@ -91,7 +107,7 @@ export async function runToolDirect(
 ): Promise<ToolRun> {
   const channel = options?.channel ?? "arena";
   return withChannel(channel, async () => {
-    const tool = ARENA_TOOLS.find((entry) => entry.name === name);
+    const tool = knownTool(name);
     if (!tool) {
       return {
         ok: false,
@@ -124,7 +140,7 @@ export async function runTool(
         { signal: options?.signal },
       );
     } else {
-      const tool = ARENA_TOOLS.find((entry) => entry.name === name);
+      const tool = knownTool(name);
       if (!tool) {
         return {
           ok: false,

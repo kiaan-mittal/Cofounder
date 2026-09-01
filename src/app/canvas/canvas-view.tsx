@@ -18,12 +18,16 @@ import {
 } from "@/lib/selectors";
 import { useArena } from "@/lib/store";
 import type { Argument, Company, Decision } from "@/lib/types";
+import { canvasTools } from "@/webmcp/canvas-tools";
+import { useScopedTools } from "@/webmcp/provider";
 
 export function CanvasView({
   initialSnapshot,
 }: {
   initialSnapshot?: Record<string, unknown> | null;
 }) {
+  useScopedTools(canvasTools);
+
   return (
     <RequireCompany initialSnapshot={initialSnapshot}>
       {(company) => (

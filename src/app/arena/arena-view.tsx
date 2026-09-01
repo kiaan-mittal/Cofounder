@@ -302,7 +302,7 @@ function DecisionStart({
               <DecisionGallery
                 decisions={decisions}
                 onOpen={(id) =>
-                  founderCall("set_active_decision", { decision_id: id })
+                  founderCall("open_saved_decision", { decision_id: id })
                 }
               />
             )}
