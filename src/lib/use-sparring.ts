@@ -23,7 +23,7 @@ export const AGENT_PROMPTS = [
   },
   {
     label: "Attack my weakest assumption",
-    goal: "Find the weakest assumption in the Company Brain. challenge_argument or add_risk against the claim that rests on it. Then tell me which assumption you attacked and why.",
+    goal: "Find the weakest assumption in the Company Brain. add_risk against the claim that rests on it, or add_argument from the seat that should have named it. Then tell me which assumption you attacked and why.",
   },
   {
     label: "Send this to Slack",

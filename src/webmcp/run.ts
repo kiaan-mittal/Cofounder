@@ -8,22 +8,17 @@ import {
   withChannel,
 } from "@/webmcp/registry";
 import { nativeModelContext, type RegisteredTool } from "@/webmcp/spec";
-import { canvasTools } from "@/webmcp/canvas-tools";
 import { ARENA_TOOLS } from "@/webmcp/tools";
 
 /**
- * Lookup pool for the fallback path. Wider than what any single page
- * registers, because a contextual tool is still callable from the page that
- * armed it even if discovery has not caught up.
+ * Lookup for founder/arena calls that are not on document.modelContext.
+ * Guest agents only see GUEST_TOOLS. Clicks still resolve here.
  *
  * Resolved on call, not at module load: tools.ts reaches back through this
  * module, so reading the arrays at import time hits the cycle uninitialised.
  */
 function knownTool(name: string) {
-  return (
-    ARENA_TOOLS.find((entry) => entry.name === name) ??
-    canvasTools.find((entry) => entry.name === name)
-  );
+  return ARENA_TOOLS.find((entry) => entry.name === name);
 }
 
 /**

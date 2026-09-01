@@ -4,10 +4,9 @@ import { useEffect, useSyncExternalStore } from "react";
 
 import {
   registerArenaTools,
-  type ArenaTool,
   type RegistrationOutcome,
 } from "@/webmcp/registry";
-import { ARENA_TOOLS } from "@/webmcp/tools";
+import { GUEST_TOOLS } from "@/webmcp/tools";
 import type { WebMCPSupport } from "@/webmcp/spec";
 
 /**
@@ -41,7 +40,7 @@ function publish(next: WebMCPSnapshot) {
 export function bootWebMCP() {
   if (started || typeof window === "undefined") return;
   started = true;
-  void registerArenaTools(ARENA_TOOLS, new AbortController().signal).then(
+  void registerArenaTools(GUEST_TOOLS, new AbortController().signal).then(
     (result) => {
       publish({ ...result, ready: true });
     },
@@ -58,19 +57,6 @@ export function WebMCPBoot() {
   }, []);
 
   return null;
-}
-
-/**
- * Registers a contextual tool set for as long as the calling page is mounted,
- * and unregisters it on the way out. Unlike the always-on surface above, a
- * tool whose target disappears with the route has to leave with it.
- */
-export function useScopedTools(tools: ArenaTool[]) {
-  useEffect(() => {
-    const controller = new AbortController();
-    void registerArenaTools(tools, controller.signal);
-    return () => controller.abort();
-  }, [tools]);
 }
 
 export function useWebMCP(): WebMCPSnapshot {

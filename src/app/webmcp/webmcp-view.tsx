@@ -15,7 +15,7 @@ import { readToolOutput } from "@/webmcp/compat";
 import { getModelContext } from "@/webmcp/registry";
 import { useWebMCP } from "@/webmcp/provider";
 import { nativeModelContext, type RegisteredTool } from "@/webmcp/spec";
-import { ARENA_TOOLS, TOOL_GROUPS } from "@/webmcp/tools";
+import { GUEST_TOOLS, TOOL_GROUPS } from "@/webmcp/tools";
 
 export function WebMCPView({
   initialSnapshot,
@@ -70,7 +70,7 @@ export function WebMCPView({
           A chat is a room ChatGPT runs. This page is a room it visits. It
           reads the company and the scoreboard through tools, writes onto the
           same table the founder sees, and is refused if it tries to commit.
-          {ARENA_TOOLS.length} primitives on{" "}
+          {GUEST_TOOLS.length} tools on{" "}
           <code className="type-figure text-[14px] text-ink">
             document.modelContext
           </code>
@@ -225,7 +225,7 @@ export function WebMCPView({
       <InkRule className="my-12" />
 
       {TOOL_GROUPS.map((group) => {
-        const tools = ARENA_TOOLS.filter((tool) => tool.group === group.id);
+        const tools = GUEST_TOOLS.filter((tool) => tool.group === group.id);
         return (
           <section key={group.id} className="mb-14">
             <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
@@ -333,7 +333,7 @@ export function WebMCPView({
 const modelContext =
   document.modelContext ?? navigator.modelContext;
 
-for (const tool of ARENA_TOOLS) {
+for (const tool of GUEST_TOOLS) {
   await modelContext.registerTool(instrument(tool), {
     signal, // the spec has no unregisterTool()
   });
