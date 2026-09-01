@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { SHOWCASE_COMPANY_ID } from "@/lib/guest-workspace";
 import { showcaseSnapshot } from "@/lib/showcase-seed";
 import { useArena } from "@/lib/store";
+import type { Company } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { readToolOutput } from "@/webmcp/compat";
 import { getModelContext } from "@/webmcp/registry";
@@ -23,8 +24,15 @@ export function WebMCPView({
 }) {
   const { support, registered, ready, error } = useWebMCP();
   const toolCalls = useArena((state) => state.toolCalls);
-  const company = useArena((state) => state.company);
+  const storeCompany = useArena((state) => state.company);
   const importWorkspace = useArena((state) => state.importWorkspace);
+  const snapshotCompany =
+    initialSnapshot &&
+    typeof initialSnapshot.company === "object" &&
+    initialSnapshot.company
+      ? (initialSnapshot.company as Company)
+      : null;
+  const company = storeCompany ?? snapshotCompany;
   const [discovered, setDiscovered] = useState<RegisteredTool[] | null>(null);
 
   useEffect(() => {
