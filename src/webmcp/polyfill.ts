@@ -27,9 +27,12 @@ import {
  * what makes the demo honest — the agent is never given a private back door
  * into the app, only `getTools()` and `executeTool()`.
  *
- * Never put the shim on `document.modelContext` in ChatGPT desktop. Sol and
- * Terra skip their native bind if the property is already taken, so Site
- * tools stay empty and the page shows "About the shim".
+ * The shim is a last resort, and it waits. A browser that binds WebMCP may do
+ * so after the page's first script, and a page-owned property sitting in
+ * `document.modelContext` is the one thing that can stop that binding from
+ * being reached. So the slot is left empty for a grace period while tools
+ * register on this object internally, and the shim is only published there
+ * once nothing native has appeared.
  */
 
 interface Entry {
@@ -121,6 +124,13 @@ let shim: PolyfilledModelContext | null = null;
 let skipNative = false;
 let sawNativeObject = false;
 
+/**
+ * Until this is set, nothing is written to `document.modelContext`. Tools are
+ * registered on the internal shim the whole time, so the page is fully working
+ * during the wait — only the platform slot is left alone.
+ */
+let exposureAllowed = false;
+
 function earlyPolyfill(): ModelContext | null {
   if (typeof document === "undefined") return null;
   const own = Object.getOwnPropertyDescriptor(document, "modelContext");
@@ -134,7 +144,7 @@ function earlyPolyfill(): ModelContext | null {
 }
 
 function canInstallOwnShim(): boolean {
-  if (isChatGPTDesktopBrowser()) return false;
+  if (!exposureAllowed) return false;
   if (nativePlatformBound()) return false;
   const own = Object.getOwnPropertyDescriptor(document, "modelContext");
   if (own && typeof own.get === "function") return false;
@@ -166,12 +176,7 @@ export function unshadowNative(): ModelContext | null {
         (typeof proto.get === "function" ||
           (proto.value && !isArenaPolyfill(proto.value))),
     );
-    if (
-      isChatGPTDesktopBrowser() ||
-      protoNative ||
-      nativePlatformBound() ||
-      nativeModelContext()
-    ) {
+    if (protoNative || nativePlatformBound() || nativeModelContext()) {
       try {
         delete (document as Document & { modelContext?: ModelContext })
           .modelContext;
@@ -203,65 +208,55 @@ export function adoptNativeIfPresent(): boolean {
 }
 
 /**
- * Give ChatGPT desktop a beat to attach native WebMCP before we own-property
- * a shim onto `document`. Ordinary Chrome has no binding, so we bail early.
+ * How long `document.modelContext` is left untouched so a host can bind it.
+ * ChatGPT desktop can present a stock Chromium UA, so every browser gets a
+ * wait; the UA hint only makes it longer where a binding is likely.
  */
-export async function waitForNativeContext(
-  ms?: number,
-): Promise<ModelContext | null> {
-  if (typeof document === "undefined") return null;
-  const chatgpt = isChatGPTDesktopBrowser();
-  const budget = ms ?? (chatgpt ? 12000 : 2000);
-  const giveUpIfUnbound = chatgpt ? budget : 700;
-  const started = Date.now();
-  while (Date.now() - started < budget) {
-    const native = unshadowNative();
-    if (native) return native;
-    const bound = nativePlatformBound();
-    if (!bound && Date.now() - started > giveUpIfUnbound) break;
-    await new Promise<void>((resolve) => {
-      window.setTimeout(resolve, 80);
-    });
-  }
-  return unshadowNative();
+export function nativeGraceMs(): number {
+  return isChatGPTDesktopBrowser() ? 20_000 : 8_000;
+}
+
+/**
+ * Stop holding the slot open and fall back to the page shim. Tools are already
+ * registered on that same object, so this is only a property write.
+ */
+export function allowShimExposure(): WebMCPSupport {
+  exposureAllowed = true;
+  installed = null;
+  return ensureModelContext();
 }
 
 /**
  * Cursor's embedded browser (and some stubs) expose a `modelContext` whose
  * `registerTool` never resolves. After a timeout we talk to our own shim —
- * but never if the platform bound a native getter (ChatGPT Sol / Chrome flag).
+ * but never if the platform bound a native getter (ChatGPT / Chrome flag).
  */
 export function forcePolyfill(): WebMCPSupport {
-  if (
-    isChatGPTDesktopBrowser() ||
-    nativePlatformBound() ||
-    nativeModelContext()
-  ) {
+  if (nativePlatformBound() || nativeModelContext()) {
     skipNative = false;
     unshadowNative();
     internalShim();
-    installed = nativeModelContext() ? "native" : "unavailable";
+    installed = "native";
     return installed;
   }
   skipNative = true;
+  exposureAllowed = true;
   installed = null;
   return ensureModelContext();
 }
 
-/** The context the page actually uses — native, or the shim after a hang. */
+/**
+ * The context the page actually uses. Never null: while the platform slot is
+ * being held open, in-page callers still get the internal shim, so founder
+ * clicks, Arena seats and the in-page agent keep working.
+ */
 export function resolveModelContext(): ModelContext | null {
   if (typeof document === "undefined") return null;
   if (!skipNative) {
     const native = unshadowNative();
     if (native) return native;
   }
-  if (isChatGPTDesktopBrowser() && !skipNative) {
-    return internalShim();
-  }
-  if (skipNative) {
-    return earlyPolyfill() ?? internalShim();
-  }
-  return earlyPolyfill() ?? shim;
+  return earlyPolyfill() ?? internalShim();
 }
 
 /**
@@ -283,15 +278,16 @@ export function ensureModelContext(): WebMCPSupport {
     }
   }
 
-  if (isChatGPTDesktopBrowser()) {
+  if (installed) return installed;
+
+  if (!exposureAllowed) {
     internalShim();
-    installed = "unavailable";
+    installed = "pending";
     return installed;
   }
 
-  if (installed) return installed;
-
   if (!canInstallOwnShim()) {
+    internalShim();
     installed = nativeModelContext() ? "native" : "unavailable";
     return installed;
   }

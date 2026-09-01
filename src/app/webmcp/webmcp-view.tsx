@@ -14,7 +14,12 @@ import { cn } from "@/lib/utils";
 import { readToolOutput } from "@/webmcp/compat";
 import { getModelContext } from "@/webmcp/registry";
 import { useWebMCP } from "@/webmcp/provider";
-import { nativeModelContext, isChatGPTDesktopBrowser, type RegisteredTool } from "@/webmcp/spec";
+import {
+  nativeModelContext,
+  webmcpDiagnostics,
+  type RegisteredTool,
+  type WebMCPDiagnostics,
+} from "@/webmcp/spec";
 import { GUEST_TOOLS, TOOL_GROUPS } from "@/webmcp/tools";
 
 export function WebMCPView({
@@ -34,10 +39,13 @@ export function WebMCPView({
       : null;
   const company = storeCompany ?? snapshotCompany;
   const [discovered, setDiscovered] = useState<RegisteredTool[] | null>(null);
-  const [chatgpt, setChatgpt] = useState(false);
+  const [probe, setProbe] = useState<WebMCPDiagnostics | null>(null);
 
   useEffect(() => {
-    setChatgpt(isChatGPTDesktopBrowser());
+    const read = () => setProbe(webmcpDiagnostics());
+    read();
+    const timer = window.setInterval(read, 1000);
+    return () => window.clearInterval(timer);
   }, []);
 
   useEffect(() => {
@@ -93,8 +101,8 @@ export function WebMCPView({
               ? "checking…"
               : support === "native"
                 ? "native document.modelContext"
-                : chatgpt && support === "unavailable"
-                  ? "waiting for native"
+                : support === "pending"
+                  ? "holding the slot open"
                   : support === "polyfill"
                     ? "spec-shaped shim"
                     : "unavailable"
@@ -102,7 +110,7 @@ export function WebMCPView({
           tone={
             support === "native"
               ? "moss"
-              : support === "polyfill" || (chatgpt && support === "unavailable")
+              : support === "polyfill" || support === "pending"
                 ? "ochre"
                 : "pencil"
           }
@@ -128,10 +136,11 @@ export function WebMCPView({
         <p className="type-eyebrow">ChatGPT desktop</p>
         <p className="mt-2 text-[14.5px] leading-relaxed text-ink">
           Open this HTTPS URL in ChatGPT desktop&rsquo;s in-app browser (Sol or
-          Terra). Site tools only see ChatGPT&rsquo;s native{" "}
+          Terra), with site tools enabled under Settings → Browser. Site tools
+          read the browser&rsquo;s own{" "}
           <code className="type-figure text-[13px]">document.modelContext</code>
-          . This page will not install a shim in that browser — a shim makes
-          ChatGPT skip its own bind. Implementation should read{" "}
+          , so this page leaves that slot empty at first rather than filling it
+          — Implementation should settle on{" "}
           <span className="text-ink">native document.modelContext</span>. Luna
           and most Enterprise builds do not expose the API. Chrome 149+ with{" "}
           <code className="type-figure text-[13px]">
@@ -240,31 +249,63 @@ export function WebMCPView({
         <p className="mt-4 text-[14px] text-oxblood">{error}</p>
       ) : null}
 
-      {chatgpt && support !== "native" && ready ? (
+      {support === "pending" && ready ? (
         <div className="mt-8 max-w-[70ch] border border-rule bg-leaf px-5 py-4">
-          <p className="type-eyebrow">Waiting for native WebMCP</p>
+          <p className="type-eyebrow">Holding the slot open</p>
           <p className="mt-2 text-[14.5px] leading-relaxed text-ink">
-            ChatGPT desktop (Sol / Terra) has not bound{" "}
+            All {GUEST_TOOLS.length} tools are registered and the Arena is fully
+            usable, but{" "}
             <code className="type-figure text-[13px]">
               document.modelContext
             </code>{" "}
-            yet. This page is leaving that property empty so ChatGPT can bind
-            it. Keep the tab open. In Settings → Browser, enable site tools.
-            Luna does not expose WebMCP.
+            is deliberately still empty. A browser that implements WebMCP can
+            bind it after the first script runs, and a page-owned property
+            sitting there is the one thing that could get in the way. If nothing
+            native arrives, the shim is published there instead.
           </p>
         </div>
       ) : null}
 
-      {support === "polyfill" && !chatgpt ? (
+      {support === "polyfill" ? (
         <div className="mt-8 max-w-[70ch] border border-rule bg-ochre-wash px-5 py-4">
           <p className="type-eyebrow text-ochre">About the shim</p>
           <p className="mt-2 text-[14.5px] leading-relaxed text-ink">
-            This browser does not implement WebMCP, so the Arena installed a
-            local implementation of the same interface —{" "}
+            This browser did not expose WebMCP, so the Arena published a local
+            implementation of the same interface —{" "}
             <code className="type-figure text-[13px]">registerTool</code>,{" "}
             <code className="type-figure text-[13px]">getTools</code>,{" "}
             <code className="type-figure text-[13px]">executeTool</code> and the{" "}
             <code className="type-figure text-[13px]">toolchange</code> event.
+            If the browser binds a native context later, the page drops the shim
+            and moves every tool onto it.
+          </p>
+        </div>
+      ) : null}
+
+      {support !== "native" && probe ? (
+        <div className="mt-4 max-w-[70ch] border border-rule bg-paper px-5 py-4">
+          <p className="type-eyebrow">What this browser exposes</p>
+          <dl className="mt-3 grid gap-x-6 gap-y-1.5 sm:grid-cols-[auto_1fr]">
+            <Probe
+              label="Document.prototype.modelContext"
+              value={probe.documentPrototype}
+            />
+            <Probe label="document.modelContext" value={probe.documentOwn} />
+            <Probe label="navigator.modelContext" value={probe.navigatorSlot} />
+            <Probe
+              label="native found"
+              value={probe.nativeFound ? "yes" : "no"}
+            />
+          </dl>
+          <p className="mt-3 text-[13px] leading-relaxed text-graphite">
+            If every row reads{" "}
+            <span className="type-figure text-[12.5px]">absent</span>, this
+            browser is not offering WebMCP to the page — in ChatGPT desktop that
+            means site tools are off, or the model is one of the builds without
+            it. The page is not blocking anything.
+          </p>
+          <p className="type-figure mt-3 break-all text-[11.5px] text-pencil">
+            {probe.userAgent}
           </p>
         </div>
       ) : null}
@@ -475,6 +516,22 @@ function ReadOnlyRunner({ tool }: { tool: RegisteredTool | null }) {
         </pre>
       ) : null}
     </div>
+  );
+}
+
+function Probe({ label, value }: { label: string; value: string }) {
+  return (
+    <>
+      <dt className="type-figure text-[12.5px] text-graphite">{label}</dt>
+      <dd
+        className={cn(
+          "type-figure text-[12.5px]",
+          value === "absent" || value === "no" ? "text-pencil" : "text-ink",
+        )}
+      >
+        {value}
+      </dd>
+    </>
   );
 }
 

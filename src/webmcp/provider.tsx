@@ -9,16 +9,20 @@ import {
 import { useArena } from "@/lib/store";
 import {
   adoptNativeIfPresent,
-  ensureModelContext,
+  allowShimExposure,
   forcePolyfill,
-  waitForNativeContext,
+  nativeGraceMs,
 } from "@/webmcp/polyfill";
 import {
   registerArenaTools,
   type ArenaTool,
   type RegistrationOutcome,
 } from "@/webmcp/registry";
-import { nativeModelContext, nativePlatformBound, isChatGPTDesktopBrowser, type WebMCPSupport } from "@/webmcp/spec";
+import {
+  nativeModelContext,
+  nativePlatformBound,
+  type WebMCPSupport,
+} from "@/webmcp/spec";
 
 /**
  * Registers the Arena's tool surface for the lifetime of the tab.
@@ -28,8 +32,11 @@ import { nativeModelContext, nativePlatformBound, isChatGPTDesktopBrowser, type 
  * unregistering every tool before a judge's agent could see them — so the
  * stable tools are started once per tab and never aborted from here.
  *
- * Native must win over the page shim. ChatGPT Sol/Terra bind a getter;
- * we wait for it, never shadow it, and re-register if it appears late.
+ * Native must win over the page shim, and the page cannot tell from a user
+ * agent whether a host is going to bind one. So tools register immediately on
+ * the internal shim, `document.modelContext` is left empty for a grace period,
+ * and the shim is only published there if nothing native has arrived. A native
+ * context appearing later takes over and the tools move onto it.
  *
  * WebMCP has no provideContext. The room the agent inherits lives in three
  * tool descriptions (`the_room`, plus a line on `stress_test_decision` and
@@ -117,17 +124,13 @@ async function registerFull() {
       if (nativeWins()) {
         await tick();
         if (gen !== generation) return;
-        [stableResult, liveResult] = await Promise.all([
-          registerArenaTools(stable, lifetime.signal),
-          registerArenaTools(live, liveCtl.signal),
-        ]);
-      } else if (!isChatGPTDesktopBrowser()) {
+      } else {
         forcePolyfill();
-        [stableResult, liveResult] = await Promise.all([
-          registerArenaTools(stable, lifetime.signal),
-          registerArenaTools(live, liveCtl.signal),
-        ]);
       }
+      [stableResult, liveResult] = await Promise.all([
+        registerArenaTools(stable, lifetime.signal),
+        registerArenaTools(live, liveCtl.signal),
+      ]);
     }
     if (gen !== generation) return;
     bootDone = true;
@@ -145,7 +148,7 @@ async function registerFull() {
   } catch (error) {
     if (gen !== generation) return;
     try {
-      if (!nativeWins() && !isChatGPTDesktopBrowser()) forcePolyfill();
+      if (!nativeWins()) forcePolyfill();
       const fallback = await registerArenaTools(
         await loadGuestTools(),
         lifetime.signal,
@@ -211,46 +214,43 @@ function scheduleReregister() {
   }, opening ? 250 : 400);
 }
 
+/**
+ * A host can bind WebMCP well after first paint, so keep looking for the whole
+ * session rather than for a few seconds after load.
+ */
 function watchNativeAdopt() {
   if (nativeWatch !== null) return;
-  const startedAt = Date.now();
-  const limit = isChatGPTDesktopBrowser() ? 120000 : 4500;
-  nativeWatch = window.setInterval(() => {
+  const check = () => {
     if (adoptNativeIfPresent()) {
       rotateSignals();
       void registerFull();
     }
-    if (Date.now() - startedAt > limit && nativeWatch !== null) {
-      window.clearInterval(nativeWatch);
-      nativeWatch = null;
-    }
-  }, 150);
+  };
+  nativeWatch = window.setInterval(check, 400);
+  window.addEventListener("focus", check);
+  document.addEventListener("visibilitychange", check);
+}
+
+/**
+ * Publish the shim into `document.modelContext` once the grace period passes
+ * with nothing native. The tools are already on that object, so this only
+ * changes what the page reports and what an external agent can reach.
+ */
+function scheduleShimExposure() {
+  window.setTimeout(() => {
+    if (nativeWins()) return;
+    const support = allowShimExposure();
+    if (support === "native") return;
+    publish({ ...snapshot, support, ready: true });
+  }, nativeGraceMs());
 }
 
 export function bootWebMCP() {
   if (started || typeof window === "undefined") return;
   started = true;
   watchNativeAdopt();
-  void (async () => {
-    const native = await waitForNativeContext();
-    try {
-      ensureModelContext();
-    } catch {
-      if (!nativeWins() && !isChatGPTDesktopBrowser()) forcePolyfill();
-    }
-    if (isChatGPTDesktopBrowser() && !native && !nativeWins()) {
-      bootDone = true;
-      publish({
-        support: "unavailable",
-        registered: [],
-        error:
-          "ChatGPT has not bound document.modelContext yet. Keep this tab open. Enable site tools in Settings → Browser. Luna does not expose WebMCP.",
-        ready: true,
-      });
-      return;
-    }
-    void registerFull();
-  })();
+  void registerFull();
+  scheduleShimExposure();
   useArena.subscribe(() => scheduleReregister());
 }
 
