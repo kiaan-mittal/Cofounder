@@ -96,6 +96,26 @@ declare global {
 
 export type WebMCPSupport = "native" | "polyfill" | "unavailable";
 
+/**
+ * ChatGPT desktop's in-app browser (Sol / Terra) includes `ChatGPT` in the
+ * UA. If we put a shim on `document.modelContext`, that browser treats the
+ * slot as taken and never binds native WebMCP — Site tools stay empty and
+ * the page lies that "this browser does not implement WebMCP".
+ */
+export function isChatGPTDesktopBrowser(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent ?? "";
+  if (/ChatGPT/i.test(ua)) return true;
+  const brands = (
+    navigator as Navigator & {
+      userAgentData?: { brands?: Array<{ brand: string }> };
+    }
+  ).userAgentData?.brands;
+  return Boolean(
+    brands?.some((brand) => /ChatGPT|OpenAI/i.test(brand.brand)),
+  );
+}
+
 export function isArenaPolyfill(value: unknown): boolean {
   return Boolean(
     value &&

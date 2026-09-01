@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 import { readToolOutput } from "@/webmcp/compat";
 import { getModelContext } from "@/webmcp/registry";
 import { useWebMCP } from "@/webmcp/provider";
-import { nativeModelContext, type RegisteredTool } from "@/webmcp/spec";
+import { nativeModelContext, isChatGPTDesktopBrowser, type RegisteredTool } from "@/webmcp/spec";
 import { GUEST_TOOLS, TOOL_GROUPS } from "@/webmcp/tools";
 
 export function WebMCPView({
@@ -34,6 +34,11 @@ export function WebMCPView({
       : null;
   const company = storeCompany ?? snapshotCompany;
   const [discovered, setDiscovered] = useState<RegisteredTool[] | null>(null);
+  const [chatgpt, setChatgpt] = useState(false);
+
+  useEffect(() => {
+    setChatgpt(isChatGPTDesktopBrowser());
+  }, []);
 
   useEffect(() => {
     if (!ready) return;
@@ -88,14 +93,16 @@ export function WebMCPView({
               ? "checking…"
               : support === "native"
                 ? "native document.modelContext"
-                : support === "polyfill"
-                  ? "spec-shaped shim"
-                  : "unavailable"
+                : chatgpt && support === "unavailable"
+                  ? "waiting for native"
+                  : support === "polyfill"
+                    ? "spec-shaped shim"
+                    : "unavailable"
           }
           tone={
             support === "native"
               ? "moss"
-              : support === "polyfill"
+              : support === "polyfill" || (chatgpt && support === "unavailable")
                 ? "ochre"
                 : "pencil"
           }
@@ -121,11 +128,12 @@ export function WebMCPView({
         <p className="type-eyebrow">ChatGPT desktop</p>
         <p className="mt-2 text-[14.5px] leading-relaxed text-ink">
           Open this HTTPS URL in ChatGPT desktop&rsquo;s in-app browser (Sol or
-          Terra). Implementation should read{" "}
-          <span className="text-ink">native document.modelContext</span> — that
-          is ChatGPT&rsquo;s WebMCP, not a page shim. Luna and most Enterprise
-          builds do not expose the API. Wait until the page finishes loading —
-          tools register once per tab and stay registered. Chrome 149+ with{" "}
+          Terra). Site tools only see ChatGPT&rsquo;s native{" "}
+          <code className="type-figure text-[13px]">document.modelContext</code>
+          . This page will not install a shim in that browser — a shim makes
+          ChatGPT skip its own bind. Implementation should read{" "}
+          <span className="text-ink">native document.modelContext</span>. Luna
+          and most Enterprise builds do not expose the API. Chrome 149+ with{" "}
           <code className="type-figure text-[13px]">
             chrome://flags/#enable-webmcp-testing
           </code>{" "}
@@ -232,7 +240,22 @@ export function WebMCPView({
         <p className="mt-4 text-[14px] text-oxblood">{error}</p>
       ) : null}
 
-      {support === "polyfill" ? (
+      {chatgpt && support !== "native" && ready ? (
+        <div className="mt-8 max-w-[70ch] border border-rule bg-leaf px-5 py-4">
+          <p className="type-eyebrow">Waiting for native WebMCP</p>
+          <p className="mt-2 text-[14.5px] leading-relaxed text-ink">
+            ChatGPT desktop (Sol / Terra) has not bound{" "}
+            <code className="type-figure text-[13px]">
+              document.modelContext
+            </code>{" "}
+            yet. This page is leaving that property empty so ChatGPT can bind
+            it. Keep the tab open. In Settings → Browser, enable site tools.
+            Luna does not expose WebMCP.
+          </p>
+        </div>
+      ) : null}
+
+      {support === "polyfill" && !chatgpt ? (
         <div className="mt-8 max-w-[70ch] border border-rule bg-ochre-wash px-5 py-4">
           <p className="type-eyebrow text-ochre">About the shim</p>
           <p className="mt-2 text-[14.5px] leading-relaxed text-ink">

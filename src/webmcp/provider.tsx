@@ -18,7 +18,7 @@ import {
   type ArenaTool,
   type RegistrationOutcome,
 } from "@/webmcp/registry";
-import { nativeModelContext, nativePlatformBound, type WebMCPSupport } from "@/webmcp/spec";
+import { nativeModelContext, nativePlatformBound, isChatGPTDesktopBrowser, type WebMCPSupport } from "@/webmcp/spec";
 
 /**
  * Registers the Arena's tool surface for the lifetime of the tab.
@@ -121,7 +121,7 @@ async function registerFull() {
           registerArenaTools(stable, lifetime.signal),
           registerArenaTools(live, liveCtl.signal),
         ]);
-      } else {
+      } else if (!isChatGPTDesktopBrowser()) {
         forcePolyfill();
         [stableResult, liveResult] = await Promise.all([
           registerArenaTools(stable, lifetime.signal),
@@ -145,7 +145,7 @@ async function registerFull() {
   } catch (error) {
     if (gen !== generation) return;
     try {
-      if (!nativeWins()) forcePolyfill();
+      if (!nativeWins() && !isChatGPTDesktopBrowser()) forcePolyfill();
       const fallback = await registerArenaTools(
         await loadGuestTools(),
         lifetime.signal,
@@ -214,12 +214,13 @@ function scheduleReregister() {
 function watchNativeAdopt() {
   if (nativeWatch !== null) return;
   const startedAt = Date.now();
+  const limit = isChatGPTDesktopBrowser() ? 120000 : 4500;
   nativeWatch = window.setInterval(() => {
     if (adoptNativeIfPresent()) {
       rotateSignals();
       void registerFull();
     }
-    if (Date.now() - startedAt > 4500 && nativeWatch !== null) {
+    if (Date.now() - startedAt > limit && nativeWatch !== null) {
       window.clearInterval(nativeWatch);
       nativeWatch = null;
     }
@@ -231,11 +232,22 @@ export function bootWebMCP() {
   started = true;
   watchNativeAdopt();
   void (async () => {
-    await waitForNativeContext();
+    const native = await waitForNativeContext();
     try {
       ensureModelContext();
     } catch {
-      if (!nativeWins()) forcePolyfill();
+      if (!nativeWins() && !isChatGPTDesktopBrowser()) forcePolyfill();
+    }
+    if (isChatGPTDesktopBrowser() && !native && !nativeWins()) {
+      bootDone = true;
+      publish({
+        support: "unavailable",
+        registered: [],
+        error:
+          "ChatGPT has not bound document.modelContext yet. Keep this tab open. Enable site tools in Settings → Browser. Luna does not expose WebMCP.",
+        ready: true,
+      });
+      return;
     }
     void registerFull();
   })();
