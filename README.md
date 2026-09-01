@@ -1,9 +1,12 @@
 # Decision Arena
 
-**AI that argues with you before reality does.**
+**A decision ChatGPT can join. Not one it can own.**
 
-A founder and an agent share one structured decision — not a chat log, not a
-whiteboard. Built for the [WebMCP Challenge](https://github.com/webmachinelearning/webmcp).
+Five seats arguing is a prompt. This is a company-owned decision object:
+your repo and site already loaded, your past predictions already scored,
+agents writing onto the same table you see — and a commit they are not
+allowed to press. Built for the [WebMCP Challenge](https://github.com/webmachinelearning/webmcp)
+because that protocol is how a guest is allowed into the room.
 
 ```
 Company Brain → Decision → Five seats argue → You defend
@@ -15,40 +18,44 @@ Company Brain → Decision → Five seats argue → You defend
 
 The canvas on `/arena` is the **shared state**, not the product. Five objects
 only: claim, evidence, risk, assumption, decision. You write in indigo. They
-write in red. Same map. The loop above is what you ship and what you demo.
+write in red. Same map. Close the chat: the map is still there.
 
 ---
 
-## Why it exists
+## Why ChatGPT cannot just do this
 
-1. **The argument is unrecorded.** You reason it out in the shower, or in a
-   chat window, and what survives is a conclusion with the reasoning stripped
-   off.
-2. **The pushback is fake.** A chatbot asked to challenge you will challenge
-   you until you push back, then agree.
-3. **Nobody keeps score.** Predictions are made in passing and never checked.
+A judge who strips the protocol name off the UI should still have an answer.
 
-Decision Arena makes the argument a record, makes the pushback survive contact
-with your defense, and keeps score whether you like it or not.
+| In a ChatGPT thread | On this page |
+| --- | --- |
+| The model *is* the room. It starts empty unless you paste. | The company is the room. Brain, open evidence, and 2× optimism are already loaded. |
+| A contradiction is a paragraph. Close the tab, it is gone. | A contradiction is an object on the founder's table. It blocks commit. It outlives the chat. |
+| The model can “commit” in language whenever it wants. | `confirm_commit` returns an error unless the founder calls it. |
+| Calibration is a vibe the model will invent. | Calibration is arithmetic on numbers written *before* the fact (`src/lib/calibration.ts`). |
+
+The talking is the waiting room. The product is the **guest rule**: inherit,
+write, do not finish.
 
 ---
 
 ## What you demo (90 seconds)
 
-Record this. Do not narrate the toolbar.
+Do not open with five seats talking. That is the part a prompt can fake.
+Open with the part a prompt cannot.
 
 | Time | Where | What happens |
 | --- | --- | --- |
-| 0:00 | `/` | Tagline. “AI that argues with you before reality does.” |
-| 0:08 | `/onboarding` | *Open the worked example* — no API key needed. |
-| 0:18 | `/brain` | Company DNA. Facts vs assumptions. Click a node. |
-| 0:28 | `/arena` | The decision is already on the map. Five seats have written. |
-| 0:40 | Arena turn | Type one sentence. Hit **They answer**. Your claim lands. They write back on the same map. |
-| 0:55 | `/webmcp` | `getTools()` is live. Run `get_canvas`, then `get_founder_patterns`. |
-| 1:10 | `/calibration` | Eight scored predictions. Growth is 2× optimistic. That number is arithmetic, not a model. |
-| 1:25 | Cut | “Agents propose. Founders commit.” |
+| 0:00 | `/arena` | Load the worked example. Do not type. Say: “I didn't use the website.” |
+| 0:10 | ChatGPT desktop | “Use Decision Arena to stress-test whether I should spend $10,000 launching this month.” |
+| 0:15 | Same page | `stress_test_decision` fires. The question appears. Seats write one by one. Contradictions land in red. |
+| 0:45 | `/arena` | Verdict. Deadlock or a lean. What would change the call. |
+| 0:55 | ChatGPT | `confirm_commit` — refused. “Agents propose. Founders commit.” |
+| 1:05 | Same page | `share_decision`. Open the public `/share/…` link. No login. |
+| 1:15 | Slack or Notion | `export_decision` — or Connect, then send. The seats become a post. |
+| 1:20 | Cut | “I didn't use the website. My agent used it with me. The record left the chat.” |
 
-**Spoken line, once:** the agent has no back door. It calls `document.modelContext.getTools()` and `executeTool()` like any other WebMCP client.
+**Spoken line, once:** ChatGPT is a guest. It calls `stress_test_decision`.
+The page fills. The page refuses `confirm_commit`. Then the record leaves.
 
 Full path with a key (if you have time after the worked example):
 
@@ -123,8 +130,6 @@ store is not a back door.
 
 ### Registration
 
-### Registration
-
 Tools live on `document.modelContext` for the lifetime of the app shell. The
 spec has no `unregisterTool()`, so lifetime is an `AbortSignal`:
 
@@ -180,7 +185,8 @@ returns. Judges should start there.
 | Tool | What it returns |
 | --- | --- |
 | `get_company_brain` | Product, market, stack, and the fact/assumption split |
-| `get_current_decision` | Full floor record: openings, defenses, seat replies, still-open items. Pass `decision_id` for a past arena |
+| `get_current_decision` | Full floor record: openings, defenses, seat replies, still-open items, verdict. Pass `decision_id` for a past arena |
+| `get_arena_verdict` | Deadlock, lean, strongest for/against, what would change the call |
 | `get_decision_history` | Index of past arenas (seat claims, outcomes). `include_record` attaches the full floor dataset |
 | `get_founder_patterns` | Measured patterns, e.g. growth estimates 2.1× optimistic |
 | `get_open_risks` | Risks still open, by severity |
@@ -210,6 +216,7 @@ returns. Judges should start there.
 
 | Tool | Effect |
 | --- | --- |
+| `stress_test_decision` | **Hero.** Opens the question and seats the five perspectives. The table fills as they write. |
 | `create_prediction` | Falsifiable number, unit, deadline |
 | `add_action_item` | Next step attached to the decision |
 | `toggle_action_item` | Mark that step done, or reopen it |
@@ -219,6 +226,8 @@ returns. Judges should start there.
 | `set_active_decision` | Put a past arena in front of the founder, or show the list |
 | `set_confidence` | Founder and/or Arena confidence, 0–100 |
 | `confirm_commit` | **Founder only.** Agents must `commit_decision` to propose |
+| `share_decision` | Public read-only link. Anyone can open it. No login. |
+| `export_decision` | Link, Slack, or Notion. Always creates the share first. |
 | `set_decision_status` | Investigate or abandon |
 | `commit_decision` | **Proposes** a commitment for the founder to confirm |
 
@@ -253,6 +262,7 @@ Open <http://localhost:3000>.
 | `OPENAI_FALLBACK_MODEL` | no | Defaults to `gpt-4.1` |
 | `OPENAI_BASE_URL` | no | OpenAI-compatible endpoints |
 | `GITHUB_TOKEN` | no | Raises the public API rate limit; no scopes; never writes |
+| `COMPOSIO_API_KEY` | for GitHub login + Slack/Notion export | Composio |
 | `GITHUB_CLIENT_ID` | for private repos | OAuth App client ID |
 | `GITHUB_CLIENT_SECRET` | for private repos | Callback: `/api/auth/github/callback` |
 | `NEXT_PUBLIC_APP_URL` | no | Defaults to `http://localhost:3000` |
@@ -262,8 +272,9 @@ Open <http://localhost:3000>.
 
 Keys are read only in server routes, except the public Supabase URL.
 
-Apply `supabase/migrations/20260830120000_workspaces.sql` once in the SQL
-editor if you want workspaces to survive a refresh on another machine.
+Apply the SQL in `supabase/migrations/` in filename order. Local share links
+work without `20260901120000_decision_shares.sql` (they write a JSON file).
+Production share and Slack/Notion export need that table.
 
 ### Without a key
 
@@ -282,6 +293,7 @@ src/
     onboarding/            Website + GitHub → Company Brain
     brain/                 Facts, assumptions, Company DNA
     arena/                 Shared decision map, defense, commit
+    share/                 Public read-only decision brief
     history/               Decisions, predictions, outcomes
     calibration/           Accuracy per domain
     webmcp/                Live tool surface — start here if you are judging
@@ -296,6 +308,7 @@ src/
     board-tools.ts         Ink on the sheet
     debate-tools.ts        Argue, challenge, demand evidence
     decision-tools.ts      Predictions, action items, commitment proposals
+    share-tools.ts         Public link, Slack, Notion
     outcome-tools.ts       Results and recalibration
     agent.ts               In-page agent — getTools() / executeTool() only
     provider.tsx           Registers the surface for the app shell

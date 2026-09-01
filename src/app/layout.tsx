@@ -54,7 +54,7 @@ export default async function RootLayout({
       lang="en"
       className={`${fraunces.variable} ${instrumentSans.variable} ${jetbrainsMono.variable}`}
     >
-      <body>
+      <body suppressHydrationWarning>
         <InkFilters />
         <div className="flex min-h-dvh flex-col">
           <AppChrome

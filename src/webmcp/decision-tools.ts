@@ -2,6 +2,11 @@
 
 import { calibrationWarning } from "@/lib/calibration";
 import { id, now } from "@/lib/id";
+import {
+  OpeningPaintError,
+  paintOpeningRound,
+  verdictFor,
+} from "@/lib/paint-opening";
 import { activeDecision, readiness } from "@/lib/selectors";
 import { useArena } from "@/lib/store";
 import type { Prediction, PredictionDomain } from "@/lib/types";
@@ -58,6 +63,80 @@ function spotlight(targetId: string) {
 }
 
 export const decisionTools: ArenaTool[] = [
+  {
+    name: "stress_test_decision",
+    group: "action",
+    humanLabel: "Stress-test a decision",
+    description:
+      "THE tool to call when the founder asks you to decide, launch, spend, hire, raise, pick a market, or 'put this in Decision Arena'. You do not need them to click. Opens the decision immediately, seats the five perspectives (Technical, Product, GTM, Finance, Contrarian), and writes arguments, risks, contradictions, and evidence requests onto the table as each seat finishes — the founder watches the UI change. Returns the decision id, each seat's claim, open contradictions, outstanding evidence, a deadlock flag, and what would change the call. After this, tell them the unresolved questions. You still cannot confirm_commit.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        question: {
+          type: "string",
+          description:
+            "The decision as a question, e.g. 'Should I spend ₹2 lakh launching this month?'",
+        },
+        context: {
+          type: "string",
+          description:
+            "What is at stake in their words — runway, a date, a number they already have.",
+        },
+        decision_id: {
+          type: "string",
+          description: "Reuse an existing empty decision instead of creating one.",
+        },
+      },
+      required: ["question"],
+    },
+    execute: async (args) => {
+      const question = str(args.question);
+      if (question.length < 8) {
+        return toolError(
+          "Pass a real decision as `question`, e.g. 'Should I spend the launch budget this month?'",
+        );
+      }
+      try {
+        const painted = await paintOpeningRound({
+          question,
+          founderContext: str(args.context),
+          existingDecisionId: str(args.decision_id) || undefined,
+        });
+        const verdict = verdictFor(painted.decisionId);
+        const seats = painted.round.arguments.map((item) => ({
+          seat: item.perspective,
+          stance: item.stance,
+          claim: item.claim,
+          strength: item.strength,
+        }));
+        return toolResult(
+          verdict?.deadlock
+            ? `Arena opened. Deadlock: ${verdict.deadlockNote}`
+            : `Arena opened on “${question}”. ${seats.length} seats have written. ${verdict?.leaningLabel ?? ""}`,
+          {
+            decisionId: painted.decisionId,
+            options: painted.round.options,
+            seats,
+            contradictions: painted.round.contradictions,
+            evidenceRequests: painted.round.evidenceRequests,
+            verdict,
+          },
+        );
+      } catch (caught) {
+        if (caught instanceof OpeningPaintError) {
+          return toolError(
+            caught.hint ? `${caught.message} ${caught.hint}` : caught.message,
+          );
+        }
+        return toolError(
+          caught instanceof Error
+            ? caught.message
+            : "The Arena could not open this round.",
+        );
+      }
+    },
+  },
+
   {
     name: "create_prediction",
     group: "action",
@@ -280,7 +359,7 @@ export const decisionTools: ArenaTool[] = [
     group: "action",
     humanLabel: "Open a decision",
     description:
-      "Create a decision on the table, or fill an existing one, and make it the round the founder has open. Pass options the seats will argue over. Then write arguments with add_argument. Returns the decision id.",
+      "Create a blank decision, or fill an existing one, and make it the round the founder has open. Prefer stress_test_decision when they ask you to put a decision into the Arena — that tool opens the round AND seats the five perspectives. Only use this if you already have options and will write arguments yourself.",
     inputSchema: {
       type: "object",
       properties: {

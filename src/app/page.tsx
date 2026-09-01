@@ -8,22 +8,39 @@ import {
   PerspectiveEmblem,
   SecondChair,
 } from "@/components/ink/emblems";
-import { ArenaMark, InkRule, InkUnderline } from "@/components/ink/marks";
+import { InkRule, InkUnderline } from "@/components/ink/marks";
 import { BalanceSketch, TableSketch } from "@/components/ink/table-drawings";
 import { Button } from "@/components/ui/button";
-import { WebMCPStatus } from "@/components/webmcp/webmcp-status";
 import { PERSPECTIVES } from "@/lib/perspectives";
 import type { Reassessment } from "@/lib/types";
 import { readGithubSession } from "@/server/github-oauth";
 import { pathAfterLogin } from "@/server/login-path";
 
 const LOOP = [
-  { step: "Brain", detail: "The company you already have — facts, assumptions, constraints." },
+  { step: "Brain", detail: "Your repo and site, split into facts and bets — already loaded." },
   { step: "Decision", detail: "One question with more than one honest answer." },
-  { step: "Arena", detail: "You defend. An agent uses this page's WebMCP tools." },
-  { step: "State", detail: "Risks, contradictions, and evidence — one shared record." },
-  { step: "Commit", detail: "You choose, and attach a number that can be wrong." },
-  { step: "Calibrate", detail: "The number lands. The next decision gets sharper." },
+  { step: "Arena", detail: "An agent writes on this table. It cannot close it." },
+  { step: "State", detail: "Open evidence and contradictions block the commit." },
+  { step: "Commit", detail: "Only you. Then a number that can be wrong." },
+  { step: "Calibrate", detail: "Reality scores it. The next room already knows." },
+];
+
+const NOT_A_CHAT = [
+  {
+    mark: "01",
+    title: "It cannot inherit the company.",
+    body: "A new chat starts empty. You paste a brief, or you don't. Here the GitHub repo, the site, and the last scored predictions are already in the room. The agent reads them. You do not re-explain yourself.",
+  },
+  {
+    mark: "02",
+    title: "It cannot write only in the transcript.",
+    body: "In a chat, a contradiction is a paragraph. Here it is an object on your table, in the same ink the seats use, and it blocks commit until you deal with it. Close the tab. It is still there tomorrow.",
+  },
+  {
+    mark: "03",
+    title: "It cannot finish the decision.",
+    body: "ChatGPT can recommend you ship. It cannot press commit. The last irreversible act stays with the person who lives with it. Agents propose. Founders commit.",
+  },
 ];
 
 const SPECIMEN: Reassessment = {
@@ -57,34 +74,10 @@ export default async function LandingPage() {
 
   return (
     <div className="mx-auto max-w-[1400px] px-5">
-      <header className="flex h-16 items-center gap-4">
-        <div className="flex items-center gap-2.5">
-          <ArenaMark />
-          <span className="type-display text-[17px] font-semibold">
-            Decision Arena
-          </span>
-        </div>
-        <div className="ml-auto flex items-center gap-4">
-          <Link
-            href="/webmcp"
-            className="type-eyebrow hidden transition-colors hover:text-ink sm:block"
-          >
-            Tool surface
-          </Link>
-          <Link
-            href="/login"
-            className="type-eyebrow text-ink transition-opacity hover:opacity-60"
-          >
-            Sign in
-          </Link>
-          <WebMCPStatus />
-        </div>
-      </header>
-
       {/* Hero */}
-      <section className="grid gap-12 border-t border-rule pt-14 pb-20 lg:grid-cols-[1.15fr_1fr] lg:gap-20 lg:pt-20">
+      <section className="grid gap-12 pt-14 pb-20 lg:grid-cols-[1.15fr_1fr] lg:gap-20 lg:pt-20">
         <div className="max-w-[36ch]">
-          <p className="type-eyebrow">Human + agent decision workspace</p>
+          <p className="type-eyebrow">A decision ChatGPT can join, not own</p>
 
           <h1 className="type-display mt-6 text-[clamp(2.75rem,7vw,4.75rem)] font-semibold">
             AI that argues
@@ -101,10 +94,10 @@ export default async function LandingPage() {
           </h1>
 
           <p className="mt-9 text-[17px] leading-relaxed text-graphite">
-            Founders do not lack information. They lack high-quality
-            disagreement. Decision Arena reads your company, argues with your
-            next consequential decision from five angles, holds you to a
-            measurable prediction, and remembers what actually happened.
+            Five seats arguing is a prompt. This is the other thing: a
+            company-owned decision that already knows your repo, your misses,
+            and the evidence still open. Agents write on the same table you
+            see. They are not allowed to end it.
           </p>
 
           <div className="mt-10 flex flex-wrap items-center gap-3">
@@ -117,13 +110,13 @@ export default async function LandingPage() {
               variant="outline"
               className="h-11 px-6 text-[15px]"
             >
-              <Link href="/webmcp">See what agents can do here</Link>
+              <Link href="/webmcp">See the guest protocol</Link>
             </Button>
           </div>
 
           <p className="type-eyebrow mt-8 leading-relaxed">
-            Built for the WebMCP Challenge · Runs in ChatGPT&rsquo;s browser and
-            in Chrome
+            The page is the room. ChatGPT is a guest. Runs in ChatGPT desktop
+            and in Chrome.
           </p>
         </div>
 
@@ -148,6 +141,35 @@ export default async function LandingPage() {
             Fig. 2 — The five seats. They write first. You answer on the record.
           </p>
         </div>
+      </section>
+
+      <section className="border-t border-rule py-16">
+        <h2 className="type-eyebrow">The question this has to survive</h2>
+        <p className="type-display mt-5 max-w-[22ch] text-[clamp(1.8rem,3.5vw,2.6rem)] font-semibold leading-[1.08]">
+          Cool — but couldn&rsquo;t ChatGPT just do this?
+        </p>
+        <p className="mt-5 max-w-[58ch] text-[17px] leading-relaxed text-graphite">
+          Strip the protocol name off the page. The talking still looks like a
+          chat with extra chairs. The product is what remains when the chat
+          ends, what the chat is forbidden to do while it is open, and the
+          record it can send to Slack or Notion — a link that still works after
+          the tab closes.
+        </p>
+        <ol className="mt-10 grid gap-px bg-rule lg:grid-cols-3">
+          {NOT_A_CHAT.map((item) => (
+            <li key={item.mark} className="bg-paper p-6">
+              <span className="type-figure text-[11px] text-pencil">
+                {item.mark}
+              </span>
+              <h3 className="type-display mt-3 text-[22px] font-semibold leading-tight">
+                {item.title}
+              </h3>
+              <p className="mt-3 text-[15px] leading-relaxed text-graphite">
+                {item.body}
+              </p>
+            </li>
+          ))}
+        </ol>
       </section>
 
       <section className="border-t border-rule py-16">
@@ -321,19 +343,23 @@ export default async function LandingPage() {
       <section className="border-t border-rule py-16">
         <div className="grid gap-10 lg:grid-cols-[1fr_1.1fr] lg:gap-16">
           <div>
-            <h2 className="type-eyebrow">Why this is a WebMCP product</h2>
+            <h2 className="type-eyebrow">Why an agent is a guest here</h2>
             <p className="type-display mt-5 text-[32px] leading-tight">
               The agent doesn&rsquo;t describe the workspace. It works in it.
             </p>
             <p className="mt-6 max-w-[46ch] text-[17px] leading-relaxed text-graphite">
-              Decision Arena exposes decision primitives to any connected agent
-              — read the Company Brain, challenge an argument, flag a
-              contradiction, record a prediction. Not{" "}
+              That is the only reason the protocol matters. ChatGPT in a thread
+              is the room. ChatGPT on this page is a guest with named verbs:
+              read the brain, flag a contradiction, request evidence, propose a
+              commit. Not{" "}
               <code className="type-figure text-[13px] text-ink">
                 click_button
               </code>
-              . When an agent calls one, the founder&rsquo;s page changes in
-              front of them and they answer back.
+              . When it calls one, your table changes. When it calls{" "}
+              <code className="type-figure text-[13px] text-ink">
+                confirm_commit
+              </code>
+              , the page says no.
             </p>
             <Button asChild variant="outline" className="mt-8">
               <Link href="/webmcp">Open the tool surface</Link>
@@ -366,7 +392,7 @@ export default async function LandingPage() {
 
       <footer className="flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-rule py-10">
         <span className="type-eyebrow">
-          Decision Arena · MIT licensed · WebMCP Challenge 2026
+          Decision Arena · MIT licensed · the page is the room
         </span>
         <Link
           href="/login"

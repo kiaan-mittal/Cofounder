@@ -290,8 +290,12 @@ function EmptyTable({
       <div className="max-w-[36ch] text-center">
         <p className="type-eyebrow">Empty table</p>
         <h2 className="type-display mt-3 text-[24px] font-semibold leading-snug">
-          Let the five seats write.
+          Let the five seats write. Or don&rsquo;t click — ask the agent.
         </h2>
+        <p className="mt-3 text-[14px] leading-relaxed text-graphite">
+          “Use Decision Arena to stress-test whether I should launch this
+          month.” The board fills as they write.
+        </p>
         <Button
           className="mt-6 h-10 px-5"
           disabled={busy !== null}

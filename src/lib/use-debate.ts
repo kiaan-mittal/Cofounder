@@ -5,11 +5,8 @@ import { useCallback, useState } from "react";
 import { ApiError, post, readEventStream } from "@/lib/api";
 import { detectPatterns } from "@/lib/calibration";
 import { id, now } from "@/lib/id";
-import type {
-  DebateDefendEvent,
-  DebateOpenEvent,
-  DebateOpeningRound,
-} from "@/lib/reading";
+import { OpeningPaintError, paintOpeningRound } from "@/lib/paint-opening";
+import type { DebateDefendEvent, DebateOpeningRound } from "@/lib/reading";
 import { argumentsFor, decisionHistory } from "@/lib/selectors";
 import { useArena, type ArenaState } from "@/lib/store";
 import type {
@@ -101,48 +98,6 @@ async function arenaCall(name: string, args: Record<string, unknown>) {
   return result;
 }
 
-async function writeRound(decisionId: string, round: OpeningResponse) {
-  await Promise.all(
-    round.arguments.map((argument) =>
-      arenaCall("add_argument", {
-        perspective: argument.perspective,
-        stance: argument.stance,
-        claim: argument.claim,
-        reasoning: argument.reasoning,
-        basis_items: argument.basis,
-        strength: argument.strength,
-        decision_id: decisionId,
-      }),
-    ),
-  );
-  await Promise.all([
-    ...round.risks.map((risk) =>
-      arenaCall("add_risk", {
-        title: risk.title,
-        detail: risk.detail,
-        severity: risk.severity,
-        likelihood: risk.likelihood,
-        perspective: risk.perspective ?? undefined,
-        decision_id: decisionId,
-      }),
-    ),
-    ...round.contradictions.map((item) =>
-      arenaCall("flag_contradiction", {
-        summary: item.summary,
-        side_a: item.sideA,
-        side_b: item.sideB,
-        decision_id: decisionId,
-      }),
-    ),
-    ...round.evidenceRequests.map((statement) =>
-      arenaCall("request_evidence", {
-        statement,
-        decision_id: decisionId,
-      }),
-    ),
-  ]);
-}
-
 export function useDebate() {
   const [busy, setBusy] = useState<null | "opening" | "defending" | "readiness">(
     null,
@@ -182,55 +137,23 @@ export function useDebate() {
       }
 
       try {
-        const collected: { round: OpeningResponse | null } = { round: null };
-        const timeout = AbortSignal.timeout(90_000);
-        await readEventStream<DebateOpenEvent>(
-          "/api/debate/open",
-          debateContext(state, question, founderContext),
-          (event) => {
-            if (event.type === "perspective") {
-              setOpeningReady((current) =>
-                current.includes(event.perspective)
-                  ? current
-                  : [...current, event.perspective],
-              );
-            }
-            if (event.type === "error") {
-              throw new ApiError(event.message, event.hint);
-            }
-            if (event.type === "done") {
-              collected.round = event.round;
-            }
-          },
-          timeout,
-        );
-        const round = collected.round;
-        if (!round) {
-          throw new ApiError(
-            "The specialists started, but the round never arrived.",
-          );
-        }
-
-        const opened = await arenaCall("open_decision", {
+        const painted = await paintOpeningRound({
           question,
-          context: founderContext || round.contextNote,
-          options: round.options,
-          arena_confidence: round.arenaConfidence,
-          ...(existingDecisionId ? { decision_id: existingDecisionId } : {}),
+          founderContext,
+          existingDecisionId,
+          signal: AbortSignal.timeout(90_000),
         });
-        const decisionId =
-          typeof opened.data?.decisionId === "string" ? opened.data.decisionId : "";
-        if (!decisionId) {
-          throw new ApiError("open_decision did not return a decision id.");
-        }
-
-        await writeRound(decisionId, round);
-
+        setOpeningReady(useArena.getState().openingReady);
         return (
-          useArena.getState().decisions.find((item) => item.id === decisionId) ??
-          null
+          useArena.getState().decisions.find(
+            (item) => item.id === painted.decisionId,
+          ) ?? null
         );
       } catch (caught) {
+        if (caught instanceof OpeningPaintError) {
+          setError({ message: caught.message, hint: caught.hint });
+          return null;
+        }
         if (caught instanceof DOMException && caught.name === "AbortError") {
           setError({
             message: "The round took too long to open.",

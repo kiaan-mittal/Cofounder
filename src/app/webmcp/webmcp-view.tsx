@@ -53,19 +53,21 @@ export function WebMCPView({
     <div className="mx-auto max-w-[1400px] px-5 py-12 lg:py-16">
       <HydrateWorkspace initialSnapshot={initialSnapshot} />
       <header className="max-w-[62ch]">
-        <p className="type-eyebrow">WebMCP</p>
+        <p className="type-eyebrow">The guest protocol</p>
         <h1 className="type-display mt-5 text-[clamp(2rem,4.4vw,3.25rem)] font-semibold leading-[1.04]">
-          What an agent can do inside this page.
+          ChatGPT can join this decision. It cannot own it.
         </h1>
         <p className="mt-7 text-[17px] leading-relaxed text-graphite">
-          Decision Arena registers {ARENA_TOOLS.length} tools on{" "}
+          A chat is a room ChatGPT runs. This page is a room it visits. It
+          reads the company and the scoreboard through tools, writes onto the
+          same table the founder sees, and is refused if it tries to commit.
+          {ARENA_TOOLS.length} primitives on{" "}
           <code className="type-figure text-[14px] text-ink">
             document.modelContext
           </code>
-          . Each one is a decision primitive. Founder clicks, Arena seats, and
-          a browser agent all go through{" "}
+          . Founder clicks, seats, and a browser agent all call{" "}
           <code className="type-figure text-[14px] text-ink">executeTool</code>
-          {" "}on the same list. None of them are wrappers around buttons.
+          . None of them are wrappers around buttons.
         </p>
       </header>
 
@@ -145,13 +147,24 @@ export function WebMCPView({
         <div className="mt-6 max-w-[62ch] border border-rule bg-paper px-5 py-4">
           <p className="type-eyebrow text-oxblood">Judge quickstart</p>
           <p className="mt-2 text-[14.5px] leading-relaxed text-graphite">
-            Load the worked example here, then run{" "}
-            <code className="type-figure text-[13px] text-ink">get_company_brain</code>
-            ,{" "}
-            <code className="type-figure text-[13px] text-ink">get_current_decision</code>{" "}
-            and{" "}
-            <code className="type-figure text-[13px] text-ink">get_founder_patterns</code>
-            . The tools will read a real decision record immediately.
+            Load the worked example, open{" "}
+            <Link href="/arena" className="underline underline-offset-4">
+              /arena
+            </Link>
+            , then in ChatGPT say: “Use Decision Arena to stress-test whether I
+            should spend $10,000 launching this month.” Do not click. Watch{" "}
+            <code className="type-figure text-[13px] text-ink">
+              stress_test_decision
+            </code>{" "}
+            fill the table. Then{" "}
+            <code className="type-figure text-[13px] text-ink">
+              confirm_commit
+            </code>{" "}
+            — refused. Then{" "}
+            <code className="type-figure text-[13px] text-ink">
+              share_decision
+            </code>{" "}
+            — the record leaves the chat. That is the product.
           </p>
         </div>
       ) : null}
@@ -257,10 +270,11 @@ export function WebMCPView({
           </h2>
           <ol className="mt-6 space-y-5">
             {[
-              "Open the worked example, or build a Brain from your own site and repository.",
-              "Open a decision in the Arena so there is something to argue about.",
-              "Ask an agent to read the current decision and challenge it — or use the agent console in the Arena. Both go through getTools() and executeTool().",
-              "Watch the table change: a card gets a red ring, a contradiction appears, a risk lands. Then answer it.",
+              "Open the worked example, then open /arena. Do not type.",
+              "In ChatGPT (or the in-page agent): “Use Decision Arena to stress-test whether I should spend $10,000 launching this month.”",
+              "Watch stress_test_decision fill the table — seats, contradictions, evidence — without a click.",
+              "Ask it to confirm_commit. The page says no. Then you accept, hold, or reject.",
+              "Then share_decision — or export_decision to Slack. Open the public /share link. The record left the chat.",
             ].map((step, index) => (
               <li key={step} className="flex gap-4">
                 <span className="type-figure w-6 shrink-0 text-[12px] text-pencil">
