@@ -240,6 +240,7 @@ export const decisionTools: ArenaTool[] = [
   {
     name: "add_action_item",
     group: "action",
+    expose: false,
     humanLabel: "Add an action item",
     description:
       "Attaches a concrete next step to the decision, typically the cheapest thing that would resolve an open risk or answer an outstanding evidence request. Returns the action item id.",
@@ -290,6 +291,7 @@ export const decisionTools: ArenaTool[] = [
   {
     name: "toggle_action_item",
     group: "action",
+    expose: false,
     humanLabel: "Toggle an action item",
     description:
       "Marks an action item done, or reopens one that was already done. Returns the item id and its new state.",
@@ -398,6 +400,7 @@ export const decisionTools: ArenaTool[] = [
   {
     name: "open_decision",
     group: "action",
+    expose: false,
     humanLabel: "Open a decision",
     description:
       "Creates a blank decision with its options, or fills an existing empty one, and makes it the round the founder has open. It seats no perspectives and writes no arguments, unlike stress_test_decision, which does both. Returns the decision id.",
@@ -492,6 +495,7 @@ export const decisionTools: ArenaTool[] = [
   {
     name: "write_decision_summary",
     group: "action",
+    expose: false,
     humanLabel: "Write the decision summary",
     description:
       "Writes the short framing paragraph that sits at the top of a decision record, above the seat arguments, summarising what is at stake. It replaces whatever summary is there unless append is true, and the seats read it on the next round. Returns the stored summary.",
@@ -543,6 +547,7 @@ export const decisionTools: ArenaTool[] = [
   {
     name: "open_saved_decision",
     group: "action",
+    expose: false,
     humanLabel: "Open a saved decision",
     description:
       "Opens a decision the founder already has and puts it back in front of them on the floor. With most_recent true it opens the one they worked on last; with a decision_id it opens that one; with list true it leaves the round and shows the gallery of every arena. Returns the decision that is now open.",
@@ -611,6 +616,7 @@ export const decisionTools: ArenaTool[] = [
   {
     name: "set_confidence",
     group: "action",
+    expose: false,
     humanLabel: "Set confidence",
     description:
       "Sets the founder's confidence, the Arena's, or both, as a number from 0 to 100 on a decision. Returns the values now stored.",
@@ -727,6 +733,7 @@ export const decisionTools: ArenaTool[] = [
   {
     name: "set_decision_status",
     group: "action",
+    expose: false,
     humanLabel: "Investigate or abandon",
     description:
       "Marks a decision investigating, which puts a deferral on the record, or abandoned, or open to put it back on the floor. Committing is not one of these states; that goes through confirm_commit. Returns the new status.",

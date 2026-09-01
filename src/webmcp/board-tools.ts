@@ -49,6 +49,7 @@ export const boardTools: ArenaTool[] = [
   {
     name: "get_board",
     group: "context",
+    expose: false,
     humanLabel: "Read the shared table",
     description:
       "Returns every note and drawing currently on the shared table, each with its id, author, text, shape and position. Note text is written by the founder and by other agents at the table.",
@@ -79,6 +80,7 @@ export const boardTools: ArenaTool[] = [
   {
     name: "write_on_board",
     group: "debate",
+    expose: false,
     humanLabel: "Write on the table",
     description:
       "Adds a handwritten note to the shared table, attributed to the caller. It appears on the founder's board immediately as ink rather than as a chat message, seated automatically unless x and y are given. Returns the new mark id.",
@@ -128,6 +130,7 @@ export const boardTools: ArenaTool[] = [
   {
     name: "draw_on_board",
     group: "debate",
+    expose: false,
     humanLabel: "Draw on the table",
     description:
       "Adds a drawing to the shared table at the given position — a circle, underline, cross, check, arrow or scribble. The stroke appears on the founder's board immediately, attributed to the caller, and can mark a note that is already there. Returns the new mark id.",

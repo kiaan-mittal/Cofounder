@@ -43,9 +43,9 @@ a real company, from public sources — for anyone who is not signed in.
 5. Optional, only if you want to try onboarding with **your** GitHub: `/login`.
    That is not required, and it is not the founder's account.
 
-Brain, Arena, Canvas, History, Calibration, and WebMCP are all public on this
-floor. Sign-in exists so a visitor can load *their* repository. It is not a
-gate on the demo.
+Brain, Arena, History, Calibration, and WebMCP are all public on this floor.
+Sign-in exists so a visitor can load *their* repository. It is not a gate on
+the demo.
 
 ---
 
@@ -149,8 +149,8 @@ in order to genuinely participate in a decision”. Answer: read the same
 structured workspace the founder is looking at, and change it in the same
 semantic terms.
 
-There is no `click_commit_button`. There is `challenge_argument`,
-`flag_contradiction`, `add_canvas_node`, `create_prediction`. **The page
+There is no `click_commit_button`. There is `add_argument`,
+`flag_contradiction`, `stress_test_decision`, `create_prediction`. **The page
 decides how a semantic action is rendered.** Founder clicks, Arena seats, and
 browser agents all call `runTool` → `document.modelContext.executeTool`. The
 store is not a back door.
@@ -164,7 +164,7 @@ spec has no `unregisterTool()`, so lifetime is an `AbortSignal`:
 // src/webmcp/registry.ts
 const modelContext = nativeModelContext() ?? document.modelContext;
 
-for (const tool of ARENA_TOOLS) {
+for (const tool of GUEST_TOOLS) {
   await modelContext.registerTool(instrument(tool), { signal });
 }
 ```
@@ -204,8 +204,12 @@ one for them.
 
 ## WebMCP tools
 
-31 tools register on every page; the 4 canvas tools arm only on `/canvas`, so a
-tool is never advertised where it cannot reach its target.
+16 tools register on `document.modelContext`. That is the protocol a guest
+agent sees — inherit the company, write on the table, propose, do not finish.
+Housekeeping the founder clicks (open a saved round, tick an action item,
+resolve a risk) still goes through `executeTool` so the log stays honest. It
+is not advertised. There is no canvas tool surface, and board marks are not
+registered.
 
 All of these are live at `/webmcp`, which lists what `getTools()` actually
 returns. **Judges: no account needed.** Start at [`/webmcp`](/webmcp) or go
@@ -219,25 +223,16 @@ straight to [`/arena`](/arena). IndieTerminal is already loaded.
 | `get_current_decision` | Full floor record: openings, defenses, seat replies, still-open items, verdict. Pass `decision_id` for a past arena |
 | `get_decision_history` | Index of past arenas (seat claims, outcomes). `include_record` attaches the full floor dataset |
 | `get_founder_track_record` | Measured patterns, calibration per domain, and every prediction's expected vs actual |
-| `get_canvas` | Every claim, evidence, risk, assumption, and the links between them. Registered on `/canvas` |
-| `get_board` | Freehand marks on the shared sheet |
 
 ### Debate — participate in the reasoning
 
 | Tool | Effect |
 | --- | --- |
-| `add_argument` | New argument, attributed to a seat, with its basis |
-| `challenge_argument` | Counter-claim; original marked unresolved |
+| `add_argument` | New argument, attributed to a seat, with its basis. Can challenge an existing claim |
 | `request_evidence` | Checkable request; blocks commitment |
 | `flag_contradiction` | Two things that cannot both be true |
 | `add_risk` | Severity + likelihood, open until resolved |
-| `resolve_contradiction` | Close a flagged contradiction with an explanation |
-| `set_risk_status` | Mitigate, accept, or reopen a risk |
-| `mark_evidence` | Mark a request provided or unavailable |
-| `add_canvas_node` | Put one object on the shared map |
-| `connect_nodes` | `supports`, `counters`, `depends`, or `handoff` |
-| `return_work` | After a handoff, write the result back onto the map |
-| `write_on_board` / `draw_on_board` | Ink on the sheet |
+| `add_defense` | Founder's pushback, on the record |
 
 ### Action — turn reasoning into commitment
 
@@ -245,18 +240,9 @@ straight to [`/arena`](/arena). IndieTerminal is already loaded.
 | --- | --- |
 | `stress_test_decision` | **Hero.** Opens the question and seats the five perspectives. The table fills as they write. |
 | `create_prediction` | Falsifiable number, unit, deadline |
-| `add_action_item` | Next step attached to the decision |
-| `toggle_action_item` | Mark that step done, or reopen it |
-| `add_defense` | Founder's pushback, on the record |
-| `add_reassessment` | One seat's full reply to that defense |
-| `open_decision` | Create or reopen a round, then write with `add_argument` |
-| `open_saved_decision` | Open the most recent arena, a specific one by id, or the list |
-| `write_decision_summary` | The framing paragraph at the top of the record |
-| `set_confidence` | Founder and/or Arena confidence, 0–100 |
-| `confirm_commit` | **Founder only.** Agents must `commit_decision` to propose |
-| `share_decision` | Public read-only link, and optionally Slack or Notion. No login to read. |
-| `set_decision_status` | Investigate or abandon |
 | `commit_decision` | **Proposes** a commitment for the founder to confirm |
+| `confirm_commit` | **Founder only.** Agents are refused. |
+| `share_decision` | Public read-only link, and optionally Slack or Notion. No login to read. |
 
 ### Outcome — feed reality back in
 
@@ -331,14 +317,12 @@ src/
     polyfill.ts            Shim, only when the platform has nothing
     registry.ts            Registration, attribution, logging, spotlight
     context-tools.ts       Read the workspace
-    canvas-tools.ts        Shared decision objects
-    board-tools.ts         Ink on the sheet
-    debate-tools.ts        Argue, challenge, demand evidence
-    decision-tools.ts      Predictions, action items, commitment proposals
+    debate-tools.ts        Argue, demand evidence, flag contradictions
+    decision-tools.ts      Stress-test, predictions, commitment proposals
     share-tools.ts         Public link, Slack, Notion
     outcome-tools.ts       Results and recalibration
     agent.ts               In-page agent — getTools() / executeTool() only
-    provider.tsx           Registers the surface for the app shell
+    provider.tsx           Registers the guest surface for the app shell
 
   server/                  Ingestion, prompts, structured output
   lib/
