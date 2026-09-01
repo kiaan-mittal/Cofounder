@@ -247,7 +247,7 @@ function SeatVoices({
   }
 
   return (
-    <ul className="mt-5 grid gap-px bg-rule sm:grid-cols-2">
+    <ul className="mt-5 grid gap-3 sm:grid-cols-2">
       {args.map((argument) => (
         <SeatVoice key={argument.id} argument={argument} />
       ))}
@@ -257,7 +257,7 @@ function SeatVoices({
 
 function SeatVoice({ argument }: { argument: Argument }) {
   return (
-    <li className="bg-leaf px-3.5 py-3">
+    <li className="border border-rule bg-leaf px-3.5 py-3">
       <div className="flex items-start gap-2">
         <PerspectiveEmblem
           perspective={argument.perspective}

@@ -136,11 +136,14 @@ A FACT is something a source states. It must be traceable, with a short verbatim
 
 An ASSUMPTION is a belief the company is acting on that the sources do not establish. "Solo developers will pay $49/month" is an assumption. "The rewrite is worth the delay" is an assumption. Assumptions are what the Arena will later attack, so make them sharp, specific and falsifiable — never vague platitudes.
 
+The GitHub URL the founder connected is the product repository. A personal portfolio, blog, or LinkedIn page is not the product repository even if it mentions the company. If the connected repository could not be read (private, missing token), say that the connected repo exists and was not readable. Never invent a public search. Never say there is no repository when a GitHub URL was provided.
+
 Use every high-signal page you were given — homepage, pricing, product, about, docs — before blog noise. Do not ignore a pricing page or an open issue. Prefer a specific price, plan name, or customer claim over a generic summary. Never present an inference as a fact. If a topic is missing after a multi-page read, say so in gaps. Always return facts and assumptions as arrays. Write in plain, specific, unhedged prose, using the company's own vocabulary.`;
 
 export function buildBrainPrompt(sources: {
   website: WebsiteSource | null;
   github: GithubSource | null;
+  githubUrl?: string;
 }): string {
   const parts: string[] = [];
 
@@ -209,6 +212,10 @@ export function buildBrainPrompt(sources: {
         ].join("\n"),
       ),
     );
+  } else if (sources.githubUrl?.trim()) {
+    parts.push(
+      `The founder connected this GitHub repository: ${sources.githubUrl.trim()}. It could not be read (private, missing token, or not found). Do not search for other repositories. Do not treat a personal website as the product repo. Record a fact that this URL is the connected project and that the file tree was not readable on this pass.`,
+    );
   } else {
     parts.push("No repository content is available for this company.");
   }
@@ -223,6 +230,7 @@ export function buildBrainPrompt(sources: {
 export async function generateCompanyBrain(sources: {
   website: WebsiteSource | null;
   github: GithubSource | null;
+  githubUrl?: string;
 }): Promise<{ brain: CompanyBrain; companyName: string }> {
   const raw = await generateStructured({
     schema: brainSchema,
@@ -247,7 +255,14 @@ export async function generateCompanyBrain(sources: {
   const degraded = !sources.website || !sources.github;
   const gaps = [...raw.gaps];
   if (!sources.website) gaps.unshift("The website could not be read.");
-  if (!sources.github) gaps.unshift("The repository could not be read.");
+  if (!sources.github) {
+    const connected = sources.githubUrl?.trim();
+    gaps.unshift(
+      connected
+        ? `The connected repository ${connected} could not be read on this pass.`
+        : "The repository could not be read.",
+    );
+  }
 
   const brain: CompanyBrain = {
     headline: raw.headline || raw.companyName || "Untitled company",
@@ -397,8 +412,20 @@ export function normalizeBrainDraft(value: unknown): BrainDraft {
 function seedFacts(sources: {
   website: WebsiteSource | null;
   github: GithubSource | null;
+  githubUrl?: string;
 }): BrainDraft["facts"] {
   const facts: BrainDraft["facts"] = [];
+
+  if (!sources.github && sources.githubUrl?.trim()) {
+    facts.push({
+      statement: `The connected GitHub project is ${sources.githubUrl.trim()}. The file tree was not readable on this pass.`,
+      provenance: {
+        kind: "github",
+        ref: sources.githubUrl.trim(),
+        quote: sources.githubUrl.trim(),
+      },
+    });
+  }
 
   if (sources.website) {
     const site = sources.website;

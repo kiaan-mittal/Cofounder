@@ -30,7 +30,7 @@ export function landingSchema(origin: string) {
         "@id": `${origin}/#organization`,
         name: "Decision Arena",
         url: origin,
-        logo: `${origin}/brand/decision-arena-icon.png`,
+        logo: `${origin}/icon`,
       },
       {
         "@type": "SoftwareApplication",

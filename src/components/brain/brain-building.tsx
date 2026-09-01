@@ -42,10 +42,28 @@ export function BrainBuilding({
 
           <div className="mt-4 space-y-1">
             {website ? (
-              <p className="type-figure text-[13px] text-graphite">{website}</p>
+              <p className="type-figure text-[13px] text-graphite">
+                <a
+                  href={website}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline decoration-rule underline-offset-4 hover:text-ink hover:decoration-ink"
+                >
+                  {website}
+                </a>
+              </p>
             ) : null}
             {github ? (
-              <p className="type-figure text-[13px] text-graphite">{github}</p>
+              <p className="type-figure text-[13px] text-graphite">
+                <a
+                  href={github}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline decoration-rule underline-offset-4 hover:text-ink hover:decoration-ink"
+                >
+                  {github}
+                </a>
+              </p>
             ) : null}
           </div>
 

@@ -111,7 +111,7 @@ export function DecisionReady({
           </p>
         ) : (
           <div className="mt-8 space-y-5">
-            <div className="grid gap-px bg-rule sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-2">
               <Note label="Strongest argument for">
                 {forArg?.claim ?? "Nothing argued convincingly for this."}
               </Note>
@@ -271,7 +271,7 @@ function Note({
   children: ReactNode;
 }) {
   return (
-    <div className="bg-paper px-4 py-4">
+    <div className="bg-paper px-4 py-4 border border-rule">
       <p className="type-eyebrow">{label}</p>
       <p className="mt-2 text-[15px] leading-relaxed text-ink">{children}</p>
     </div>

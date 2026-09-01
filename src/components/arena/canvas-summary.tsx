@@ -45,9 +45,9 @@ export function CanvasSummary({
   if (cards.length === 0) return null;
 
   return (
-    <div className="grid gap-px bg-rule sm:grid-cols-2 lg:grid-cols-5">
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {cards.map((card) => (
-        <article key={card.kind} className="bg-paper px-4 py-4">
+        <article key={card.kind} className="border border-rule bg-paper px-4 py-4">
           <p className={`type-eyebrow ${card.tone}`}>
             {card.kind} · {card.items.length}
           </p>

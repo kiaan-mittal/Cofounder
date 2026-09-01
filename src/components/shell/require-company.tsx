@@ -5,11 +5,15 @@ import { useEffect, useLayoutEffect } from "react";
 
 import { Button } from "@/components/ui/button";
 import { demoSnapshot } from "@/lib/demo-seed";
-import { isEphemeralSnapshot } from "@/lib/guest-workspace";
-import { showcaseSnapshot } from "@/lib/showcase-seed";
+import {
+  isEphemeralSnapshot,
+  withoutForeignArenas,
+} from "@/lib/guest-workspace";
+import { isStaleShowcase, showcaseSnapshot } from "@/lib/showcase-seed";
 import {
   snapshotIsEmpty,
   useArena,
+  getWorkspaceSnapshot,
   type WorkspaceSnapshot,
 } from "@/lib/store";
 import {
@@ -56,14 +60,30 @@ export function RequireCompany({
   // is already in the page. `?demo=1` still loads the fictional Kettle
   // sample. Neither is written to a signed-in account.
   useEffect(() => {
-    if (company && !isEphemeralSnapshot({ company })) return;
     const params = new URLSearchParams(window.location.search);
     if (params.get("demo") === "1") {
       importWorkspace(demoSnapshot());
       return;
     }
-    if (company) return;
-    importWorkspace(showcaseSnapshot());
+
+    const live = useArena.getState();
+    const current = live.company ?? company;
+
+    if (current && !isEphemeralSnapshot({ company: current })) {
+      const snap = getWorkspaceSnapshot() as unknown as Record<string, unknown>;
+      const cleaned = withoutForeignArenas(snap);
+      if (cleaned !== snap) importWorkspace(cleaned as WorkspaceSnapshot);
+      return;
+    }
+
+    if (!current || isStaleShowcase(live)) {
+      importWorkspace(showcaseSnapshot());
+      return;
+    }
+
+    const snap = getWorkspaceSnapshot() as unknown as Record<string, unknown>;
+    const cleaned = withoutForeignArenas(snap);
+    if (cleaned !== snap) importWorkspace(cleaned as WorkspaceSnapshot);
   }, [company, importWorkspace]);
 
   useEffect(() => {
@@ -154,8 +174,10 @@ export function HydrateWorkspace({
   }, [initialSnapshot]);
 
   useEffect(() => {
-    if (useArena.getState().company) return;
-    importWorkspace(seedFromQuery());
+    const live = useArena.getState();
+    if (isStaleShowcase(live) || !live.company) {
+      importWorkspace(seedFromQuery());
+    }
   }, [importWorkspace]);
 
   useEffect(() => {

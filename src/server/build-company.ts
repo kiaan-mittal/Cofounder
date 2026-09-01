@@ -72,6 +72,7 @@ export async function buildCompanyFromSources(
   const { brain, companyName } = await generateCompanyBrain({
     website: ingested.website,
     github: ingested.github,
+    githubUrl: github,
   });
 
   const existing = input.existing;
