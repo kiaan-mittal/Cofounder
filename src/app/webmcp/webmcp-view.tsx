@@ -56,7 +56,7 @@ export function WebMCPView({
       cancelled = true;
       modelContext.removeEventListener("toolchange", refresh);
     };
-  }, [ready]);
+  }, [ready, support, registered.length]);
 
   return (
     <div className="mx-auto max-w-[1400px] px-5 py-12 lg:py-16">
@@ -121,10 +121,11 @@ export function WebMCPView({
         <p className="type-eyebrow">ChatGPT desktop</p>
         <p className="mt-2 text-[14.5px] leading-relaxed text-ink">
           Open this HTTPS URL in ChatGPT desktop&rsquo;s in-app browser (Sol or
-          Terra). Luna and most Enterprise builds do not expose{" "}
-          <code className="type-figure text-[13px]">document.modelContext</code>
-          . Wait until the page finishes loading — tools register once per tab
-          and stay registered. Chrome 149+ with{" "}
+          Terra). Implementation should read{" "}
+          <span className="text-ink">native document.modelContext</span> — that
+          is ChatGPT&rsquo;s WebMCP, not a page shim. Luna and most Enterprise
+          builds do not expose the API. Wait until the page finishes loading —
+          tools register once per tab and stay registered. Chrome 149+ with{" "}
           <code className="type-figure text-[13px]">
             chrome://flags/#enable-webmcp-testing
           </code>{" "}

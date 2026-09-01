@@ -1,5 +1,7 @@
 import {
+  isArenaPolyfill,
   nativeModelContext,
+  nativePlatformBound,
   type GetToolsOptions,
   type ModelContext,
   type RegisterToolOptions,
@@ -24,8 +26,9 @@ import {
  * what makes the demo honest — the agent is never given a private back door
  * into the app, only `getTools()` and `executeTool()`.
  *
- * The shim is intentionally page-local: it exposes tools to in-page agents,
- * not across origins, and implements no more of the spec than the app uses.
+ * Never install an own data property over a native getter. ChatGPT desktop
+ * Sol/Terra expose `document.modelContext` that way; shadowing it makes the
+ * page look like a shim while the model talks to an empty native registry.
  */
 
 interface Entry {
@@ -115,6 +118,7 @@ class PolyfilledModelContext extends EventTarget implements ModelContext {
 let installed: WebMCPSupport | null = null;
 let shim: PolyfilledModelContext | null = null;
 let skipNative = false;
+let sawNativeObject = false;
 
 function earlyPolyfill(): ModelContext | null {
   if (typeof document === "undefined") return null;
@@ -128,12 +132,97 @@ function earlyPolyfill(): ModelContext | null {
   return null;
 }
 
+function canInstallOwnShim(): boolean {
+  if (nativePlatformBound()) return false;
+  const own = Object.getOwnPropertyDescriptor(document, "modelContext");
+  if (own && typeof own.get === "function") return false;
+  if (own?.value && typeof own.value.registerTool === "function" && !isArenaPolyfill(own.value)) {
+    return false;
+  }
+  return true;
+}
+
+/**
+ * If our shim is an own data property sitting over a native getter / navigator
+ * binding, delete it so `document.modelContext` is the platform again.
+ */
+export function unshadowNative(): ModelContext | null {
+  if (typeof document === "undefined") return null;
+  const own = Object.getOwnPropertyDescriptor(document, "modelContext");
+  if (own?.configurable && isArenaPolyfill(own.value)) {
+    const proto = Object.getOwnPropertyDescriptor(
+      Document.prototype,
+      "modelContext",
+    );
+    const protoNative = Boolean(
+      proto &&
+        (typeof proto.get === "function" ||
+          (proto.value && !isArenaPolyfill(proto.value))),
+    );
+    if (protoNative || nativePlatformBound() || nativeModelContext()) {
+      try {
+        delete (document as Document & { modelContext?: ModelContext })
+          .modelContext;
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+  const native = nativeModelContext();
+  if (native) sawNativeObject = true;
+  return native;
+}
+
+/**
+ * True when we just moved onto a real native context that still needs tools
+ * registered (shim → native, or a getter that only started returning now).
+ */
+export function adoptNativeIfPresent(): boolean {
+  if (nativePlatformBound() || nativeModelContext()) {
+    skipNative = false;
+  }
+  const before = installed;
+  const alreadyHadObject = sawNativeObject;
+  const native = unshadowNative();
+  if (!native && !nativePlatformBound()) return false;
+  installed = "native";
+  if (before === "polyfill") return Boolean(native);
+  return Boolean(native) && !alreadyHadObject;
+}
+
+/**
+ * Give ChatGPT desktop a beat to attach native WebMCP before we own-property
+ * a shim onto `document`. Ordinary Chrome has no binding, so we bail early.
+ */
+export async function waitForNativeContext(
+  ms = 2000,
+): Promise<ModelContext | null> {
+  if (typeof document === "undefined") return null;
+  const started = Date.now();
+  while (Date.now() - started < ms) {
+    const native = unshadowNative();
+    if (native) return native;
+    const bound = nativePlatformBound();
+    if (!bound && Date.now() - started > 700) break;
+    await new Promise<void>((resolve) => {
+      window.setTimeout(resolve, 80);
+    });
+  }
+  return unshadowNative();
+}
+
 /**
  * Cursor's embedded browser (and some stubs) expose a `modelContext` whose
- * `registerTool` never resolves. After a timeout we talk to our own shim
- * even if `document.modelContext` stays a native object we cannot replace.
+ * `registerTool` never resolves. After a timeout we talk to our own shim —
+ * but never if the platform bound a native getter (ChatGPT Sol / Chrome flag).
  */
 export function forcePolyfill(): WebMCPSupport {
+  if (nativePlatformBound() || nativeModelContext()) {
+    skipNative = false;
+    unshadowNative();
+    installed = "native";
+    return "native";
+  }
   skipNative = true;
   installed = null;
   return ensureModelContext();
@@ -142,12 +231,14 @@ export function forcePolyfill(): WebMCPSupport {
 /** The context the page actually uses — native, or the shim after a hang. */
 export function resolveModelContext(): ModelContext | null {
   if (typeof document === "undefined") return null;
+  if (!skipNative) {
+    const native = unshadowNative();
+    if (native) return native;
+  }
   if (skipNative) {
     return earlyPolyfill() ?? shim ?? (shim = new PolyfilledModelContext());
   }
-  return (
-    earlyPolyfill() ?? nativeModelContext() ?? document.modelContext ?? shim
-  );
+  return earlyPolyfill() ?? shim;
 }
 
 /**
@@ -156,17 +247,23 @@ export function resolveModelContext(): ModelContext | null {
  */
 export function ensureModelContext(): WebMCPSupport {
   if (typeof document === "undefined") return "unavailable";
-  if (installed) return installed;
 
-  const early = earlyPolyfill();
-  if (early) {
-    shim = early as PolyfilledModelContext;
-    installed = "polyfill";
-    return installed;
+  if (!skipNative) {
+    const native = unshadowNative();
+    if (native) {
+      installed = "native";
+      return installed;
+    }
+    if (nativePlatformBound()) {
+      installed = "native";
+      return installed;
+    }
   }
 
-  if (!skipNative && nativeModelContext()) {
-    installed = "native";
+  if (installed) return installed;
+
+  if (!canInstallOwnShim()) {
+    installed = nativeModelContext() ? "native" : "unavailable";
     return installed;
   }
 
@@ -193,8 +290,6 @@ export function ensureModelContext(): WebMCPSupport {
 
 export function isPolyfilled(): boolean {
   if (skipNative && shim) return true;
-  return (
-    (document.modelContext as unknown as { isDecisionArenaPolyfill?: boolean })
-      ?.isDecisionArenaPolyfill === true
-  );
+  if (nativeModelContext()) return false;
+  return isArenaPolyfill(document.modelContext);
 }

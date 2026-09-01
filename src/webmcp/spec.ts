@@ -96,17 +96,103 @@ declare global {
 
 export type WebMCPSupport = "native" | "polyfill" | "unavailable";
 
+export function isArenaPolyfill(value: unknown): boolean {
+  return Boolean(
+    value &&
+      typeof value === "object" &&
+      (value as { isDecisionArenaPolyfill?: boolean }).isDecisionArenaPolyfill ===
+        true,
+  );
+}
+
+function usableNative(value: unknown): ModelContext | null {
+  if (
+    value &&
+    typeof value === "object" &&
+    typeof (value as ModelContext).registerTool === "function" &&
+    !isArenaPolyfill(value)
+  ) {
+    return value as ModelContext;
+  }
+  return null;
+}
+
+function descriptor(
+  target: object,
+  name: "modelContext",
+): PropertyDescriptor | undefined {
+  try {
+    return Object.getOwnPropertyDescriptor(target, name);
+  } catch {
+    return undefined;
+  }
+}
+
+function descriptorLooksNative(desc: PropertyDescriptor | undefined): boolean {
+  if (!desc) return false;
+  if (typeof desc.get === "function") return true;
+  return Boolean(usableNative(desc.value));
+}
+
+/**
+ * True when the platform has already bound `modelContext` — including a
+ * getter on Document / Navigator that has not returned an object yet.
+ * Installing an own data property on `document` would shadow that binding
+ * (ChatGPT desktop Sol/Terra does this).
+ */
+export function nativePlatformBound(): boolean {
+  if (typeof document === "undefined") return false;
+  return (
+    descriptorLooksNative(descriptor(document, "modelContext")) ||
+    descriptorLooksNative(descriptor(Document.prototype, "modelContext")) ||
+    descriptorLooksNative(descriptor(navigator, "modelContext")) ||
+    descriptorLooksNative(descriptor(Navigator.prototype, "modelContext"))
+  );
+}
+
 /**
  * Feature detection exactly as the Chrome guidance recommends: prefer
  * `document.modelContext`, fall back to the deprecated `navigator` location,
  * and never assume either exists.
+ *
+ * The page's own shim is ignored so a shadowed native getter still wins.
  */
 export function nativeModelContext(): ModelContext | null {
   if (typeof document === "undefined") return null;
-  const candidate = document.modelContext ?? navigator.modelContext;
-  if (candidate && typeof candidate.registerTool === "function") {
-    return candidate;
+
+  const own = descriptor(document, "modelContext");
+  if (own?.get) {
+    try {
+      const fromGet = usableNative(own.get.call(document));
+      if (fromGet) return fromGet;
+    } catch {
+      /* getter threw */
+    }
+  } else {
+    const fromOwn = usableNative(own?.value);
+    if (fromOwn) return fromOwn;
   }
+
+  try {
+    const proto = descriptor(Document.prototype, "modelContext");
+    if (proto?.get) {
+      const fromProto = usableNative(proto.get.call(document));
+      if (fromProto) return fromProto;
+    } else {
+      const fromProtoVal = usableNative(proto?.value);
+      if (fromProtoVal) return fromProtoVal;
+    }
+  } catch {
+    /* ignore */
+  }
+
+  try {
+    const fromNav = usableNative(navigator.modelContext);
+    if (fromNav) return fromNav;
+  } catch {
+    /* ignore */
+  }
+
   return null;
 }
 
