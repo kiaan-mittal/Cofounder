@@ -32,6 +32,9 @@ export function PromptComposer({
   agentBusy = false,
   onAgentStop,
   agentSuggestions = [],
+  toolName,
+  toolDescription,
+  toolParamDescription,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -52,6 +55,10 @@ export function PromptComposer({
   agentBusy?: boolean;
   onAgentStop?: () => void;
   agentSuggestions?: readonly Suggestion[];
+  /** WebMCP Declarative API. Only applied when this is the founder's box. */
+  toolName?: string;
+  toolDescription?: string;
+  toolParamDescription?: string;
 }) {
   const [ink, setInk] = useState<ComposerInk>(agentOnly ? "agent" : "board");
   const [agentDraft, setAgentDraft] = useState("");
@@ -83,8 +90,14 @@ export function PromptComposer({
     onSubmit();
   }
 
+  // Switching to the agent tab changes what this box writes, so the
+  // declarative tool unregisters with it rather than describing the wrong one.
+  const declarative = !agentMode && toolName ? toolName : undefined;
+
   return (
     <form
+      toolname={declarative}
+      tooldescription={declarative ? toolDescription : undefined}
       className={cn(
         "bg-paper",
         variant === "briefing" ? "px-5 py-4" : "px-4 py-2.5",
@@ -166,6 +179,9 @@ export function PromptComposer({
           <Textarea
             id={fieldId}
             name="defense"
+            toolparamdescription={
+              declarative ? toolParamDescription : undefined
+            }
             value={draft}
             disabled={locked}
             rows={6}
@@ -194,6 +210,9 @@ export function PromptComposer({
             id={fieldId}
             ref={areaRef}
             name={agentMode ? "agent-message" : "defense"}
+            toolparamdescription={
+              declarative ? toolParamDescription : undefined
+            }
             value={draft}
             disabled={locked}
             rows={2}

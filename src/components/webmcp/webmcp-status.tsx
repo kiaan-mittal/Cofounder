@@ -14,9 +14,9 @@ import { useWebMCP } from "@/webmcp/provider";
 /**
  * An honest status indicator.
  *
- * It reports which implementation the page actually got. Claiming native
+ * It reports which context the tools actually ended up on. Claiming native
  * support in a browser that has none would be the easiest way to lose a
- * judge's trust, so the shim says it is a shim.
+ * judge's trust, so a page context says it is a page context.
  */
 
 const COPY = {
@@ -26,23 +26,17 @@ const COPY = {
     detail:
       "This browser implements document.modelContext natively. Tools are registered with the platform and any connected agent can discover them.",
   },
-  polyfill: {
-    label: "WebMCP shim",
+  page: {
+    label: "WebMCP in-page",
     dot: "bg-ochre",
     detail:
-      "This browser has no native WebMCP, so Decision Arena installed a spec-shaped shim. Every write — seats, founder, in-page agent — still goes through getTools() and executeTool().",
-  },
-  pending: {
-    label: "WebMCP holding",
-    dot: "bg-ochre",
-    detail:
-      "Tools are registered and the Arena is fully usable, but document.modelContext is deliberately left empty for a few seconds so a browser that binds WebMCP natively finds the slot free.",
+      "This browser does not implement WebMCP, so the tools are on an object the page built for its own agent. document.modelContext is left untouched. Every write — seats, founder, in-page agent — still goes through getTools() and executeTool().",
   },
   unavailable: {
     label: "WebMCP unavailable",
     dot: "bg-pencil",
     detail:
-      "No WebMCP entry point could be installed. Every part of the Arena still works; only agent tool access is off.",
+      "No WebMCP entry point is reachable. Every part of the Arena still works; only agent tool access is off.",
   },
 } as const;
 

@@ -7,12 +7,7 @@ import {
   withInheritedDescriptions,
 } from "@/lib/inherited-room";
 import { useArena } from "@/lib/store";
-import {
-  adoptNativeIfPresent,
-  allowShimExposure,
-  forcePolyfill,
-  nativeGraceMs,
-} from "@/webmcp/polyfill";
+import { adoptNativeIfPresent, forcePolyfill } from "@/webmcp/polyfill";
 import {
   registerArenaTools,
   type ArenaTool,
@@ -32,11 +27,11 @@ import {
  * unregistering every tool before a judge's agent could see them — so the
  * stable tools are started once per tab and never aborted from here.
  *
- * Native must win over the page shim, and the page cannot tell from a user
- * agent whether a host is going to bind one. So tools register immediately on
- * the internal shim, `document.modelContext` is left empty for a grace period,
- * and the shim is only published there if nothing native has arrived. A native
- * context appearing later takes over and the tools move onto it.
+ * Nothing here writes to `document.modelContext`. When the browser implements
+ * WebMCP the tools go onto the browser's context through registerTool; when it
+ * does not they go onto the page's own object, which stays private to the page.
+ * A browser context appearing at any later point takes over, and the tools are
+ * re-registered onto it.
  *
  * WebMCP has no provideContext. The room the agent inherits lives in three
  * tool descriptions (`the_room`, plus a line on `stress_test_decision` and
@@ -231,26 +226,11 @@ function watchNativeAdopt() {
   document.addEventListener("visibilitychange", check);
 }
 
-/**
- * Publish the shim into `document.modelContext` once the grace period passes
- * with nothing native. The tools are already on that object, so this only
- * changes what the page reports and what an external agent can reach.
- */
-function scheduleShimExposure() {
-  window.setTimeout(() => {
-    if (nativeWins()) return;
-    const support = allowShimExposure();
-    if (support === "native") return;
-    publish({ ...snapshot, support, ready: true });
-  }, nativeGraceMs());
-}
-
 export function bootWebMCP() {
   if (started || typeof window === "undefined") return;
   started = true;
   watchNativeAdopt();
   void registerFull();
-  scheduleShimExposure();
   useArena.subscribe(() => scheduleReregister());
 }
 
