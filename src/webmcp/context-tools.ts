@@ -2,7 +2,7 @@
 
 import { arenaVerdict } from "@/lib/arena-verdict";
 import { detectPatterns, warningsForDecision } from "@/lib/calibration";
-import { calibrationSnapshot, decisionHistory, decisionSnapshot, openRisksFor, activeDecision } from "@/lib/selectors";
+import { calibrationSnapshot, decisionHistory, decisionSnapshot, activeDecision } from "@/lib/selectors";
 import { useArena } from "@/lib/store";
 import { toolError, toolResult } from "@/webmcp/spec";
 import type { ArenaTool } from "@/webmcp/registry";
@@ -36,7 +36,7 @@ export const contextTools: ArenaTool[] = [
     group: "context",
     humanLabel: "Read the Company Brain",
     description:
-      "Read the Company Brain: what this company builds, who it sells to, its stack, and — critically — the separation between FACTS drawn from the founder's website and repository, and ASSUMPTIONS the company is betting on without proof. The dossier is verbatim excerpts from the pages that were scraped — quote those instead of inventing prices or features. Call this before making any argument. Facts carry source quotes; assumptions carry ids you can cite when you challenge them.",
+      "Returns the Company Brain: what the company builds, who it sells to, its stack, and the split between facts drawn from the founder's website and repository and assumptions it is betting on without proof. Facts carry source quotes; assumptions carry ids. The dossier holds verbatim excerpts from the scraped pages.",
     annotations: { readOnlyHint: true, untrustedContentHint: true },
     inputSchema: {
       type: "object",
@@ -55,6 +55,8 @@ export const contextTools: ArenaTool[] = [
           description: "Narrow the response to one section. Defaults to all.",
         },
       },
+      required: [],
+      additionalProperties: false,
     },
     execute: ({ section }) => {
       const company = state().company;
@@ -101,17 +103,19 @@ export const contextTools: ArenaTool[] = [
     group: "context",
     humanLabel: "Read the open decision",
     description:
-      "Read a decision record as the founder sees it on the floor: the question, options, every seat opening (claim, reasoning, basis), founder defenses in full, and each seat's reassessment including the full reply — not just a verdict. Also returns risks, evidence, contradictions, action items, predictions, and what is still unpaid. Pass decision_id from get_decision_history to load a past arena; omit it to read the round the founder currently has open. Errors if they are on the arena list with nothing open.",
-    annotations: { readOnlyHint: true },
+      "Returns one decision record as the founder sees it on the floor: the question, the options, every seat opening with its claim, reasoning and basis, the founder's defenses in full, and each seat's reassessment reply. Also returns risks, evidence, contradictions, action items, predictions and what is still unpaid.",
+    annotations: { readOnlyHint: true, untrustedContentHint: true },
     inputSchema: {
       type: "object",
       properties: {
         decision_id: {
           type: "string",
           description:
-            "A past or open decision id from get_decision_history. Defaults to the round the founder currently has open.",
+            "A past or open decision id, as returned by get_decision_history. Defaults to the decision the founder has open.",
         },
       },
+      required: [],
+      additionalProperties: false,
     },
     execute: ({ decision_id }) => {
       const decision = requireDecision(decision_id);
@@ -130,48 +134,12 @@ export const contextTools: ArenaTool[] = [
   },
 
   {
-    name: "get_arena_verdict",
-    group: "context",
-    humanLabel: "Read the arena verdict",
-    description:
-      "Read the decision matrix on the table right now: whether the seats are deadlocked, which way the weight leans, the strongest for and against claims, open contradictions, outstanding evidence, and the one thing that would change the call. Not an opinion — arithmetic on what is already written. Call this after stress_test_decision. Then tell the founder the unresolved questions. You still cannot confirm_commit.",
-    annotations: { readOnlyHint: true },
-    inputSchema: {
-      type: "object",
-      properties: {
-        decision_id: {
-          type: "string",
-          description: "Defaults to the open decision.",
-        },
-      },
-    },
-    execute: ({ decision_id }) => {
-      const decision = requireDecision(decision_id);
-      if (!decision) {
-        return toolError(
-          "There is no decision open. Call stress_test_decision first.",
-        );
-      }
-      const verdict = arenaVerdict(state(), decision.id);
-      if (!verdict) {
-        return toolError("There is no decision open.");
-      }
-      return toolResult(
-        verdict.deadlock
-          ? `Deadlock. ${verdict.deadlockNote}`
-          : verdict.leaningLabel,
-        verdict,
-      );
-    },
-  },
-
-  {
     name: "get_decision_history",
     group: "context",
     humanLabel: "Read past decisions",
     description:
-      "Index of every arena this founder has run: question, status, chosen option, predictions, outcome, and a floor summary (seat claims, defense and reply counts). Use a returned id with get_current_decision to load that arena as a full record. Set include_record to true to attach the full floor dataset on each entry in one call.",
-    annotations: { readOnlyHint: true },
+      "Returns an index of every arena this founder has run, newest first: question, status, chosen option, predictions, outcome, and a floor summary of seat claims with defense and reply counts. Each entry carries a decision id that get_current_decision and open_saved_decision both accept.",
+    annotations: { readOnlyHint: true, untrustedContentHint: true },
     inputSchema: {
       type: "object",
       properties: {
@@ -182,9 +150,11 @@ export const contextTools: ArenaTool[] = [
         include_record: {
           type: "boolean",
           description:
-            "Attach the full floor record (openings, defenses, seat replies) to each entry. Defaults to false; prefer get_current_decision with a decision_id when you only need one arena.",
+            "Attach the full floor record — openings, defenses and seat replies — to every entry. Defaults to false, which returns summaries only.",
         },
       },
+      required: [],
+      additionalProperties: false,
     },
     execute: ({ only_with_outcomes, include_record }) => {
       const history = decisionHistory(state(), include_record === true);
@@ -192,10 +162,10 @@ export const contextTools: ArenaTool[] = [
         ? history.filter((h) => h.outcome !== null)
         : history;
       if (filtered.length === 0) {
-        return toolResult(
-          "No decisions on record yet. Do not infer past behaviour you cannot see.",
-          [],
-        );
+        return toolResult("No decisions on record yet.", {
+          decisions: [],
+          note: "This founder has run no arenas, so there is no decision history to read.",
+        });
       }
       raiseHistoryAlert("get_decision_history", "history");
       return toolResult(`${filtered.length} decisions on record.`, filtered);
@@ -203,107 +173,71 @@ export const contextTools: ArenaTool[] = [
   },
 
   {
-    name: "get_founder_patterns",
+    name: "get_founder_track_record",
     group: "context",
-    humanLabel: "Read founder calibration patterns",
+    humanLabel: "Read the founder's track record",
     description:
-      "Read the founder's measured decision patterns — for example a tendency to overestimate growth by 2.1x across five predictions, or to defer commitment. Each pattern is arithmetic over recorded predictions and real outcomes, not an opinion, so you can quote the numbers. Use these to challenge a specific claim the founder has just made, not as a general character assessment.",
+      "Returns everything measured about how this founder estimates: their patterns, such as overestimating growth by 2.1x across five predictions; their calibration profile per domain with the sample size each score rests on; and every prediction with what was expected and what actually happened. A domain whose reliable flag is false has too few outcomes to conclude from.",
     annotations: { readOnlyHint: true },
     inputSchema: {
       type: "object",
       properties: {
         domain: {
           type: "string",
-          description:
-            "Filter to one domain: growth, revenue, timeline, technical, retention, distribution, commitment.",
+          enum: [
+            "growth",
+            "revenue",
+            "timeline",
+            "technical",
+            "retention",
+            "distribution",
+            "commitment",
+          ],
+          description: "Filter to a single estimate domain. Defaults to all.",
+        },
+        prediction_status: {
+          type: "string",
+          enum: ["all", "pending", "hit", "missed", "partial"],
+          description: "Filter the predictions by status. Defaults to all.",
         },
       },
+      required: [],
+      additionalProperties: false,
     },
-    execute: ({ domain }) => {
+    execute: ({ domain, prediction_status }) => {
+      const s = state();
       const patterns = livePatterns();
-      const filtered =
+      const scopedPatterns =
         typeof domain === "string" && domain
           ? patterns.filter((p) => p.domain === domain)
           : patterns;
-      if (filtered.length === 0) {
-        return toolResult(
-          "No calibration patterns yet — this founder has too few evaluated predictions. Do not invent a track record.",
-          [],
+      const predictions =
+        typeof prediction_status === "string" &&
+        prediction_status &&
+        prediction_status !== "all"
+          ? s.predictions.filter((p) => p.status === prediction_status)
+          : s.predictions;
+
+      if (scopedPatterns.length) {
+        raiseHistoryAlert(
+          "get_founder_track_record",
+          "calibration",
+          scopedPatterns,
         );
       }
-      raiseHistoryAlert("get_founder_patterns", "calibration", filtered);
-      return toolResult(`${filtered.length} measured patterns.`, filtered);
-    },
-  },
 
-  {
-    name: "get_open_risks",
-    group: "context",
-    humanLabel: "Read open risks",
-    description:
-      "Read the risks still open on a decision, ordered by severity. A risk stays open until the founder mitigates or explicitly accepts it. Check this before adding a risk of your own so you sharpen an existing one instead of duplicating it.",
-    annotations: { readOnlyHint: true },
-    inputSchema: {
-      type: "object",
-      properties: {
-        decision_id: { type: "string", description: "Defaults to the open decision." },
-      },
-    },
-    execute: ({ decision_id }) => {
-      const decision = requireDecision(decision_id);
-      if (!decision) return toolError("There is no decision open in the Arena.");
-      const risks = openRisksFor(state(), decision.id);
       return toolResult(
-        `${risks.length} open risks on "${decision.question}".`,
-        risks.map((r) => ({
-          id: r.id,
-          title: r.title,
-          detail: r.detail,
-          severity: r.severity,
-          likelihood: r.likelihood,
-          raisedBy: r.createdBy,
-        })),
+        `${scopedPatterns.length} measured patterns over ${predictions.length} predictions.`,
+        {
+          patterns: scopedPatterns,
+          calibration: calibrationSnapshot(s),
+          predictions,
+          note: scopedPatterns.length
+            ? undefined
+            : "Too few evaluated predictions to measure a pattern yet.",
+        },
       );
     },
-  },
-
-  {
-    name: "get_predictions",
-    group: "context",
-    humanLabel: "Read predictions",
-    description:
-      "Read the founder's measurable predictions: what they expected, by when, how confident they were, and — where the deadline has passed and an outcome was recorded — what actually happened. Pending predictions show what the founder is currently on the hook for.",
-    annotations: { readOnlyHint: true },
-    inputSchema: {
-      type: "object",
-      properties: {
-        status: {
-          type: "string",
-          enum: ["all", "pending", "hit", "missed", "partial"],
-          description: "Defaults to all.",
-        },
-      },
-    },
-    execute: ({ status }) => {
-      const predictions = state().predictions;
-      const filtered =
-        typeof status === "string" && status !== "all" && status
-          ? predictions.filter((p) => p.status === status)
-          : predictions;
-      return toolResult(`${filtered.length} predictions.`, filtered);
-    },
-  },
-
-  {
-    name: "get_calibration",
-    group: "context",
-    humanLabel: "Read the calibration profile",
-    description:
-      "Read the founder's calibration profile: accuracy per estimate domain, the mean ratio between what they expected and what happened, and how many outcomes each score rests on. If `reliable` is false the sample is too small to argue from — say so rather than overstating it.",
-    annotations: { readOnlyHint: true },
-    inputSchema: { type: "object", properties: {} },
-    execute: () =>
-      toolResult("Founder calibration profile.", calibrationSnapshot(state())),
   },
 ];
 

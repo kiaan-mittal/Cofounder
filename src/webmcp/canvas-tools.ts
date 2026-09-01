@@ -55,9 +55,14 @@ export const canvasTools: ArenaTool[] = [
     group: "context",
     humanLabel: "Read the decision canvas",
     description:
-      "Read the living decision model: every claim, evidence, risk, assumption, and the links between them, plus freehand ink. Call this before you add anything.",
-    annotations: { readOnlyHint: true },
-    inputSchema: { type: "object", properties: {} },
+      "Returns the living decision model on the canvas: every claim, evidence item, risk and assumption, the links between them, and any open handoff. Node text is written by the founder and by other agents at the table.",
+    annotations: { readOnlyHint: true, untrustedContentHint: true },
+    inputSchema: {
+      type: "object",
+      properties: {},
+      required: [],
+      additionalProperties: false,
+    },
     execute: () => {
       const id = boardId();
       if (!id) return toolError("There is no canvas open.");
@@ -91,22 +96,45 @@ export const canvasTools: ArenaTool[] = [
     group: "debate",
     humanLabel: "Add an object to the canvas",
     description:
-      "Put one object onto the shared decision canvas. Only five kinds exist: claim, evidence, risk, assumption, decision. The founder sees this appear as a node they can link, not as a chat reply. Prefer this over add_argument.",
+      "Adds one object to the shared decision canvas and links it to an existing node, or to the decision root by default. It appears on the founder's canvas as a node they can move and link, attributed to the caller. Returns the new node id.",
+    annotations: { untrustedContentHint: true },
     inputSchema: {
       type: "object",
       properties: {
-        kind: { type: "string", enum: KINDS },
-        text: { type: "string", description: "One sentence." },
-        x: { type: "number" },
-        y: { type: "number" },
-        stance: { type: "string", enum: ["+", "-", "~"] },
+        kind: {
+          type: "string",
+          enum: KINDS,
+          description: "What sort of object this is.",
+        },
+        text: { type: "string", description: "The object itself, one sentence." },
+        x: {
+          type: "number",
+          description: "Left edge, 0-100. Omit to let the canvas seat it.",
+        },
+        y: {
+          type: "number",
+          description: "Top edge, 0-100. Omit to let the canvas seat it.",
+        },
+        stance: {
+          type: "string",
+          enum: ["+", "-", "~"],
+          description:
+            "Whether the object argues for the decision, against it, or is neutral.",
+        },
         connect_to: {
           type: "string",
-          description: "Node id to link to, or decision-root.",
+          description:
+            "Id of the node to link this to. Defaults to the decision root.",
         },
-        link_kind: { type: "string", enum: LINKS },
+        link_kind: {
+          type: "string",
+          enum: LINKS,
+          description:
+            "How the new object relates to the node it links to. Inferred from kind when omitted.",
+        },
       },
       required: ["kind", "text"],
+      additionalProperties: false,
     },
     execute: (args) => {
       const id = boardId();
@@ -161,15 +189,27 @@ export const canvasTools: ArenaTool[] = [
     group: "debate",
     humanLabel: "Link two canvas objects",
     description:
-      "Draw a link between two objects on the canvas: supports, counters, depends, or handoff. Use counters when you are challenging a founder claim.",
+      "Draws a link between two objects already on the canvas, recording whether one supports, counters, depends on, or is handed off to the other. The edge appears on the founder's canvas immediately. Returns the new link id.",
     inputSchema: {
       type: "object",
       properties: {
-        from_id: { type: "string" },
-        to_id: { type: "string" },
-        kind: { type: "string", enum: LINKS },
+        from_id: {
+          type: "string",
+          description: "Id of the node the link starts at.",
+        },
+        to_id: {
+          type: "string",
+          description: "Id of the node the link points to.",
+        },
+        kind: {
+          type: "string",
+          enum: LINKS,
+          description:
+            "The relationship the link records. Defaults to counters.",
+        },
       },
       required: ["from_id", "to_id"],
+      additionalProperties: false,
     },
     execute: (args) => {
       const id = boardId();
@@ -197,18 +237,28 @@ export const canvasTools: ArenaTool[] = [
     group: "debate",
     humanLabel: "Return handed-off work",
     description:
-      "After a founder hands you a node, put your work back on the canvas as a new object linked to it. Then the handoff is complete.",
+      "Closes an open handoff by adding the finished work to the canvas as a new object linked back to the node the founder handed over. Returns the new node id and clears the handoff.",
+    annotations: { untrustedContentHint: true },
     inputSchema: {
       type: "object",
       properties: {
-        kind: { type: "string", enum: KINDS },
-        text: { type: "string" },
+        kind: {
+          type: "string",
+          enum: KINDS,
+          description: "What sort of object the returned work is.",
+        },
+        text: {
+          type: "string",
+          description: "The finished work, in one sentence.",
+        },
         node_id: {
           type: "string",
-          description: "The node you were handed. Defaults to the open handoff.",
+          description:
+            "Id of the node that was handed over. Defaults to the open handoff.",
         },
       },
       required: ["kind", "text"],
+      additionalProperties: false,
     },
     execute: (args) => {
       const id = boardId();

@@ -12,7 +12,7 @@ import { toolError, toolResult } from "@/webmcp/spec";
  *
  * Recording what actually happened is what separates this from a debate club.
  * Both tools here recompute the founder's calibration patterns, which are then
- * read back into the next decision by `get_founder_patterns`. That cycle is
+ * read back into the next decision by `get_founder_track_record`. That cycle is
  * the product.
  */
 
@@ -38,14 +38,22 @@ export const outcomeTools: ArenaTool[] = [
     group: "outcome",
     humanLabel: "Record what actually happened",
     description:
-      "Record the real number against a prediction. The Arena scores it — a result within 10% counts as a hit, within 35% as partial, otherwise a miss — and immediately recomputes the founder's calibration. Use the prediction id from get_predictions. This is not a judgement of the founder; it is the input that makes future challenges specific.",
+      "Records the real number against a prediction and scores it: within 10 percent counts as a hit, within 35 percent as partial, otherwise a miss. Recomputes the founder's calibration profile immediately. Returns the score, the ratio, and the patterns that changed.",
     inputSchema: {
       type: "object",
       properties: {
-        prediction_id: { type: "string", description: "From get_predictions." },
-        actual_value: { type: "number", description: "What actually happened." },
+        prediction_id: {
+          type: "string",
+          description:
+            "The prediction id, as returned by get_founder_track_record.",
+        },
+        actual_value: {
+          type: "number",
+          description: "The number that actually happened, in the prediction's unit.",
+        },
       },
       required: ["prediction_id", "actual_value"],
+      additionalProperties: false,
     },
     execute: (args) => {
       const predictionId = str(args.prediction_id);
@@ -57,7 +65,7 @@ export const outcomeTools: ArenaTool[] = [
       const updated = state().recordActual(predictionId, actual);
       if (!updated) {
         return toolError(
-          `No prediction with id "${predictionId}". Call get_predictions for valid ids.`,
+          `No prediction with id "${predictionId}". Call get_founder_track_record for valid ids.`,
         );
       }
 
@@ -82,19 +90,32 @@ export const outcomeTools: ArenaTool[] = [
     group: "outcome",
     humanLabel: "Record a decision outcome",
     description:
-      "Record how a committed decision turned out and the one lesson worth carrying forward. The lesson is quoted back during future decisions, so make it specific and transferable — what would have to be true next time, not 'we should have moved faster'.",
+      "Records how a committed decision turned out, along with the one lesson worth carrying forward. The lesson is surfaced again during future decisions on similar questions. Returns the stored outcome.",
+    annotations: { untrustedContentHint: true },
     inputSchema: {
       type: "object",
       properties: {
-        decision_id: { type: "string", description: "From get_decision_history." },
+        decision_id: {
+          type: "string",
+          description: "The decision id, as returned by get_decision_history.",
+        },
         result: {
           type: "string",
           enum: ["succeeded", "failed", "mixed", "too_early"],
+          description: "How the decision turned out in reality.",
         },
-        summary: { type: "string", description: "What actually happened, in two sentences." },
-        lesson: { type: "string", description: "The transferable lesson." },
+        summary: {
+          type: "string",
+          description: "What actually happened, in about two sentences.",
+        },
+        lesson: {
+          type: "string",
+          description:
+            "The transferable lesson: what would have to be true next time.",
+        },
       },
       required: ["decision_id", "result", "summary", "lesson"],
+      additionalProperties: false,
     },
     execute: (args) => {
       const s = state();

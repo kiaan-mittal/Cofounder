@@ -186,13 +186,9 @@ returns. Judges should start there.
 | --- | --- |
 | `get_company_brain` | Product, market, stack, and the fact/assumption split |
 | `get_current_decision` | Full floor record: openings, defenses, seat replies, still-open items, verdict. Pass `decision_id` for a past arena |
-| `get_arena_verdict` | Deadlock, lean, strongest for/against, what would change the call |
 | `get_decision_history` | Index of past arenas (seat claims, outcomes). `include_record` attaches the full floor dataset |
-| `get_founder_patterns` | Measured patterns, e.g. growth estimates 2.1× optimistic |
-| `get_open_risks` | Risks still open, by severity |
-| `get_predictions` | Expected vs actual, with deadlines |
-| `get_calibration` | Accuracy per domain, with a `reliable` flag when the sample is thin |
-| `get_canvas` | Every claim, evidence, risk, assumption, and the links between them |
+| `get_founder_track_record` | Measured patterns, calibration per domain, and every prediction's expected vs actual |
+| `get_canvas` | Every claim, evidence, risk, assumption, and the links between them. Registered on `/canvas` |
 | `get_board` | Freehand marks on the shared sheet |
 
 ### Debate — participate in the reasoning
@@ -223,7 +219,8 @@ returns. Judges should start there.
 | `add_defense` | Founder's pushback, on the record |
 | `add_reassessment` | One seat's full reply to that defense |
 | `open_decision` | Create or reopen a round, then write with `add_argument` |
-| `set_active_decision` | Put a past arena in front of the founder, or show the list |
+| `open_saved_decision` | Open the most recent arena, a specific one by id, or the list |
+| `write_decision_summary` | The framing paragraph at the top of the record |
 | `set_confidence` | Founder and/or Arena confidence, 0–100 |
 | `confirm_commit` | **Founder only.** Agents must `commit_decision` to propose |
 | `share_decision` | Public read-only link. Anyone can open it. No login. |

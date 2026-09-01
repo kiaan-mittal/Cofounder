@@ -22,15 +22,25 @@ import type { ArenaTool } from "@/webmcp/registry";
  *   action  — commitments, then take the record with you
  *   outcome — feed reality back in           (results, calibration)
  */
+/**
+ * Registered on every page: the decision surface an agent needs wherever the
+ * founder is standing.
+ */
 export const ARENA_TOOLS: ArenaTool[] = [
   ...contextTools,
   ...boardTools,
-  ...canvasTools,
   ...debateTools,
   ...decisionTools,
   ...shareTools,
   ...outcomeTools,
 ];
+
+/**
+ * Registered only while /canvas is mounted. The canvas is the one surface
+ * that exists on a single route, and a tool that cannot reach its target is
+ * a broken contract, so these arm and disarm with the page.
+ */
+export const CANVAS_TOOLS: ArenaTool[] = canvasTools;
 
 export const TOOL_GROUPS = [
   {

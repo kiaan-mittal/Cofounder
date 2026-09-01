@@ -25,12 +25,19 @@ export const shareTools: ArenaTool[] = [
     group: "action",
     humanLabel: "Share a decision link",
     description:
-      "Create a public, read-only link to the decision record on the table — seats, verdict, contradictions, outstanding evidence. The founder can send it to anyone. You do not need them to click Copy. Returns the URL. Prefer this when they say share, send a link, or 'give this to my team'. Then they can open it without signing in.",
+      "Creates a public read-only page for one decision record: the seat arguments, the verdict, open contradictions and outstanding evidence. Anyone holding the link can read it without signing in. Returns the share URL and its token.",
+    annotations: { untrustedContentHint: true },
     inputSchema: {
       type: "object",
       properties: {
-        decision_id: { type: "string", description: "Defaults to the open decision." },
+        decision_id: {
+          type: "string",
+          description:
+            "Which decision to publish. Defaults to the decision the founder has open.",
+        },
       },
+      required: [],
+      additionalProperties: false,
     },
     execute: async (args) => {
       const decision = resolveDecision(args.decision_id);
@@ -57,14 +64,16 @@ export const shareTools: ArenaTool[] = [
     group: "action",
     humanLabel: "Export a decision",
     description:
-      "Send the decision record out of the Arena: a public link, a Slack message, or a Notion page. Always creates the share link first so the team can open the live record. For Slack, pass channel (name or id, default general). For Notion, pass parent as a page title or id if you have one. If Slack or Notion is not connected, the result includes connectUrl — tell the founder to open it, then call this again. You cannot confirm_commit.",
+      "Sends one decision record out of the Arena, creating its public share link first. Destination \"slack\" posts a message into the founder's connected Slack channel; \"notion\" creates a page in their connected Notion workspace; \"link\" only creates the link. Returns the share URL, or a connectUrl and no send when that workspace is not connected yet.",
+    annotations: { untrustedContentHint: true },
     inputSchema: {
       type: "object",
       properties: {
         destination: {
           type: "string",
           enum: ["link", "slack", "notion"],
-          description: "link, slack, or notion.",
+          description:
+            "Where the record goes: a link only, a Slack message, or a Notion page.",
         },
         channel: {
           type: "string",
@@ -72,11 +81,17 @@ export const shareTools: ArenaTool[] = [
         },
         parent: {
           type: "string",
-          description: "Notion parent page title or id.",
+          description:
+            "Notion parent page title or id to create the page under.",
         },
-        decision_id: { type: "string" },
+        decision_id: {
+          type: "string",
+          description:
+            "Which decision to send. Defaults to the decision the founder has open.",
+        },
       },
       required: ["destination"],
+      additionalProperties: false,
     },
     execute: async (args) => {
       const destination = String(args.destination ?? "");
@@ -105,7 +120,7 @@ export const shareTools: ArenaTool[] = [
         });
         if (result.needsConnect && result.connectUrl) {
           return toolResult(
-            `Share link is ready: ${result.url}. ${destination} is not connected yet. Ask the founder to open this connect URL, then call export_decision again: ${result.connectUrl}`,
+            `Share link is ready: ${result.url}. Nothing was sent because ${destination} is not connected. Connect URL: ${result.connectUrl}`,
             result,
           );
         }

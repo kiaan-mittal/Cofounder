@@ -167,20 +167,40 @@ export async function registerArenaTools(
     };
   }
 
-  const registered: string[] = [];
-  const errors: string[] = [];
   const audience = toolAudience();
-  for (const tool of tools) {
-    const definition = instrument(tool);
-    try {
-      await registerWithAudience(modelContext, definition, signal, audience);
-      registered.push(tool.name);
-    } catch (error) {
-      errors.push(
-        error instanceof Error ? `${tool.name}: ${error.message}` : tool.name,
-      );
-    }
-  }
+
+  // Registered concurrently: awaiting each tool in turn made the last of ~40
+  // land well past the point an agent reading the registry at first paint
+  // would still be waiting.
+  const outcomes = await Promise.all(
+    tools.map(async (tool) => {
+      try {
+        await registerWithAudience(
+          modelContext,
+          instrument(tool),
+          signal,
+          audience,
+        );
+        return { name: tool.name, error: null as string | null };
+      } catch (error) {
+        return {
+          name: tool.name,
+          error:
+            error instanceof Error
+              ? `${tool.name}: ${error.message}`
+              : tool.name,
+        };
+      }
+    }),
+  );
+
+  const registered = outcomes
+    .filter((outcome) => !outcome.error)
+    .map((outcome) => outcome.name);
+  const errors = outcomes
+    .map((outcome) => outcome.error)
+    .filter((error): error is string => error !== null);
+
   return {
     support,
     registered,

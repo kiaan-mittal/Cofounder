@@ -11,7 +11,7 @@ import {
 export const AGENT_PROMPTS = [
   {
     label: "Stress-test a launch",
-    goal: "Call stress_test_decision with this question: Should I spend the next month of runway launching this product now? Then call get_arena_verdict and tell me whether the seats are deadlocked, the strongest attack, and the one thing that would change the call. Do not confirm_commit.",
+    goal: "Call stress_test_decision with this question: Should I spend the next month of runway launching this product now? It returns the verdict — tell me whether the seats are deadlocked, the strongest attack, and the one thing that would change the call. Do not confirm_commit.",
   },
   {
     label: "Find my blind spot",

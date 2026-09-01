@@ -9,7 +9,7 @@ import {
 } from "@/lib/paint-opening";
 import { activeDecision, readiness } from "@/lib/selectors";
 import { useArena } from "@/lib/store";
-import type { Prediction, PredictionDomain } from "@/lib/types";
+import type { Decision, Prediction, PredictionDomain } from "@/lib/types";
 import { currentChannel, actorFromChannel, type ArenaTool } from "@/webmcp/registry";
 import { toolError, toolResult } from "@/webmcp/spec";
 
@@ -62,32 +62,48 @@ function spotlight(targetId: string) {
   }, 6000);
 }
 
+/** Latest activity on a decision: when it was committed, else when it was opened. */
+function touchedAt(decision: Decision) {
+  return Date.parse(decision.committedAt ?? decision.createdAt) || 0;
+}
+
+function mostRecentDecision(decisions: Decision[]) {
+  return decisions.reduce<Decision | null>(
+    (latest, decision) =>
+      !latest || touchedAt(decision) > touchedAt(latest) ? decision : latest,
+    null,
+  );
+}
+
 export const decisionTools: ArenaTool[] = [
   {
     name: "stress_test_decision",
     group: "action",
     humanLabel: "Stress-test a decision",
     description:
-      "THE tool to call when the founder asks you to decide, launch, spend, hire, raise, pick a market, or 'put this in Decision Arena'. You do not need them to click. Opens the decision immediately, seats the five perspectives (Technical, Product, GTM, Finance, Contrarian), and writes arguments, risks, contradictions, and evidence requests onto the table as each seat finishes — the founder watches the UI change. Returns the decision id, each seat's claim, open contradictions, outstanding evidence, a deadlock flag, and what would change the call. After this, tell them the unresolved questions. You still cannot confirm_commit.",
+      "Opens a decision in the Arena and seats five perspectives — Technical, Product, GTM, Finance and Contrarian — which write arguments, risks, contradictions and evidence requests onto the shared table as each one finishes, visibly to the founder. Covers questions about launching, spending, hiring, raising or picking a market. Returns the decision id, every seat's claim, open contradictions, outstanding evidence, a deadlock flag and what would change the call.",
+    annotations: { untrustedContentHint: true },
     inputSchema: {
       type: "object",
       properties: {
         question: {
           type: "string",
           description:
-            "The decision as a question, e.g. 'Should I spend ₹2 lakh launching this month?'",
+            "The decision as a question, for example 'Should I spend the launch budget this month?'",
         },
         context: {
           type: "string",
           description:
-            "What is at stake in their words — runway, a date, a number they already have.",
+            "What is at stake in the founder's words: runway, a date, a number they already have.",
         },
         decision_id: {
           type: "string",
-          description: "Reuse an existing empty decision instead of creating one.",
+          description:
+            "An existing empty decision to fill instead of creating a new one.",
         },
       },
       required: ["question"],
+      additionalProperties: false,
     },
     execute: async (args) => {
       const question = str(args.question);
@@ -142,7 +158,7 @@ export const decisionTools: ArenaTool[] = [
     group: "action",
     humanLabel: "Create a prediction",
     description:
-      "Turn the decision into something reality can judge: a single number, a unit and a deadline. Good predictions are falsifiable and near-term — '100 qualified signups within 30 days', not 'meaningful traction'. If the founder's calibration history shows they overestimate this domain, the response includes the history-adjusted figure so you can put it to them before they commit to the original number.",
+      "Records a falsifiable prediction against the decision: one number, a unit and a deadline, so reality can judge it later. Where the founder's calibration history shows they overestimate this domain, the response also carries the history-adjusted figure. Returns the prediction id.",
     inputSchema: {
       type: "object",
       properties: {
@@ -160,9 +176,14 @@ export const decisionTools: ArenaTool[] = [
           enum: DOMAINS,
           description: "Which calibration domain this belongs to.",
         },
-        decision_id: { type: "string", description: "Defaults to the open decision." },
+        decision_id: {
+          type: "string",
+          description:
+            "Which decision this belongs to. Defaults to the decision the founder has open.",
+        },
       },
       required: ["statement", "metric", "expected_value", "unit"],
+      additionalProperties: false,
     },
     execute: (args) => {
       const decision = resolveDecision(args.decision_id);
@@ -221,15 +242,27 @@ export const decisionTools: ArenaTool[] = [
     group: "action",
     humanLabel: "Add an action item",
     description:
-      "Attach a concrete next step to the decision — usually the cheapest thing that would resolve an open risk or answer an outstanding evidence request. Keep it to something completable in about a week.",
+      "Attaches a concrete next step to the decision, typically the cheapest thing that would resolve an open risk or answer an outstanding evidence request. Returns the action item id.",
     inputSchema: {
       type: "object",
       properties: {
-        text: { type: "string", description: "The action, phrased as something to do." },
-        owner: { type: "string", description: "Who does it. Defaults to the founder." },
-        decision_id: { type: "string", description: "Defaults to the open decision." },
+        text: {
+          type: "string",
+          description:
+            "The action phrased as something to do, sized to finish in about a week.",
+        },
+        owner: {
+          type: "string",
+          description: "Who does it. Defaults to the founder.",
+        },
+        decision_id: {
+          type: "string",
+          description:
+            "Which decision to attach it to. Defaults to the decision the founder has open.",
+        },
       },
       required: ["text"],
+      additionalProperties: false,
     },
     execute: (args) => {
       const decision = resolveDecision(args.decision_id);
@@ -259,16 +292,19 @@ export const decisionTools: ArenaTool[] = [
     group: "action",
     humanLabel: "Toggle an action item",
     description:
-      "Mark an action item done, or reopen it. Use the action item id from get_current_decision.",
+      "Marks an action item done, or reopens one that was already done. Returns the item id and its new state.",
+    annotations: { untrustedContentHint: true },
     inputSchema: {
       type: "object",
       properties: {
         action_item_id: {
           type: "string",
-          description: "From get_current_decision, e.g. act_…",
+          description:
+            "The action item id, as returned by get_current_decision, for example act_4f2a.",
         },
       },
       required: ["action_item_id"],
+      additionalProperties: false,
     },
     execute: (args) => {
       const actionId = str(args.action_item_id);
@@ -293,8 +329,8 @@ export const decisionTools: ArenaTool[] = [
     group: "action",
     humanLabel: "Propose a commitment",
     description:
-      "Propose that the founder commits to one of the decision's options, with your reasoning. This does NOT commit the decision — it stages the commitment in the Arena for the founder to confirm with one click, because committing is irreversible and belongs to the person who lives with it. The response tells you what is still blocking commitment, such as unresolved contradictions or outstanding evidence requests; address those first.",
-    annotations: { destructiveHint: false, idempotentHint: true },
+      "Stages a commitment to one of the decision's options, with a rationale, for the founder to confirm in the Arena itself. It does not commit the decision: confirming is irreversible and stays with the person who lives with it. Returns the staged option and anything still blocking it, such as unresolved contradictions or outstanding evidence requests.",
+    annotations: { untrustedContentHint: true },
     inputSchema: {
       type: "object",
       properties: {
@@ -305,11 +341,16 @@ export const decisionTools: ArenaTool[] = [
         },
         rationale: {
           type: "string",
-          description: "Why this option, given where the debate actually landed.",
+          description: "Why this option, given where the debate landed.",
         },
-        decision_id: { type: "string", description: "Defaults to the open decision." },
+        decision_id: {
+          type: "string",
+          description:
+            "Which decision to stage. Defaults to the decision the founder has open.",
+        },
       },
       required: ["option", "rationale"],
+      additionalProperties: false,
     },
     execute: (args) => {
       const s = state();
@@ -359,26 +400,44 @@ export const decisionTools: ArenaTool[] = [
     group: "action",
     humanLabel: "Open a decision",
     description:
-      "Create a blank decision, or fill an existing one, and make it the round the founder has open. Prefer stress_test_decision when they ask you to put a decision into the Arena — that tool opens the round AND seats the five perspectives. Only use this if you already have options and will write arguments yourself.",
+      "Creates a blank decision with its options, or fills an existing empty one, and makes it the round the founder has open. It seats no perspectives and writes no arguments, unlike stress_test_decision, which does both. Returns the decision id.",
     inputSchema: {
       type: "object",
       properties: {
-        question: { type: "string", description: "The decision, as a question." },
-        context: { type: "string", description: "What is at stake, in their words." },
+        question: {
+          type: "string",
+          description: "The decision, phrased as a question.",
+        },
+        context: {
+          type: "string",
+          description: "What is at stake, in the founder's words.",
+        },
         options: {
           type: "array",
-          description: "Mutually exclusive choices, each { label, detail }.",
+          description:
+            "The mutually exclusive choices, each an object with a label and a detail.",
+          items: {
+            type: "object",
+            properties: {
+              label: { type: "string", description: "Short name for the option." },
+              detail: { type: "string", description: "What taking it means." },
+            },
+            required: ["label"],
+          },
         },
         arena_confidence: {
           type: "number",
-          description: "0-100. How confident the Arena is. Defaults to 50.",
+          description:
+            "How confident the Arena is, 0-100. Defaults to 50.",
         },
         decision_id: {
           type: "string",
-          description: "Reuse an existing decision instead of creating one.",
+          description:
+            "An existing decision to fill instead of creating a new one.",
         },
       },
       required: ["question"],
+      additionalProperties: false,
     },
     execute: (args) => {
       const s = state();
@@ -431,37 +490,121 @@ export const decisionTools: ArenaTool[] = [
   },
 
   {
-    name: "set_active_decision",
+    name: "write_decision_summary",
     group: "action",
-    humanLabel: "Switch the open arena",
+    humanLabel: "Write the decision summary",
     description:
-      "Put a past or current decision in front of the founder, or pass list=true to show the gallery of arenas. Use get_decision_history for ids.",
+      "Writes the short framing paragraph that sits at the top of a decision record, above the seat arguments, summarising what is at stake. It replaces whatever summary is there unless append is true, and the seats read it on the next round. Returns the stored summary.",
+    annotations: { untrustedContentHint: true },
     inputSchema: {
       type: "object",
       properties: {
-        decision_id: { type: "string" },
-        list: {
+        summary: {
+          type: "string",
+          description:
+            "The paragraph to place at the top: what is at stake, in a few sentences.",
+        },
+        append: {
           type: "boolean",
-          description: "Leave the round and show every arena.",
+          description:
+            "Add to the summary already there instead of replacing it. Defaults to false.",
+        },
+        decision_id: {
+          type: "string",
+          description:
+            "Which decision to write on. Defaults to the decision the founder has open.",
         },
       },
+      required: ["summary"],
+      additionalProperties: false,
+    },
+    execute: (args) => {
+      const decision = resolveDecision(args.decision_id);
+      if (!decision) return toolError("There is no decision open in the Arena.");
+
+      const summary = str(args.summary);
+      if (!summary) return toolError("A summary needs text.");
+
+      const next =
+        args.append === true && decision.context
+          ? `${decision.context}\n\n${summary}`
+          : summary;
+
+      state().updateDecision(decision.id, { context: next });
+      spotlight(decision.id);
+
+      return toolResult(`Summary written on “${decision.question}”.`, {
+        decisionId: decision.id,
+        summary: next,
+      });
+    },
+  },
+
+  {
+    name: "open_saved_decision",
+    group: "action",
+    humanLabel: "Open a saved decision",
+    description:
+      "Opens a decision the founder already has and puts it back in front of them on the floor. With most_recent true it opens the one they worked on last; with a decision_id it opens that one; with list true it leaves the round and shows the gallery of every arena. Returns the decision that is now open.",
+    annotations: { untrustedContentHint: true },
+    inputSchema: {
+      type: "object",
+      properties: {
+        most_recent: {
+          type: "boolean",
+          description:
+            "Open the decision the founder worked on most recently, without needing its id.",
+        },
+        decision_id: {
+          type: "string",
+          description:
+            "The id of a specific decision to open, as returned by get_decision_history.",
+        },
+        list: {
+          type: "boolean",
+          description:
+            "Leave the current round and show the gallery of every arena instead.",
+        },
+      },
+      required: [],
+      additionalProperties: false,
     },
     execute: (args) => {
       const s = state();
-      if (args.list === true || !str(args.decision_id)) {
+      if (args.list === true) {
         s.setActiveDecision(null);
         return toolResult("Showing the arena list.", { decisionId: null });
       }
+
       const decisionId = str(args.decision_id);
-      const found = s.decisions.find((d) => d.id === decisionId);
-      if (!found) {
+      let found = decisionId
+        ? (s.decisions.find((d) => d.id === decisionId) ?? null)
+        : null;
+
+      if (decisionId && !found) {
         return toolError(
-          `No decision with id "${decisionId}". Call get_decision_history.`,
+          `No decision with id "${decisionId}". get_decision_history lists the valid ids.`,
         );
       }
+
+      if (!found) {
+        found = mostRecentDecision(s.decisions);
+      }
+
+      if (!found) {
+        return toolResult("There are no saved decisions to open.", {
+          decisionId: null,
+          note: "This founder has not run an arena yet.",
+        });
+      }
+
       s.setActiveDecision(found.id);
       spotlight(found.id);
-      return toolResult(`Opened “${found.question}”.`, { decisionId: found.id });
+      return toolResult(`Opened “${found.question}”.`, {
+        decisionId: found.id,
+        question: found.question,
+        status: found.status,
+      });
     },
   },
 
@@ -470,14 +613,26 @@ export const decisionTools: ArenaTool[] = [
     group: "action",
     humanLabel: "Set confidence",
     description:
-      "Set the founder's confidence, the Arena's, or both (0-100) on a decision.",
+      "Sets the founder's confidence, the Arena's, or both, as a number from 0 to 100 on a decision. Returns the values now stored.",
     inputSchema: {
       type: "object",
       properties: {
-        founder: { type: "number" },
-        arena: { type: "number" },
-        decision_id: { type: "string" },
+        founder: {
+          type: "number",
+          description: "The founder's confidence in the decision, 0-100.",
+        },
+        arena: {
+          type: "number",
+          description: "The Arena's confidence in the decision, 0-100.",
+        },
+        decision_id: {
+          type: "string",
+          description:
+            "Which decision to update. Defaults to the decision the founder has open.",
+        },
       },
+      required: [],
+      additionalProperties: false,
     },
     execute: (args) => {
       const decision = resolveDecision(args.decision_id);
@@ -505,15 +660,29 @@ export const decisionTools: ArenaTool[] = [
     group: "action",
     humanLabel: "Confirm a commitment",
     description:
-      "Commit the open decision. Only the founder can call this — agents must use commit_decision to propose. Uses a staged proposal if one exists, otherwise option and rationale.",
-    annotations: { destructiveHint: true },
+      "Commits a decision to one option and writes it to the permanent record, which cannot be undone. It uses the proposal staged by commit_decision when one exists, otherwise the option and rationale passed here. Only the founder's own controls can complete it; calls from any other channel are refused.",
+    annotations: { untrustedContentHint: true },
     inputSchema: {
       type: "object",
       properties: {
-        option: { type: "string" },
-        rationale: { type: "string" },
-        decision_id: { type: "string" },
+        option: {
+          type: "string",
+          description:
+            "The option id or exact label to commit to. Defaults to the staged proposal.",
+        },
+        rationale: {
+          type: "string",
+          description:
+            "Why this option. Defaults to the rationale on the staged proposal.",
+        },
+        decision_id: {
+          type: "string",
+          description:
+            "Which decision to commit. Defaults to the decision the founder has open.",
+        },
       },
+      required: [],
+      additionalProperties: false,
     },
     execute: (args) => {
       if (currentChannel() !== "founder") {
@@ -560,17 +729,24 @@ export const decisionTools: ArenaTool[] = [
     group: "action",
     humanLabel: "Investigate or abandon",
     description:
-      "Mark the decision investigating (deferral on the record) or abandoned. open puts it back on the floor. Committing uses confirm_commit.",
+      "Marks a decision investigating, which puts a deferral on the record, or abandoned, or open to put it back on the floor. Committing is not one of these states; that goes through confirm_commit. Returns the new status.",
     inputSchema: {
       type: "object",
       properties: {
         status: {
           type: "string",
           enum: ["open", "investigating", "abandoned"],
+          description:
+            "open puts it back on the floor, investigating records a deferral, abandoned closes it unchosen.",
         },
-        decision_id: { type: "string" },
+        decision_id: {
+          type: "string",
+          description:
+            "Which decision to update. Defaults to the decision the founder has open.",
+        },
       },
       required: ["status"],
+      additionalProperties: false,
     },
     execute: (args) => {
       const decision = resolveDecision(args.decision_id);

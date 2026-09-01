@@ -120,6 +120,12 @@ export function DecisionBoard({
         </>
       )}
 
+      {decision.context ? (
+        <p className="border-b border-rule bg-paper px-4 py-2 text-[13.5px] leading-relaxed text-graphite">
+          {decision.context}
+        </p>
+      ) : null}
+
       <TensionScale arguments={primary} />
 
       {empty ? (

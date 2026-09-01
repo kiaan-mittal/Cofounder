@@ -332,7 +332,7 @@ export function FloorBar({
   }
 
   function leave() {
-    founderCall("set_active_decision", { list: true });
+    founderCall("open_saved_decision", { list: true });
     scheduleWorkspaceSave();
   }
 

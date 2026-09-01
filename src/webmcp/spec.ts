@@ -35,10 +35,13 @@ export interface ToolDefinition {
   description: string;
   title?: string;
   inputSchema?: JsonSchema;
+  /**
+   * WebMCP defines only these two. MCP's destructiveHint / idempotentHint /
+   * openWorldHint are deliberately absent: agents reading a page registry do
+   * not consume them, so a consequence belongs in the description instead.
+   */
   annotations?: {
     readOnlyHint?: boolean;
-    destructiveHint?: boolean;
-    idempotentHint?: boolean;
     untrustedContentHint?: boolean;
   };
   execute: (
@@ -57,7 +60,9 @@ export interface RegisterToolOptions {
 export interface RegisteredTool {
   name: string;
   description: string;
+  title?: string;
   inputSchema?: JsonSchema;
+  annotations?: ToolDefinition["annotations"];
   origin: string;
   window?: Window | null;
 }

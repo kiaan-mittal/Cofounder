@@ -69,7 +69,7 @@ export function DecisionRail({
             key={decision.id}
             type="button"
             onClick={() =>
-              founderCall("set_active_decision", { decision_id: decision.id })
+              founderCall("open_saved_decision", { decision_id: decision.id })
             }
             className={cn(
               "inline-flex h-8 max-w-[280px] items-center gap-2 border px-2.5 text-left transition-colors",
