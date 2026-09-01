@@ -15,6 +15,13 @@ const nextConfig: NextConfig = {
             key: "Permissions-Policy",
             value: "tools=*",
           },
+          // WebMCP is only exposed to origin-isolated documents. Without this
+          // the document lands in a site-keyed agent cluster and the browser
+          // never puts `modelContext` on it.
+          {
+            key: "Origin-Agent-Cluster",
+            value: "?1",
+          },
         ],
       },
     ];

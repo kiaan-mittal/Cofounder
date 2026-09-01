@@ -224,6 +224,9 @@ export interface WebMCPDiagnostics {
   documentPrototype: "absent" | "getter" | "object";
   navigatorSlot: "absent" | "object";
   nativeFound: boolean;
+  /** WebMCP is only exposed to origin-isolated, secure documents. */
+  originIsolated: boolean;
+  secureContext: boolean;
 }
 
 /**
@@ -239,6 +242,8 @@ export function webmcpDiagnostics(): WebMCPDiagnostics {
       documentPrototype: "absent",
       navigatorSlot: "absent",
       nativeFound: false,
+      originIsolated: false,
+      secureContext: false,
     };
   }
 
@@ -261,6 +266,8 @@ export function webmcpDiagnostics(): WebMCPDiagnostics {
         : "object",
     navigatorSlot: navigator.modelContext ? "object" : "absent",
     nativeFound: Boolean(nativeModelContext()),
+    originIsolated: window.originAgentCluster === true,
+    secureContext: window.isSecureContext === true,
   };
 }
 
