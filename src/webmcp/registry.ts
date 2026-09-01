@@ -3,7 +3,11 @@
 import { useArena } from "@/lib/store";
 import type { Actor, AgentChannel } from "@/lib/types";
 import { coerceToolArgs, nativeToolText, toolAudience } from "@/webmcp/compat";
-import { ensureModelContext, isPolyfilled } from "@/webmcp/polyfill";
+import {
+  ensureModelContext,
+  isPolyfilled,
+  resolveModelContext,
+} from "@/webmcp/polyfill";
 import {
   nativeModelContext,
   toolError,
@@ -143,8 +147,27 @@ function instrument(tool: ArenaTool): ToolDefinition {
 /* ------------------------------------------------------------------ */
 
 export function getModelContext(): ModelContext | null {
-  if (typeof document === "undefined") return null;
-  return nativeModelContext() ?? document.modelContext ?? null;
+  return resolveModelContext();
+}
+
+const REGISTER_MS = 3000;
+
+function timed<T>(promise: Promise<T>, label: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(`${label} timed out`));
+    }, REGISTER_MS);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
 }
 
 export interface RegistrationOutcome {
@@ -220,8 +243,12 @@ async function registerWithAudience(
   audience: string[],
 ) {
   try {
-    await modelContext.registerTool(tool, { signal, exposedTo: audience });
-  } catch {
-    await modelContext.registerTool(tool, { signal });
+    await timed(
+      modelContext.registerTool(tool, { signal, exposedTo: audience }),
+      tool.name,
+    );
+  } catch (error) {
+    if (error instanceof Error && /timed out/.test(error.message)) throw error;
+    await timed(modelContext.registerTool(tool, { signal }), tool.name);
   }
 }

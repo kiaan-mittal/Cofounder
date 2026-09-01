@@ -36,6 +36,10 @@ export type DecisionBrief = {
   risks: Array<{ title: string; detail: string }>;
   whatWouldChangeIt: string;
   createdAt: string;
+  /** Present when an agent called confirm_commit and was refused. */
+  commitRefused?: boolean;
+  commitRefusedAt?: string;
+  commitRefusedCount?: number;
 };
 
 export function briefFromState(
@@ -83,6 +87,9 @@ export function briefFromState(
     })),
     whatWouldChangeIt: verdict?.whatWouldChangeIt ?? "A number and a date.",
     createdAt: new Date().toISOString(),
+    commitRefused: Boolean(decision.agentCommitRefusedAt),
+    commitRefusedAt: decision.agentCommitRefusedAt,
+    commitRefusedCount: decision.agentCommitRefusedCount,
   };
 }
 
@@ -134,7 +141,9 @@ export function briefToMarkdown(brief: DecisionBrief, shareUrl?: string): string
     "",
     shareUrl ? `Live record: ${shareUrl}` : "",
     "",
-    "_Agents proposed. The founder commits. Exported from Decision Arena._",
+    brief.commitRefused
+      ? "**confirm_commit was refused.** Agents proposed. The founder commits. Exported from Decision Arena."
+      : "_Agents proposed. The founder commits. Exported from Decision Arena._",
   ]
     .filter((line) => line !== undefined)
     .join("\n")

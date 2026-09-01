@@ -168,6 +168,10 @@ export interface Decision {
   round: number;
   createdAt: string;
   committedAt?: string;
+  /** Last time an agent called confirm_commit and was refused. */
+  agentCommitRefusedAt?: string;
+  /** How many times an agent has been refused on this decision. */
+  agentCommitRefusedCount?: number;
 }
 
 export type ArgumentStance = "for" | "against" | "conditional";

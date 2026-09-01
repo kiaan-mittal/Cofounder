@@ -2,6 +2,7 @@
 
 import { arenaVerdict } from "@/lib/arena-verdict";
 import { detectPatterns, warningsForDecision } from "@/lib/calibration";
+import { inheritedRoomPayload } from "@/lib/inherited-room";
 import { calibrationSnapshot, decisionHistory, decisionSnapshot, activeDecision } from "@/lib/selectors";
 import { useArena } from "@/lib/store";
 import { toolError, toolResult } from "@/webmcp/spec";
@@ -31,6 +32,30 @@ function requireDecision(decisionId?: unknown) {
 }
 
 export const contextTools: ArenaTool[] = [
+  {
+    name: "the_room",
+    group: "context",
+    humanLabel: "The room you inherited",
+    description:
+      "You already inherited this room. This description is replaced live with the company, the open decision, and what still blocks commit. Call only for a structured refresh — getTools already contains the same text.",
+    annotations: { readOnlyHint: true, untrustedContentHint: true },
+    inputSchema: {
+      type: "object",
+      properties: {},
+      required: [],
+      additionalProperties: false,
+    },
+    execute: () => {
+      const payload = inheritedRoomPayload();
+      if (!payload.company) {
+        return toolError(
+          "No Company Brain exists yet. The founder has not completed onboarding.",
+        );
+      }
+      return toolResult(payload.line, payload);
+    },
+  },
+
   {
     name: "get_company_brain",
     group: "context",

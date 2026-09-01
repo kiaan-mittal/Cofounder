@@ -599,7 +599,7 @@ const argumentList: Argument[] = [
     stance: "for",
     claim: "A private repo means this floor is arguing from a README.",
     reasoning:
-      "The Brain can name registry.ts. It cannot open it. Judges running WebMCP on Decision Arena can see 16 tools. They cannot see IndieTerminal's. That is a choice, not a law.",
+      "The Brain can name registry.ts. It cannot open it. Judges running WebMCP on Decision Arena can see 17 tools. They cannot see IndieTerminal's. That is a choice, not a law.",
     basis: [{ type: "fact", ref: "fact_it02", label: "Connected repo is private" }],
     strength: 75,
     createdAt: daysAgo(28),

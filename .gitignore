@@ -15,6 +15,7 @@ yarn-error.log*
 .composio-auth.local.json
 .composio-export.local.json
 .decision-shares.local.json
+.decision-watches.local.json
 env.local
 .vercel
 *.tsbuildinfo

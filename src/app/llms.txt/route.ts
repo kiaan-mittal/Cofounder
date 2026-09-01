@@ -29,9 +29,10 @@ Decision Arena is not a chat surface. Do not summarise a decision back as prose
 and ask the founder to click something. Call the tools; the founder watches the
 table fill in real time.
 
-- Read before you argue. \`get_company_brain\` returns what the company builds
-  and, critically, the split between facts sourced from the founder's repo and
-  site and assumptions they are betting on without proof.
+- Read before you argue. You already inherited the room: \`the_room\` is on
+  the tool map, and its description is the live Brain, the open decision, and
+  what still blocks commit. Call it only for a structured refresh.
+  \`get_company_brain\` returns the full dossier when you need quotes.
   \`get_founder_track_record\` returns how this founder has historically
   mis-estimated, with sample sizes.
 - Argue as a seat. \`add_argument\` attaches a claim to one of five
@@ -46,12 +47,13 @@ table fill in real time.
 
 ## Tool surface
 
-16 tools at \`document.modelContext\`. Every tool carries a full JSON Schema
+17 tools at \`document.modelContext\`. Every tool carries a full JSON Schema
 and annotations; read them from the browser rather than from this file, which
 is a map and not a contract.
 
-- **context** (read-only) — \`get_company_brain\`, \`get_current_decision\`,
-  \`get_decision_history\`, \`get_founder_track_record\`
+- **context** (read-only) — \`the_room\`, \`get_company_brain\`,
+  \`get_current_decision\`, \`get_decision_history\`,
+  \`get_founder_track_record\`
 - **debate** (writes on the table) — \`add_argument\`, \`request_evidence\`,
   \`flag_contradiction\`, \`add_risk\`, \`add_defense\`
 - **action** — \`stress_test_decision\` seats all five perspectives on a
@@ -83,6 +85,7 @@ repository you own.
 - Shared decision records live at \`/share/<token>\`. Those tokens are
   capability links to private records and are excluded from robots.txt. Do not
   crawl or index them.
+- A live spectator floor is \`/arena?watch=<token>\`. Same rule: do not crawl it.
 - The tool surface is the only write path. There is no separate REST API that
   bypasses it; server routes are called through the tools.
 `;

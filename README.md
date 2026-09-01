@@ -38,8 +38,11 @@ a real company, from public sources — for anyone who is not signed in.
    same HTTPS URL. Wait until tools finish registering.
 3. Say: *Use Decision Arena to stress-test whether /research should run without a Clerk session.*
 4. Watch `stress_test_decision` write on the table. Then try `confirm_commit`
-   — refused. Then `share_decision` — a public `/share/…` link, no login.
-5. Optional, only if you want to try onboarding with **your** GitHub: `/login`.
+   — refused. Then `share_decision` — a public `/share/…` link whose card says
+   **confirm_commit was refused**. No login.
+5. Optional backup if ChatGPT desktop is dead: click **Watch**, open
+   `/arena?watch=…` on a second laptop. That tab cannot write.
+6. Optional, only if you want to try onboarding with **your** GitHub: `/login`.
    That is not required, and it is not the founder's account.
 
 Brain, Arena, History, Calibration, and WebMCP are all public on this floor.
@@ -76,9 +79,10 @@ Open with the part a prompt cannot.
 | 0:15 | Same page | `stress_test_decision` fires. The question appears. Seats write one by one. Contradictions land in red. |
 | 0:45 | `/arena` | Verdict. Deadlock or a lean. What would change the call. |
 | 0:55 | ChatGPT | `confirm_commit` — refused. “Agents propose. Founders commit.” |
-| 1:05 | Same page | `share_decision`. Slack unfurls a card of the question, not a URL. Open `/share/…`. No login. |
+| 1:05 | Same page | `share_decision`. Slack unfurls a card that says **confirm_commit was refused**. Open `/share/…`. No login. |
 | 1:15 | Slack or Notion | `share_decision` with a destination — or Connect, then send. The seats become a post. |
-| 1:20 | Cut | “I didn't use the website. My agent used it with me. The record left the chat.” |
+| 1:20 | Second laptop | Optional: **Watch** copies `/arena?watch=…`. Seats land live. That tab cannot write. |
+| 1:25 | Cut | “I didn't use the website. My agent used it with me. The record left the chat.” |
 
 **Spoken line, once:** ChatGPT is a guest. It calls `stress_test_decision`.
 The page fills. The page refuses `confirm_commit`. Then the record leaves.
@@ -203,7 +207,7 @@ one for them.
 
 ## WebMCP tools
 
-16 tools register on `document.modelContext`. That is the protocol a guest
+17 tools register on `document.modelContext`. That is the protocol a guest
 agent sees — inherit the company, write on the table, propose, do not finish.
 Housekeeping the founder clicks (open a saved round, tick an action item,
 resolve a risk) still goes through `executeTool` so the log stays honest. It
@@ -218,6 +222,7 @@ straight to [`/arena`](/arena). IndieTerminal is already loaded.
 
 | Tool | What it returns |
 | --- | --- |
+| `the_room` | Live inheritance: company, open decision, blockers. Already in the tool description — call only to refresh |
 | `get_company_brain` | Product, market, stack, and the fact/assumption split |
 | `get_current_decision` | Full floor record: openings, defenses, seat replies, still-open items, verdict. Pass `decision_id` for a past arena |
 | `get_decision_history` | Index of past arenas (seat claims, outcomes). `include_record` attaches the full floor dataset |
@@ -241,7 +246,7 @@ straight to [`/arena`](/arena). IndieTerminal is already loaded.
 | `create_prediction` | Falsifiable number, unit, deadline |
 | `commit_decision` | **Proposes** a commitment for the founder to confirm |
 | `confirm_commit` | **Founder only.** Agents are refused. |
-| `share_decision` | Public read-only link, and optionally Slack or Notion. No login to read. |
+| `share_decision` | Public read-only link, and optionally Slack or Notion. A refused `confirm_commit` is printed on the card. |
 
 ### Outcome — feed reality back in
 
@@ -249,6 +254,9 @@ straight to [`/arena`](/arena). IndieTerminal is already loaded.
 | --- | --- |
 | `evaluate_prediction` | Records the real number, scores it, recalibrates |
 | `record_outcome` | Result plus the transferable lesson |
+
+The floor's **Watch** button copies `/arena?watch=…`. A second laptop sees
+the seats write. That tab cannot commit.
 
 ---
 
@@ -286,7 +294,8 @@ Keys are read only in server routes, except the public Supabase URL.
 
 Apply the SQL in `supabase/migrations/` in filename order. Local share links
 work without `20260901120000_decision_shares.sql` (they write a JSON file).
-Production share and Slack/Notion export need that table.
+Production share and Slack/Notion export need that table. Live Watch links
+need `20260901190000_decision_watches.sql`; locally they write a JSON file.
 
 ### Without a key
 
