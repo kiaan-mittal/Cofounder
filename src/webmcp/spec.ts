@@ -71,17 +71,28 @@ export interface GetToolsOptions {
   fromOrigins?: string[];
 }
 
+/**
+ * ChatGPT Sol/Terra may return a plain value from host APIs instead of a
+ * Promise. Wrapping here is what keeps `/webmcp` from crashing on
+ * `.then is not a function`.
+ */
+export function hostCall<T>(value: T | PromiseLike<T>): Promise<T> {
+  return Promise.resolve(value);
+}
+
 export interface ModelContext extends EventTarget {
   registerTool(
     tool: ToolDefinition,
     options?: RegisterToolOptions,
-  ): Promise<void>;
-  getTools(options?: GetToolsOptions): Promise<RegisteredTool[]>;
+  ): void | Promise<void>;
+  getTools(
+    options?: GetToolsOptions,
+  ): RegisteredTool[] | Promise<RegisteredTool[]>;
   executeTool(
     tool: RegisteredTool,
     args?: Record<string, unknown> | string,
     options?: ToolExecuteOptions,
-  ): Promise<ToolResult | string>;
+  ): ToolResult | string | Promise<ToolResult | string>;
 }
 
 declare global {

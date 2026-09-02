@@ -7,7 +7,7 @@ import {
   getModelContext,
   withChannel,
 } from "@/webmcp/registry";
-import { nativeModelContext, type RegisteredTool } from "@/webmcp/spec";
+import { nativeModelContext, hostCall, type RegisteredTool } from "@/webmcp/spec";
 import { ARENA_TOOLS } from "@/webmcp/tools";
 
 /**
@@ -43,9 +43,13 @@ function watchTools() {
   const modelContext = getModelContext();
   if (!modelContext || listening) return;
   listening = true;
-  modelContext.addEventListener("toolchange", () => {
-    listed = null;
-  });
+  try {
+    modelContext.addEventListener("toolchange", () => {
+      listed = null;
+    });
+  } catch {
+    /* Sol's context may not implement EventTarget. */
+  }
 }
 
 async function discover(): Promise<RegisteredTool[]> {
@@ -53,8 +57,8 @@ async function discover(): Promise<RegisteredTool[]> {
   if (!modelContext) return [];
   watchTools();
   if (listed?.length) return listed;
-  const tools = await modelContext.getTools();
-  if (tools.length) {
+  const tools = await hostCall(modelContext.getTools());
+  if (Array.isArray(tools) && tools.length) {
     listed = tools;
     return tools;
   }
@@ -64,15 +68,20 @@ async function discover(): Promise<RegisteredTool[]> {
       resolve([]);
     }, 4000);
     const onChange = () => {
-      void modelContext.getTools().then((next) => {
-        if (!next.length) return;
+      void hostCall(modelContext.getTools()).then((next) => {
+        if (!Array.isArray(next) || !next.length) return;
         window.clearTimeout(timeout);
         modelContext.removeEventListener("toolchange", onChange);
         listed = next;
         resolve(next);
       });
     };
-    modelContext.addEventListener("toolchange", onChange);
+    try {
+      modelContext.addEventListener("toolchange", onChange);
+    } catch {
+      window.clearTimeout(timeout);
+      resolve([]);
+    }
   });
 }
 
@@ -129,10 +138,12 @@ export async function runTool(
     let raw: unknown;
 
     if (modelContext && target) {
-      raw = await modelContext.executeTool(
-        target,
-        nativeModelContext() ? JSON.stringify(args) : args,
-        { signal: options?.signal },
+      raw = await hostCall(
+        modelContext.executeTool(
+          target,
+          nativeModelContext() ? JSON.stringify(args) : args,
+          { signal: options?.signal },
+        ),
       );
     } else {
       const tool = knownTool(name);
