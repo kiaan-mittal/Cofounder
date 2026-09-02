@@ -133,16 +133,17 @@ export function isBrowserNativeFunction(fn: unknown): boolean {
 }
 
 /**
- * Chrome's WebMCP, or ChatGPT Sol/Terra. A page polyfill or an extension
- * stub that happens to have registerTool is not native — the inspector
- * will say "flag not active" and list nothing.
+ * The host's `document.modelContext` — Chrome's native getter, or Sol/Terra's
+ * JS bridge. Both are the real platform slot. The only thing that is not
+ * native is our own page object (`isDecisionArenaPageContext`).
+ *
+ * `[native code]` is not required: Sol exposes a scripted bridge that still
+ * implements registerTool / getTools / executeTool for site tools.
  */
 export function isPlatformModelContext(
   value: unknown,
 ): value is ModelContext {
-  const ctx = usableNative(value);
-  if (!ctx) return false;
-  return isBrowserNativeFunction(ctx.registerTool);
+  return usableNative(value) !== null;
 }
 
 function readSlot(
@@ -165,12 +166,10 @@ function collectRawSlots(): unknown[] {
   return [
     readSlot(descriptor(document, "modelContext"), document),
     readSlot(descriptor(Document.prototype, "modelContext"), document),
-    readSlot(descriptor(navigator, "modelContext"), navigator),
-    readSlot(descriptor(Navigator.prototype, "modelContext"), navigator),
   ];
 }
 
-/** Every distinct platform ModelContext (document + navigator when both exist). */
+/** Every distinct browser-native context exposed through the Document slot. */
 export function platformModelContexts(): ModelContext[] {
   const found: ModelContext[] = [];
   const seen = new Set<object>();
@@ -208,19 +207,15 @@ export function nativePlatformBound(): boolean {
   return (
     isNativeGetter(descriptor(document, "modelContext")) ||
     isNativeGetter(descriptor(Document.prototype, "modelContext")) ||
-    isNativeGetter(descriptor(navigator, "modelContext")) ||
-    isNativeGetter(descriptor(Navigator.prototype, "modelContext")) ||
     platformModelContexts().length > 0
   );
 }
 
 /**
- * Feature detection exactly as the Chrome guidance recommends: prefer
- * `document.modelContext`, fall back to the deprecated `navigator` location,
- * and never assume either exists.
- *
- * Only a browser-native registerTool counts. JS objects with the same
- * method names are the fallback path, not proof of WebMCP.
+ * Native support is claimed only for a usable `document.modelContext` that
+ * is not this page's own object. Sol/Terra bridge that slot in JS; Chrome
+ * with the WebMCP flag uses a native getter. Proof is registerTool plus
+ * getTools() returning those tools — not a painted label.
  */
 export function nativeModelContext(): ModelContext | null {
   return platformModelContexts()[0] ?? null;
