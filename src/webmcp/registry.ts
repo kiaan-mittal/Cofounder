@@ -162,12 +162,12 @@ export function getModelContext(): ModelContext | null {
 
 const REGISTER_MS = 3000;
 
-function timed<T>(promise: Promise<T>, label: string): Promise<T> {
+function timed<T>(value: PromiseLike<T> | T, label: string): Promise<T> {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
       reject(new Error(`${label} timed out`));
     }, REGISTER_MS);
-    promise.then(
+    Promise.resolve(value).then(
       (value) => {
         clearTimeout(timer);
         resolve(value);
@@ -266,23 +266,31 @@ export async function registerArenaTools(
   };
 }
 
+function listedToolName(tool: unknown): string | null {
+  if (!tool || typeof tool !== "object") return null;
+  const row = tool as { name?: unknown; tool?: { name?: unknown } };
+  if (typeof row.name === "string" && row.name) return row.name;
+  if (typeof row.tool?.name === "string" && row.tool.name) return row.tool.name;
+  return null;
+}
+
 async function toolsVisibleOn(
   modelContext: ModelContext,
   expected: string[],
 ): Promise<string[]> {
   const want = new Set(expected);
-  for (let attempt = 0; attempt < 6; attempt += 1) {
+  for (let attempt = 0; attempt < 10; attempt += 1) {
     try {
       const listed = await timed(modelContext.getTools(), "getTools");
       const hit = listed
-        .map((tool) => tool.name)
-        .filter((name) => want.has(name));
+        .map(listedToolName)
+        .filter((name): name is string => Boolean(name && want.has(name)));
       if (hit.length) return hit;
     } catch {
       /* getTools threw — try again */
     }
     await new Promise<void>((resolve) => {
-      window.setTimeout(resolve, 150);
+      window.setTimeout(resolve, 200);
     });
   }
   return [];
@@ -295,12 +303,12 @@ async function registerWithAudience(
   audience: string[],
 ) {
   try {
+    await timed(modelContext.registerTool(tool, { signal }), tool.name);
+  } catch (error) {
+    if (error instanceof Error && /timed out/.test(error.message)) throw error;
     await timed(
       modelContext.registerTool(tool, { signal, exposedTo: audience }),
       tool.name,
     );
-  } catch (error) {
-    if (error instanceof Error && /timed out/.test(error.message)) throw error;
-    await timed(modelContext.registerTool(tool, { signal }), tool.name);
   }
 }
