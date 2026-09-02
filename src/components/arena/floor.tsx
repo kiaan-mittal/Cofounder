@@ -10,14 +10,16 @@ import { ExportDecision } from "@/components/arena/export-decision";
 import { PatternBanner } from "@/components/arena/pattern-banner";
 import { PromptComposer } from "@/components/arena/prompt-composer";
 import { SeatOpening, SeatReply } from "@/components/arena/seat-reply";
+import { StreamingCaret } from "@/components/arena/streaming-caret";
 import { SharedState } from "@/components/arena/the-loop";
+import { TypewriterText } from "@/components/arena/typewriter-text";
 import { WatchPublisher } from "@/components/arena/watch-publisher";
 import { detectPatterns, warningsForDecision } from "@/lib/calibration";
 import { PERSPECTIVES, perspectiveName } from "@/lib/perspectives";
 import { stillOpenFrom } from "@/lib/selectors";
 import { useArena } from "@/lib/store";
 import { scheduleWorkspaceSave } from "@/lib/supabase/sync";
-import { AGENT_PROMPTS, useSparringChat } from "@/lib/use-sparring";
+import { AGENT_PROMPTS, useSparringChat, type ChatMessage } from "@/lib/use-sparring";
 import type {
   ActionItem,
   Argument,
@@ -100,9 +102,10 @@ export function FloorTalk({
     if (!node) return;
     const follow =
       busy ||
-      node.scrollHeight - node.scrollTop - node.clientHeight < 96;
+      sparring.running ||
+      node.scrollHeight - node.scrollTop - node.clientHeight < 160;
     if (follow) node.scrollTop = node.scrollHeight;
-  }, [reassessments, busy, sparring.messages, defenses]);
+  }, [reassessments, busy, sparring.messages, sparring.running, defenses]);
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-paper">
@@ -184,6 +187,12 @@ export function FloorTalk({
         </p>
       ) : (
         <div className="shrink-0 border-t border-rule">
+          <LiveAgentStrip
+            message={sparring.messages.findLast(
+              (item) => item.role === "agent",
+            )}
+            running={sparring.running}
+          />
           <PromptComposer
             value={value}
             onChange={onChange}
@@ -205,6 +214,36 @@ export function FloorTalk({
             agentSuggestions={AGENT_PROMPTS}
           />
         </div>
+      )}
+    </div>
+  );
+}
+
+function LiveAgentStrip({
+  message,
+  running,
+}: {
+  message: ChatMessage | undefined;
+  running: boolean;
+}) {
+  if (!message || message.role !== "agent") return null;
+  if (!running && !message.pending && !message.error) return null;
+
+  return (
+    <div className="border-b border-rule px-4 py-2">
+      <p className="type-eyebrow text-oxblood">Agent</p>
+      {message.error ? (
+        <p className="mt-1 text-[13.5px] text-oxblood">{message.error}</p>
+      ) : message.text ? (
+        <p className="mt-1 max-h-24 overflow-y-auto whitespace-pre-wrap text-[14px] leading-snug text-ink">
+          <TypewriterText text={message.text} active={message.pending} />
+          {message.pending ? <StreamingCaret /> : null}
+        </p>
+      ) : (
+        <p className="mt-1 text-[13.5px] leading-snug text-pencil">
+          {message.thinking || "Working…"}
+          <StreamingCaret />
+        </p>
       )}
     </div>
   );

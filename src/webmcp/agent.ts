@@ -48,7 +48,7 @@ interface TranscriptEntry {
 export class WebMCPUnavailableError extends Error {}
 
 async function waitForTools(signal?: AbortSignal): Promise<RegisteredTool[]> {
-  const deadline = Date.now() + 4000;
+  const deadline = Date.now() + 1500;
   while (!signal?.aborted) {
     const modelContext = getModelContext();
     if (modelContext) {
