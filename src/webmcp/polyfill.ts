@@ -1,5 +1,6 @@
 import {
   nativeModelContext,
+  platformModelContexts,
   type GetToolsOptions,
   type ModelContext,
   type RegisterToolOptions,
@@ -113,14 +114,27 @@ class PageModelContext extends EventTarget implements ModelContext {
 
 let pageCtx: PageModelContext | null = null;
 let sawNativeObject = false;
+/** Set when a stub looked like native but getTools() did not list our tools. */
+let ignoreNative = false;
 
 function pageContext(): PageModelContext {
   if (!pageCtx) pageCtx = new PageModelContext();
   return pageCtx;
 }
 
+/** The inspector said the flag is off: stop treating the stub as native. */
+export function ignoreUnverifiedNative() {
+  ignoreNative = true;
+}
+
+export function trustedPlatformContexts() {
+  if (ignoreNative) return [];
+  return platformModelContexts();
+}
+
 /** The browser's context, or null when this browser does not implement WebMCP. */
 export function browserContext(): ModelContext | null {
+  if (ignoreNative) return null;
   const native = nativeModelContext();
   if (native) sawNativeObject = true;
   return native;
@@ -143,7 +157,7 @@ export function adoptNativeIfPresent(): boolean {
  * still wins via resolveModelContext.
  */
 export function forcePolyfill(): WebMCPSupport {
-  if (nativeModelContext()) return "native";
+  if (!ignoreNative && nativeModelContext()) return "native";
   pageContext();
   return "page";
 }
@@ -172,5 +186,6 @@ export function ensureModelContext(): WebMCPSupport {
 
 /** True when the tools are on the page's own object rather than the browser's. */
 export function isPolyfilled(): boolean {
+  if (ignoreNative) return true;
   return !nativeModelContext();
 }

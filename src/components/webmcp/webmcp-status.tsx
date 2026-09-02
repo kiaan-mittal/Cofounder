@@ -30,7 +30,7 @@ const COPY = {
     label: "in-page fallback",
     dot: "bg-ochre",
     detail:
-      "This browser does not implement WebMCP. Tools sit on a private page object so seats and the in-page agent still work. document.modelContext is untouched. Open this URL in ChatGPT desktop Sol/Terra (site tools on) or Chrome 149+ with chrome://flags/#enable-webmcp-testing to show the native path.",
+      "This browser does not implement WebMCP — or the Chrome flag is off, so the inspector lists nothing. Tools sit on a private page object. Enable chrome://flags/#enable-webmcp-testing, relaunch, and this badge should match the extension: native, with the same tools.",
   },
   unavailable: {
     label: "WebMCP unavailable",

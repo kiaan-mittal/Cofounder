@@ -122,6 +122,66 @@ function usableNative(value: unknown): ModelContext | null {
   return null;
 }
 
+/** True when this function is the browser's, not a JS shim or extension stub. */
+export function isBrowserNativeFunction(fn: unknown): boolean {
+  if (typeof fn !== "function") return false;
+  try {
+    return Function.prototype.toString.call(fn).includes("[native code]");
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Chrome's WebMCP, or ChatGPT Sol/Terra. A page polyfill or an extension
+ * stub that happens to have registerTool is not native — the inspector
+ * will say "flag not active" and list nothing.
+ */
+export function isPlatformModelContext(
+  value: unknown,
+): value is ModelContext {
+  const ctx = usableNative(value);
+  if (!ctx) return false;
+  return isBrowserNativeFunction(ctx.registerTool);
+}
+
+function readSlot(
+  desc: PropertyDescriptor | undefined,
+  receiver: object,
+): unknown {
+  if (!desc) return undefined;
+  if (typeof desc.get === "function") {
+    try {
+      return desc.get.call(receiver);
+    } catch {
+      return undefined;
+    }
+  }
+  return desc.value;
+}
+
+function collectRawSlots(): unknown[] {
+  if (typeof document === "undefined") return [];
+  return [
+    readSlot(descriptor(document, "modelContext"), document),
+    readSlot(descriptor(Document.prototype, "modelContext"), document),
+    readSlot(descriptor(navigator, "modelContext"), navigator),
+    readSlot(descriptor(Navigator.prototype, "modelContext"), navigator),
+  ];
+}
+
+/** Every distinct platform ModelContext (document + navigator when both exist). */
+export function platformModelContexts(): ModelContext[] {
+  const found: ModelContext[] = [];
+  const seen = new Set<object>();
+  for (const slot of collectRawSlots()) {
+    if (!isPlatformModelContext(slot) || seen.has(slot)) continue;
+    seen.add(slot);
+    found.push(slot);
+  }
+  return found;
+}
+
 function descriptor(
   target: object,
   name: "modelContext",
@@ -133,25 +193,24 @@ function descriptor(
   }
 }
 
-function descriptorLooksNative(desc: PropertyDescriptor | undefined): boolean {
-  if (!desc) return false;
-  if (typeof desc.get === "function") return true;
-  return Boolean(usableNative(desc.value));
+function isNativeGetter(desc: PropertyDescriptor | undefined): boolean {
+  return Boolean(desc?.get && isBrowserNativeFunction(desc.get));
 }
 
 /**
- * True when the platform has already bound `modelContext` — including a
- * getter on Document / Navigator that has not returned an object yet.
- * Installing an own data property on `document` would shadow that binding
- * (ChatGPT desktop Sol/Terra does this).
+ * True when the platform has already bound `modelContext` — a native getter
+ * that may not have returned an object yet. A JS getter (extension stub,
+ * page shim) does not count; treating it as native is how the header said
+ * "native 17" while the inspector said the Chrome flag was off.
  */
 export function nativePlatformBound(): boolean {
   if (typeof document === "undefined") return false;
   return (
-    descriptorLooksNative(descriptor(document, "modelContext")) ||
-    descriptorLooksNative(descriptor(Document.prototype, "modelContext")) ||
-    descriptorLooksNative(descriptor(navigator, "modelContext")) ||
-    descriptorLooksNative(descriptor(Navigator.prototype, "modelContext"))
+    isNativeGetter(descriptor(document, "modelContext")) ||
+    isNativeGetter(descriptor(Document.prototype, "modelContext")) ||
+    isNativeGetter(descriptor(navigator, "modelContext")) ||
+    isNativeGetter(descriptor(Navigator.prototype, "modelContext")) ||
+    platformModelContexts().length > 0
   );
 }
 
@@ -160,45 +219,11 @@ export function nativePlatformBound(): boolean {
  * `document.modelContext`, fall back to the deprecated `navigator` location,
  * and never assume either exists.
  *
- * The page's own shim is ignored so a shadowed native getter still wins.
+ * Only a browser-native registerTool counts. JS objects with the same
+ * method names are the fallback path, not proof of WebMCP.
  */
 export function nativeModelContext(): ModelContext | null {
-  if (typeof document === "undefined") return null;
-
-  const own = descriptor(document, "modelContext");
-  if (own?.get) {
-    try {
-      const fromGet = usableNative(own.get.call(document));
-      if (fromGet) return fromGet;
-    } catch {
-      /* getter threw */
-    }
-  } else {
-    const fromOwn = usableNative(own?.value);
-    if (fromOwn) return fromOwn;
-  }
-
-  try {
-    const proto = descriptor(Document.prototype, "modelContext");
-    if (proto?.get) {
-      const fromProto = usableNative(proto.get.call(document));
-      if (fromProto) return fromProto;
-    } else {
-      const fromProtoVal = usableNative(proto?.value);
-      if (fromProtoVal) return fromProtoVal;
-    }
-  } catch {
-    /* ignore */
-  }
-
-  try {
-    const fromNav = usableNative(navigator.modelContext);
-    if (fromNav) return fromNav;
-  } catch {
-    /* ignore */
-  }
-
-  return null;
+  return platformModelContexts()[0] ?? null;
 }
 
 export interface WebMCPDiagnostics {

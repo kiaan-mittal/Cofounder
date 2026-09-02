@@ -5,8 +5,10 @@ import type { Actor, AgentChannel } from "@/lib/types";
 import { coerceToolArgs, nativeToolText, toolAudience } from "@/webmcp/compat";
 import {
   ensureModelContext,
+  ignoreUnverifiedNative,
   isPolyfilled,
   resolveModelContext,
+  trustedPlatformContexts,
 } from "@/webmcp/polyfill";
 import {
   nativeModelContext,
@@ -192,10 +194,14 @@ export async function registerArenaTools(
   tools: ArenaTool[],
   signal: AbortSignal,
 ): Promise<RegistrationOutcome> {
-  const support = ensureModelContext();
-  const modelContext = getModelContext();
+  const platform = trustedPlatformContexts();
+  const support =
+    platform.length > 0 ? ("native" as const) : ensureModelContext();
+  const targets = platform.length > 0 ? platform : [getModelContext()].filter(
+    (ctx): ctx is ModelContext => Boolean(ctx),
+  );
 
-  if (!modelContext) {
+  if (!targets.length) {
     return {
       support: "unavailable",
       registered: [],
@@ -205,17 +211,20 @@ export async function registerArenaTools(
   }
 
   const audience = toolAudience();
+  const names = tools.map((tool) => tool.name);
 
-  // Registered concurrently so a judge's agent reading the registry at
-  // first paint is not waiting on a serial queue.
   const outcomes = await Promise.all(
     tools.map(async (tool) => {
       try {
-        await registerWithAudience(
-          modelContext,
-          instrument(tool),
-          signal,
-          audience,
+        await Promise.all(
+          targets.map((modelContext) =>
+            registerWithAudience(
+              modelContext,
+              instrument(tool),
+              signal,
+              audience,
+            ),
+          ),
         );
         return { name: tool.name, error: null as string | null };
       } catch (error) {
@@ -237,11 +246,46 @@ export async function registerArenaTools(
     .map((outcome) => outcome.error)
     .filter((error): error is string => error !== null);
 
+  if (support === "native") {
+    const visible = await toolsVisibleOn(targets[0]!, names);
+    if (!visible.length) {
+      ignoreUnverifiedNative();
+      return registerArenaTools(tools, signal);
+    }
+    return {
+      support: "native",
+      registered: visible,
+      error: errors.length ? errors.join("; ") : undefined,
+    };
+  }
+
   return {
     support,
     registered,
     error: errors.length ? errors.join("; ") : undefined,
   };
+}
+
+async function toolsVisibleOn(
+  modelContext: ModelContext,
+  expected: string[],
+): Promise<string[]> {
+  const want = new Set(expected);
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    try {
+      const listed = await timed(modelContext.getTools(), "getTools");
+      const hit = listed
+        .map((tool) => tool.name)
+        .filter((name) => want.has(name));
+      if (hit.length) return hit;
+    } catch {
+      /* getTools threw — try again */
+    }
+    await new Promise<void>((resolve) => {
+      window.setTimeout(resolve, 150);
+    });
+  }
+  return [];
 }
 
 async function registerWithAudience(
