@@ -22,6 +22,16 @@ const nextConfig: NextConfig = {
             key: "Origin-Agent-Cluster",
             value: "?1",
           },
+          // Chrome 149–156 origin trial. Without this token, production Chrome
+          // visitors only get native WebMCP if they flipped the testing flag.
+          ...(process.env.WEBMCP_ORIGIN_TRIAL_TOKEN
+            ? [
+                {
+                  key: "Origin-Trial",
+                  value: process.env.WEBMCP_ORIGIN_TRIAL_TOKEN,
+                },
+              ]
+            : []),
         ],
       },
     ];

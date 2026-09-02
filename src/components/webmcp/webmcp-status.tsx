@@ -21,22 +21,22 @@ import { useWebMCP } from "@/webmcp/provider";
 
 const COPY = {
   native: {
-    label: "WebMCP live",
+    label: "WebMCP native",
     dot: "bg-moss",
     detail:
-      "This browser implements document.modelContext natively. Tools are registered with the platform and any connected agent can discover them.",
+      "This browser implements document.modelContext natively. Tools are registered with the platform. That is the demo path — ChatGPT Sol/Terra or Chrome with the WebMCP flag.",
   },
   page: {
-    label: "WebMCP in-page",
+    label: "in-page fallback",
     dot: "bg-ochre",
     detail:
-      "This browser does not implement WebMCP, so the tools are on an object the page built for its own agent. document.modelContext is left untouched. Every write — seats, founder, in-page agent — still goes through getTools() and executeTool().",
+      "This browser does not implement WebMCP. Tools sit on a private page object so seats and the in-page agent still work. document.modelContext is untouched. Open this URL in ChatGPT desktop Sol/Terra (site tools on) or Chrome 149+ with chrome://flags/#enable-webmcp-testing to show the native path.",
   },
   unavailable: {
     label: "WebMCP unavailable",
     dot: "bg-pencil",
     detail:
-      "No WebMCP entry point is reachable. Every part of the Arena still works; only agent tool access is off.",
+      "No native document.modelContext yet. If this stays empty, this tab cannot prove native WebMCP — switch to Sol, Terra, or Chrome with the flag.",
   },
 } as const;
 

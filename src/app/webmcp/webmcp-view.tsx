@@ -84,7 +84,12 @@ export function WebMCPView({
         </h1>
         <p className="mt-6 text-[18px] leading-relaxed text-graphite">
           ChatGPT reads {company?.name ?? JUDGE_COMPANY}, writes on the same
-          table you see, and is refused if it tries to commit.
+          table you see, and is refused if it tries to commit. The proof is
+          native{" "}
+          <code className="type-figure text-[15px] text-ink">
+            document.modelContext
+          </code>
+          — Sol or Terra, site tools on — not the in-page fallback.
         </p>
       </header>
 
@@ -97,7 +102,7 @@ export function WebMCPView({
               : support === "native"
                 ? "native"
                 : support === "page"
-                  ? "in-page"
+                  ? "fallback"
                   : "unavailable"
           }
           tone={
@@ -124,6 +129,17 @@ export function WebMCPView({
           tone={company ? "moss" : "pencil"}
         />
       </div>
+
+      {ready && support !== "native" ? (
+        <p className="mt-6 max-w-[62ch] border border-rule bg-ochre-wash px-4 py-3 text-[15px] leading-relaxed text-ink">
+          This tab is not native WebMCP. Open{" "}
+          <span className="type-figure">decisionarena.vercel.app</span> in
+          ChatGPT desktop Sol or Terra with site tools on — or Chrome 149+
+          with{" "}
+          <span className="type-figure">chrome://flags/#enable-webmcp-testing</span>
+          . The header must read <span className="type-figure">native</span>.
+        </p>
+      ) : null}
 
       {error ? (
         <p className="mt-4 text-[15px] text-oxblood">{error}</p>
@@ -308,9 +324,11 @@ export function WebMCPView({
           </p>
           {support === "page" && ready ? (
             <p>
-              This browser has no platform WebMCP, so the tools sit on an
-              in-page object for the sparring agent. The platform slot is left
-              empty.
+              This browser is on the fallback. Tools sit on a private page
+              object. That is not proof of native WebMCP. Open this URL in
+              ChatGPT desktop Sol or Terra with site tools, or Chrome 149+
+              with chrome://flags/#enable-webmcp-testing, and the header
+              should read native.
             </p>
           ) : null}
           {support !== "native" && probe ? (
