@@ -116,8 +116,13 @@ export function describeInheritedRoom(state?: ArenaState) {
     lines.push(
       `Open decision: ${room.decision.question}`,
       `Status: ${room.decision.status}. Round ${room.decision.round}. Seats written: ${room.argumentCount}.`,
-      "What still blocks commit:",
     );
+    if (room.argumentCount === 0) {
+      lines.push(
+        "The table is empty. Call stress_test_decision on this same question. Do not open a second decision.",
+      );
+    }
+    lines.push("What still blocks commit:");
     if (
       !room.contradictions.length &&
       !room.evidence.length &&

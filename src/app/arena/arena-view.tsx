@@ -9,6 +9,7 @@ import { CommitFlow } from "@/components/arena/commit-flow";
 import {
   FloorBar,
   FloorBoard,
+  FloorCue,
   FloorTalk,
   targetSeatLabel,
 } from "@/components/arena/floor";
@@ -543,6 +544,7 @@ function Workspace({
         decisionId={decision.id}
         seed={seed}
       />
+      <FloorCue decision={decision} />
       <WebMcpBadge lift />
       <SplitPane
         storageKey="arena-floor"

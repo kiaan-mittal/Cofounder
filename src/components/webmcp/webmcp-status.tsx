@@ -20,11 +20,11 @@ import { useWebMCP } from "@/webmcp/provider";
  */
 
 const COPY = {
-  native: {
+    native: {
     label: "WebMCP native",
     dot: "bg-moss",
     detail:
-      "This browser implements document.modelContext natively. Tools are registered with the platform. That is the demo path — ChatGPT Sol/Terra or Chrome with the WebMCP flag.",
+      "Native site tools. This browser bound document.modelContext. ChatGPT can discover and call them — that is the demo path.",
   },
   page: {
     label: "in-page fallback",

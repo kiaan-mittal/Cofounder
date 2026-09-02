@@ -128,7 +128,7 @@ export function DecisionBoard({
         </p>
       ) : null}
 
-      <TensionScale arguments={primary} />
+      {primary.length > 0 ? <TensionScale arguments={primary} /> : null}
 
       {empty ? (
         <EmptyTable busy={busy} onOpenRound={onOpenRound} />
@@ -296,12 +296,12 @@ function EmptyTable({
         <p className="type-eyebrow">Empty table</p>
         <h2 className="type-display mt-3 text-[24px] font-semibold leading-snug">
           {onOpenRound
-            ? "Let the five seats write. Or don’t click — ask the agent."
+            ? "Five empty chairs. ChatGPT writes first."
             : "The seats write on the other laptop."}
         </h2>
         <p className="mt-3 text-[14px] leading-relaxed text-graphite">
           {onOpenRound
-            ? "“Use Decision Arena to stress-test whether I should launch this month.” The board fills as they write."
+            ? "Call stress_test_decision. The board fills as each seat finishes. The in-page composer is a fallback, not the demo."
             : "This tab cannot open a round."}
         </p>
         {onOpenRound ? (

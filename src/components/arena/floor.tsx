@@ -131,7 +131,7 @@ export function FloorTalk({
             <p className="text-[16px] leading-relaxed text-graphite">
               {readOnly
                 ? "Waiting for the seats."
-                : "Ask the agent, or copy the prompt from the WebMCP badge. Replies type onto the floor."}
+                : "Empty table. When ChatGPT calls stress_test_decision, five seats write here."}
             </p>
           )
         ) : (
@@ -318,14 +318,28 @@ export function FloorBoard({
         ) : null}
       </header>
       <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
-        <SharedState
-          risks={risks}
-          contradictions={contradictions}
-          evidence={evidence}
-          stillOpen={stillOpenFrom(reassessments)}
-          stacked
-        />
-        <div className="border-t border-rule">
+        {risks.length ||
+        contradictions.length ||
+        evidence.length ||
+        reassessments.length ? (
+          <SharedState
+            risks={risks}
+            contradictions={contradictions}
+            evidence={evidence}
+            stillOpen={stillOpenFrom(reassessments)}
+            stacked
+          />
+        ) : null}
+        <div
+          className={
+            risks.length ||
+            contradictions.length ||
+            evidence.length ||
+            reassessments.length
+              ? "border-t border-rule"
+              : undefined
+          }
+        >
           <DecisionBoard
             decision={decision}
             companyName={companyName}
@@ -361,6 +375,67 @@ export function targetSeatLabel(
   const argument = args.find((item) => item.id === targetId);
   if (!argument) return null;
   return perspectiveName(argument.perspective);
+}
+
+const SHARE_URL_RE = /https?:\/\/\S+/;
+
+function shareUrlFromSummary(summary: string) {
+  const match = summary.match(SHARE_URL_RE);
+  return match?.[0]?.replace(/[.,;:]+$/, "") ?? null;
+}
+
+/**
+ * One strip a judge can read without hunting: empty floor, refused commit,
+ * then the public share link.
+ */
+export function FloorCue({ decision }: { decision: Decision }) {
+  const calls = useArena((state) => state.toolCalls);
+  const opening = useArena((state) => state.arenaPhase === "opening");
+  const seatCount = useArena(
+    (state) =>
+      state.argumentList.filter(
+        (item) => item.decisionId === decision.id && !item.challengesId,
+      ).length,
+  );
+  const share = calls.find((call) => call.tool === "share_decision" && call.ok);
+  const shareUrl = share ? shareUrlFromSummary(share.summary) : null;
+  const refused = Boolean(decision.agentCommitRefusedAt);
+  const empty = decision.status === "open" && seatCount === 0 && !opening;
+
+  if (!shareUrl && !refused && !empty) return null;
+
+  return (
+    <div className="shrink-0 border-b border-rule">
+      {refused ? (
+        <p className="bg-oxblood-wash px-4 py-2 text-[14px] leading-snug text-ink">
+          <span className="type-eyebrow mr-2 text-oxblood">confirm_commit</span>
+          Refused. Agents propose. You commit.
+        </p>
+      ) : null}
+      {shareUrl ? (
+        <p className="bg-moss-wash px-4 py-2 text-[14px] leading-snug text-ink">
+          <span className="type-eyebrow mr-2 text-moss">share_decision</span>
+          Public record{" "}
+          <a
+            href={shareUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="underline decoration-rule underline-offset-4 hover:decoration-ink"
+          >
+            {shareUrl}
+          </a>
+        </p>
+      ) : null}
+      {empty && !refused && !shareUrl ? (
+        <p className="bg-indigo-wash px-4 py-2 text-[14px] leading-snug text-ink">
+          <span className="type-eyebrow mr-2 text-indigo">Waiting</span>
+          ChatGPT calls{" "}
+          <code className="type-figure text-[13px]">stress_test_decision</code>
+          . Five seats write on this table.
+        </p>
+      ) : null}
+    </div>
+  );
 }
 
 export function FloorBar({

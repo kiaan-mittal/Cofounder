@@ -131,11 +131,11 @@ export default async function LandingPage() {
             </h2>
             <p className="mt-5 max-w-[52ch] text-[17px] leading-relaxed text-graphite">
               Open the Arena and IndieTerminal is already on the floor — a
-              real product, a live question, no sign-in. Paste the prompt into
-              ChatGPT in Sol or Terra. Native tools fire on this page. The
-              five seats write. You watch. When the agent tries to commit, the
-              page says no. The in-page composer is a fallback for browsers
-              that have no WebMCP — it is not the proof.
+              real product, a live question, empty chairs, no sign-in. Paste
+              the prompt once into ChatGPT in Sol or Terra. Native tools
+              appear. Five seats write. When the agent tries to commit, the
+              page says no. Then you get a public link. The in-page composer
+              is a fallback — it is not the proof.
             </p>
             <p className="mt-4 max-w-[52ch] text-[17px] leading-relaxed text-graphite">
               The Company Brain is the map underneath: users, code, product,
@@ -179,7 +179,7 @@ export default async function LandingPage() {
       </section>
 
       <section className="border-t border-rule py-14">
-        <p className="type-eyebrow">The three calls</p>
+        <p className="type-eyebrow">What you will see</p>
         <ul className="mt-8 grid gap-5 sm:grid-cols-3">
           {JUDGE_CALLS.map((item, index) => (
             <li key={item.tool} className={`border border-rule p-6 ${CALL_WASH[index]}`}>

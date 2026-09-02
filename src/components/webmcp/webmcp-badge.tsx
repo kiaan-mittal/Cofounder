@@ -3,8 +3,6 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import { CopyLine } from "@/components/ink/copy-line";
-import { JUDGE_CALLS, JUDGE_PROMPT } from "@/lib/judge-path";
 import { useArena } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { useWebMCP } from "@/webmcp/provider";
@@ -20,8 +18,8 @@ const CHANNEL_LABEL: Record<string, string> = {
 /**
  * Floating WebMCP badge on the Arena.
  *
- * The old tool rail ate the board. This sits out of the way, names the
- * protocol, shows live calls, and hands the judge three spoken examples.
+ * Starts closed so the floor is the demo. Native vs fallback, live calls —
+ * no second ChatGPT prompt.
  */
 export function WebMcpBadge({
   lift = false,
@@ -31,7 +29,7 @@ export function WebMcpBadge({
 }) {
   const { support, registered, ready } = useWebMCP();
   const calls = useArena((state) => state.toolCalls);
-  const [open, setOpen] = useState(lift);
+  const [open, setOpen] = useState(false);
   const [now, setNow] = useState(0);
 
   useEffect(() => {
@@ -64,7 +62,13 @@ export function WebMcpBadge({
               WebMCP
             </p>
             <p className="type-eyebrow ml-auto">
-              {ready ? `${registered.length} tools` : "…"}
+              {ready
+                ? live
+                  ? `native · ${registered.length}`
+                  : inPage
+                    ? `fallback · ${registered.length}`
+                    : "waiting"
+                : "…"}
             </p>
             <button
               type="button"
@@ -78,26 +82,11 @@ export function WebMcpBadge({
           <div className="max-h-[min(28rem,60dvh)] overflow-y-auto px-4 py-3">
             <p className="text-[13px] leading-relaxed text-graphite">
               {live
-                ? "Native WebMCP. This browser bound document.modelContext. ChatGPT can call the tools."
+                ? "Native site tools. ChatGPT discovered document.modelContext on this page."
                 : inPage
-                  ? "Fallback only — this browser has no native WebMCP. Open this URL in ChatGPT desktop Sol or Terra (site tools on), or Chrome 149+ with chrome://flags/#enable-webmcp-testing. Do not demo the in-page agent as native."
-                  : "Waiting for document.modelContext. If this stays empty, open the page in Sol, Terra, or Chrome with the WebMCP flag."}
+                  ? "Fallback only — this browser has no native WebMCP. Open this URL in ChatGPT desktop Sol or Terra (site tools on). Do not demo the in-page agent as native."
+                  : "Waiting for document.modelContext. Open the page in Sol, Terra, or Chrome with the WebMCP flag."}
             </p>
-
-            <p className="type-eyebrow mt-4">Paste this in ChatGPT</p>
-            <CopyLine text={JUDGE_PROMPT} className="mt-2 px-3 py-2.5" />
-
-            <p className="type-eyebrow mt-4">Then try</p>
-            <ul className="mt-2 space-y-2">
-              {JUDGE_CALLS.map((item) => (
-                <li key={item.tool}>
-                  <p className="type-figure text-[13px] text-ink">{item.tool}</p>
-                  <p className="mt-0.5 text-[13px] leading-snug text-graphite">
-                    {item.happens}
-                  </p>
-                </li>
-              ))}
-            </ul>
 
             {calls.length ? (
               <>
@@ -169,11 +158,17 @@ export function WebMcpBadge({
         </span>
         {ready ? (
           <span className="type-figure text-[12px] text-paper/70">
-            {registered.length}
+            {live ? "native" : inPage ? "fallback" : "off"}
+            {registered.length ? ` · ${registered.length}` : ""}
           </span>
         ) : null}
         {latest && !open ? (
-          <span className="type-figure max-w-[10rem] truncate text-[11px] text-paper/70">
+          <span
+            className={cn(
+              "type-figure max-w-[10rem] truncate text-[11px]",
+              latest.ok ? "text-paper/70" : "text-ochre",
+            )}
+          >
             {latest.tool}
           </span>
         ) : null}
