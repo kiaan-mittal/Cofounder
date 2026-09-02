@@ -7,14 +7,13 @@ import {
   withInheritedDescriptions,
 } from "@/lib/inherited-room";
 import { useArena } from "@/lib/store";
-import { adoptNativeIfPresent, forcePolyfill } from "@/webmcp/polyfill";
+import { adoptNativeIfPresent, forcePolyfill, browserContext } from "@/webmcp/polyfill";
 import {
   registerArenaTools,
   type ArenaTool,
   type RegistrationOutcome,
 } from "@/webmcp/registry";
 import {
-  nativeModelContext,
   nativePlatformBound,
   type WebMCPSupport,
 } from "@/webmcp/spec";
@@ -97,7 +96,7 @@ async function loadGuestTools(): Promise<ArenaTool[]> {
 }
 
 function nativeWins(): boolean {
-  return Boolean(nativeModelContext() || nativePlatformBound());
+  return Boolean(browserContext());
 }
 
 function sleep(ms: number) {
@@ -112,14 +111,14 @@ function sleep(ms: number) {
  * shim. Wait for the native object before falling back.
  */
 async function waitForNative(): Promise<boolean> {
-  if (nativeModelContext()) return true;
+  if (browserContext()) return true;
   const deadline =
     Date.now() + (nativePlatformBound() ? 3000 : 1200);
   while (Date.now() < deadline) {
     await sleep(100);
-    if (nativeModelContext()) return true;
+    if (browserContext()) return true;
   }
-  return Boolean(nativeModelContext());
+  return Boolean(browserContext());
 }
 
 async function registerFull() {
@@ -143,7 +142,7 @@ async function registerFull() {
       if (nativeWins()) {
         await tick();
         if (gen !== generation) return;
-      } else if (!nativeModelContext()) {
+      } else if (!browserContext()) {
         forcePolyfill();
       }
       [stableResult, liveResult] = await Promise.all([
@@ -167,7 +166,7 @@ async function registerFull() {
   } catch (error) {
     if (gen !== generation) return;
     try {
-      if (!nativeModelContext() && !nativePlatformBound()) forcePolyfill();
+      if (!browserContext()) forcePolyfill();
       const fallback = await registerArenaTools(
         await loadGuestTools(),
         lifetime.signal,
