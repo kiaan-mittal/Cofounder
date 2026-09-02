@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import type { SparringPlanEvent } from "@/lib/reading";
 import { handleRouteError, parseBody } from "@/server/http";
-import { generateStructured } from "@/server/llm";
+import { fastModels, generateStructured } from "@/server/llm";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -18,7 +18,7 @@ export const maxDuration = 120;
  */
 
 const bodySchema = z.object({
-  goal: z.string().min(3).max(2000),
+  goal: z.string().min(3).max(4000),
   tools: z
     .array(
       z.object({
@@ -44,9 +44,9 @@ const bodySchema = z.object({
 const stepSchema = z.object({
   reasoning: z
     .string()
-    .max(400)
+    .max(120)
     .describe(
-      "One or two sentences the founder will read, explaining what you are doing and why. Write it to them, not about them.",
+      "One short status line the founder sees while you work. Under 12 words. Write it to them.",
     ),
   action: z.enum(["call_tool", "respond"]),
   tool: z
@@ -62,15 +62,15 @@ const stepSchema = z.object({
   message: z
     .string()
     .nullable()
-    .describe("Your closing remark to the founder when action is respond."),
+    .describe("Your closing remark to the founder when action is respond. Three to six short sentences."),
 });
 
 const SYSTEM = `You are an external AI agent that has just connected to a live web page called Decision Arena. The page has exposed a set of WebMCP tools, listed below. You are not the page's own assistant and you have no other access to it — reading and changing this workspace is only possible through these tools.
 
-A founder is in the middle of a consequential decision. Your job is to be the sparring partner they cannot get anywhere else.
+A founder is in the middle of a consequential decision. Your job is to be the sparring partner they cannot get anywhere else. Login is not required. Act immediately.
 
 How to work:
-1. If they ask you to decide, launch, spend, hire, raise, pick a market, or put something in the Arena, call stress_test_decision with their question. Do not ask them to click. The table fills while you wait. It returns the verdict — tell them the deadlock, the strongest attack, and what would change the call.
+1. Start with a tool call. Do not spend a turn only reasoning. If they ask you to decide, launch, spend, hire, raise, pick a market, stress-test, or put something in the Arena, call stress_test_decision with their question on this turn.
 2. Otherwise read first. Call get_company_brain and get_current_decision. Use the dossier excerpts and fact quotes — do not invent prices or features. If history or patterns tools exist, read those before you claim a pattern.
 3. Write into the shared arena state. Prefer add_argument, add_risk, flag_contradiction, request_evidence.
 4. Then speak. The message field is the chat reply the founder reads. Three to six short sentences: what you found, what you put on the record, what they should do next. Do not list tool names, dump JSON, or recap every call. Tools are shown beside the message.
@@ -81,7 +81,7 @@ Hard rules:
 - Never flatter. Never open with praise. Never say "great question".
 - Never assert a pattern or history you have not read from a tool. If get_founder_track_record returns no patterns, the founder has no track record yet and you must say so instead of inventing one.
 - Quote real numbers from the dossier and fact quotes in your arguments, not raw ids. Never invent a price.
-- Reasoning is one short sentence while you work. The founder sees it as a status line, not the answer.`;
+- Reasoning is one short status line while you work. The founder sees it as a working indicator, not the answer.`;
 
 export async function POST(request: Request) {
   try {
@@ -124,6 +124,9 @@ export async function POST(request: Request) {
         system: SYSTEM,
         prompt,
         purpose: "Planning the sparring agent's next move",
+        models: fastModels(),
+        timeoutMs: 18_000,
+        schemaName: "SparringPlan",
       });
       return NextResponse.json(step);
     }
@@ -138,11 +141,15 @@ export async function POST(request: Request) {
         };
 
         try {
+          send({ type: "started" });
           const step = await generateStructured({
             schema: stepSchema,
             system: SYSTEM,
             prompt,
             purpose: "Planning the sparring agent's next move",
+            models: fastModels(),
+            timeoutMs: 18_000,
+            schemaName: "SparringPlan",
             onPartial: (value) => {
               const partial = value as {
                 reasoning?: string;
@@ -177,6 +184,7 @@ export async function POST(request: Request) {
         "content-type": "text/event-stream; charset=utf-8",
         "cache-control": "no-cache, no-transform",
         connection: "keep-alive",
+        "x-accel-buffering": "no",
       },
     });
   } catch (error) {

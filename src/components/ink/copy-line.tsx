@@ -32,7 +32,14 @@ export function CopyLine({
         className,
       )}
     >
-      <p className="min-w-0 flex-1 text-[16px] leading-relaxed text-ink">
+      <p
+        className={cn(
+          "min-w-0 flex-1 text-ink",
+          text.includes("\n")
+            ? "max-h-56 overflow-y-auto whitespace-pre-wrap text-[13.5px] leading-relaxed"
+            : "text-[16px] leading-relaxed",
+        )}
+      >
         {children ?? text}
       </p>
       <button

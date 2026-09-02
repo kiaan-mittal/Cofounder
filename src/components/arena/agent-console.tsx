@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 
 import { PromptComposer } from "@/components/arena/prompt-composer";
 import { StreamingCaret } from "@/components/arena/streaming-caret";
+import { TypewriterText } from "@/components/arena/typewriter-text";
 import {
   AGENT_PROMPTS,
   useSparringChat,
@@ -139,11 +140,12 @@ export function AgentTranscript({
             {message.pending && message.thinking && !message.text ? (
               <p className="mt-2 text-[13.5px] leading-relaxed text-pencil">
                 {message.thinking}
+                <StreamingCaret className="bg-oxblood" />
               </p>
             ) : null}
             {message.text ? (
               <p className="mt-2 max-w-[54ch] whitespace-pre-wrap text-[16px] leading-[1.55] text-ink">
-                {message.text}
+                <TypewriterText text={message.text} active={message.pending} />
                 {message.pending ? <StreamingCaret /> : null}
               </p>
             ) : null}
@@ -161,7 +163,7 @@ function ToolStamp({ tool }: { tool: ChatTool }) {
   return (
     <li className="type-figure text-[11px] leading-snug text-pencil">
       {tool.name}
-      {tool.ok === false ? " · failed" : ""}
+      {tool.running ? " · working" : tool.ok === false ? " · failed" : ""}
     </li>
   );
 }

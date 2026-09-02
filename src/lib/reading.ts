@@ -84,6 +84,7 @@ export type SparringPlan = {
 };
 
 export type SparringPlanEvent =
+  | { type: "started" }
   | { type: "partial"; reasoning?: string; message?: string }
   | { type: "done"; step: SparringPlan }
   | { type: "error"; message: string };

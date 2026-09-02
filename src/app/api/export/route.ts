@@ -10,6 +10,7 @@ import {
   type ExportToolkit,
 } from "@/server/composio-export";
 import { appOrigin } from "@/server/app-url";
+import { resolveExportUser } from "@/server/export-identity";
 import { readGithubSession, readProjectCookie, safeReturnTo } from "@/server/github-oauth";
 import { fail, handleRouteError, parseBody } from "@/server/http";
 import { createDecisionShare } from "@/server/shares";
@@ -60,12 +61,10 @@ async function connectResponse(input: {
 export async function POST(request: Request) {
   try {
     const session = await readGithubSession();
+    const exportUser = await resolveExportUser();
     const body = await parseBody(request, bodySchema);
     if (!isDecisionBrief(body.brief)) {
       return fail("That is not a decision brief the Arena can export.");
-    }
-    if (body.destination !== "link" && !session) {
-      return fail("Sign in to send this decision to Slack or Notion.", 401);
     }
 
     const share = await createDecisionShare({
@@ -81,20 +80,16 @@ export async function POST(request: Request) {
       return Response.json({ url: share.url, token: share.token });
     }
 
-    if (!session) {
-      return fail("Sign in to send this decision to Slack or Notion.", 401);
-    }
-
     if (!composioConfigured()) {
       return fail(
-        "Add COMPOSIO_API_KEY to send this decision to Slack or Notion.",
-        400,
-        "The share link still works.",
+        "Sign in to send this decision to Slack or Notion.",
+        401,
+        "The share link still works. Sign in, then connect Slack or Notion.",
       );
     }
 
     const toolkit = body.destination as ExportToolkit;
-    const userId = session.composioUserId || `da_export_${session.login}`;
+    const userId = exportUser.userId;
     const returnTo = safeReturnTo(body.returnTo, "/arena");
     const connected = await connectedExportToolkits(userId);
 
