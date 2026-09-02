@@ -46,10 +46,12 @@ export function ExportDecision({
   decisionId,
   returnTo = "/arena",
   compact = false,
+  variant = "row",
 }: {
   decisionId: string;
   returnTo?: string;
   compact?: boolean;
+  variant?: "row" | "menu";
 }) {
   const [busy, setBusy] = useState<ExportDestination | null>(null);
   const [lastUrl, setLastUrl] = useState<string | null>(null);
@@ -140,6 +142,44 @@ export function ExportDecision({
   const notionLabel = connected.includes("notion")
     ? "Send to Notion"
     : "Connect Notion";
+
+  if (variant === "menu") {
+    const item =
+      "flex h-9 w-full items-center gap-2 px-3 text-left text-[13px] text-ink hover:bg-tape disabled:opacity-50";
+    return (
+      <div className="flex flex-col border-t border-rule">
+        <button
+          type="button"
+          role="menuitem"
+          disabled={busy !== null}
+          onClick={() => void send("link")}
+          className={item}
+        >
+          {busy === "link" ? "Copying…" : "Copy share link"}
+        </button>
+        <button
+          type="button"
+          role="menuitem"
+          disabled={busy !== null}
+          onClick={() => void send("slack")}
+          className={item}
+        >
+          <AppLogo toolkit="slack" />
+          {busy === "slack" ? "Sending…" : slackLabel}
+        </button>
+        <button
+          type="button"
+          role="menuitem"
+          disabled={busy !== null}
+          onClick={() => void send("notion")}
+          className={item}
+        >
+          <AppLogo toolkit="notion" />
+          {busy === "notion" ? "Writing…" : notionLabel}
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div

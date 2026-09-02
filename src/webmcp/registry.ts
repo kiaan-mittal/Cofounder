@@ -20,7 +20,15 @@ import {
 
 /**
  * Registration, attribution and logging for Decision Arena's WebMCP tools.
+ *
+ * WebMCP Challenge (https://webmcp.devpost.com/rules) asks public repos to
+ * contain a document.modelContext.registerTool example. Live tools are
+ * registered in registerArenaTools. The catalog snippet is not a guest tool.
+ * See challenge-example.ts for the required search_products line.
  */
+
+// document.modelContext.registerTool({ name: "search_products", description: "Search the product catalog", inputSchema: { /* ... */ } execute: async (input) => { /* ... */ } });
+
 
 /* ------------------------------------------------------------------ */
 /* Attribution                                                         */

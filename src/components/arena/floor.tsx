@@ -6,10 +6,10 @@ import { AgentTranscript } from "@/components/arena/agent-console";
 import { AgentPresence } from "@/components/arena/agent-presence";
 import { DecisionBoard } from "@/components/arena/decision-board";
 import { DecisionRail } from "@/components/arena/decision-rail";
-import { ExportDecision } from "@/components/arena/export-decision";
 import { PatternBanner } from "@/components/arena/pattern-banner";
 import { PromptComposer } from "@/components/arena/prompt-composer";
 import { SeatOpening, SeatReply } from "@/components/arena/seat-reply";
+import { ShareMenu } from "@/components/arena/share-menu";
 import { SharedState } from "@/components/arena/the-loop";
 import { WatchPublisher } from "@/components/arena/watch-publisher";
 import { detectPatterns, warningsForDecision } from "@/lib/calibration";
@@ -351,53 +351,53 @@ export function FloorBar({
 
   return (
     <div
-      className="flex h-11 shrink-0 items-center gap-3 border-b border-rule px-3"
+      className="flex h-10 shrink-0 items-center gap-2 border-b border-rule px-3"
       title={question}
     >
       {spectator ? (
-        <p className="min-w-0 flex-1 truncate text-[13px] text-ink">{question}</p>
+        <>
+          <p className="min-w-0 flex-1 truncate text-[13px] text-ink">
+            {question}
+          </p>
+          <p className="type-eyebrow shrink-0 text-oxblood">Spectating</p>
+        </>
       ) : (
-        <DecisionRail currentId={decisionId} seed={seed} />
+        <>
+          <button
+            type="button"
+            onClick={leave}
+            className="type-eyebrow shrink-0 text-graphite hover:text-ink"
+          >
+            Arenas
+          </button>
+          <DecisionRail currentId={decisionId} seed={seed} showNew={false} />
+        </>
       )}
+      <p className="type-eyebrow ml-auto hidden shrink-0 whitespace-nowrap sm:block">
+        R{round} · {status}
+      </p>
       {spectator ? (
-        <p className="type-eyebrow shrink-0 text-oxblood">Spectating</p>
-      ) : (
-        <button
-          type="button"
-          onClick={leave}
-          className="type-eyebrow shrink-0 text-graphite underline underline-offset-4 hover:text-ink"
-        >
-          Your arenas
-        </button>
-      )}
-      <div className="flex shrink-0 items-center gap-3">
-        {spectator ? (
-          agentInRoom ? (
+        <>
+          {agentInRoom ? (
             <p className="type-eyebrow hidden whitespace-nowrap text-oxblood lg:block">
               Agent in the room
             </p>
-          ) : null
-        ) : (
-          <AgentPresence />
-        )}
-        {spectator ? (
+          ) : null}
           <button
             type="button"
             onClick={onCopyWatch}
-            className="type-eyebrow shrink-0 text-graphite underline underline-offset-4 hover:text-ink"
+            className="type-eyebrow shrink-0 text-graphite hover:text-ink"
           >
             Copy watch
           </button>
-        ) : (
-          <>
-            <WatchPublisher compact />
-            <ExportDecision decisionId={decisionId} compact />
-          </>
-        )}
-        <p className="type-eyebrow hidden whitespace-nowrap sm:block">
-          Round {round} · {status}
-        </p>
-      </div>
+        </>
+      ) : (
+        <>
+          <AgentPresence />
+          <WatchPublisher variant="sync" />
+          <ShareMenu decisionId={decisionId} />
+        </>
+      )}
     </div>
   );
 }
