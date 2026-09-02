@@ -52,8 +52,13 @@ export function RequireCompany({
   const company = storeCompany ?? snapshotCompany;
 
   useLayoutEffect(() => {
+    const live = useArena.getState();
+    if (isStaleShowcase(live)) {
+      importWorkspace(showcaseSnapshot());
+      return;
+    }
     adoptSnapshotIfRicher(initialSnapshot as WorkspaceSnapshot | null);
-  }, [initialSnapshot]);
+  }, [initialSnapshot, importWorkspace]);
 
   // Anonymous Vercel visits have no GitHub session, so they used to land on
   // an empty floor ("not loaded"). Seed IndieTerminal unless a real company
@@ -165,13 +170,18 @@ export function HydrateWorkspace({
   const importWorkspace = useArena((state) => state.importWorkspace);
 
   useLayoutEffect(() => {
+    const live = useArena.getState();
+    if (isStaleShowcase(live)) {
+      importWorkspace(seedFromQuery());
+      return;
+    }
     if (
       initialSnapshot &&
       !snapshotIsEmpty(initialSnapshot as WorkspaceSnapshot)
     ) {
       adoptSnapshotIfRicher(initialSnapshot as WorkspaceSnapshot);
     }
-  }, [initialSnapshot]);
+  }, [initialSnapshot, importWorkspace]);
 
   useEffect(() => {
     const live = useArena.getState();
