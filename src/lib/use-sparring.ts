@@ -7,8 +7,13 @@ import {
   WebMCPUnavailableError,
   type AgentStep,
 } from "@/webmcp/agent";
+import { JUDGE_DECISION } from "@/lib/judge-path";
 
 export const AGENT_PROMPTS = [
+  {
+    label: "Stress-test this floor",
+    goal: `Call stress_test_decision with this question: ${JUDGE_DECISION} It returns the verdict — tell me whether the seats are deadlocked, the strongest attack, and the one thing that would change the call. Do not confirm_commit.`,
+  },
   {
     label: "Stress-test a launch",
     goal: "Call stress_test_decision with this question: Should I spend the next month of runway launching this product now? It returns the verdict — tell me whether the seats are deadlocked, the strongest attack, and the one thing that would change the call. Do not confirm_commit.",
@@ -36,6 +41,7 @@ export type ChatTool = {
   args?: Record<string, unknown>;
   result?: string;
   ok?: boolean;
+  running?: boolean;
 };
 
 export type ChatMessage =
@@ -75,7 +81,7 @@ export function useSparringChat() {
         role: "agent",
         text: "",
         tools: [],
-        thinking: "",
+        thinking: "Working…",
         pending: true,
       },
     ]);
@@ -92,18 +98,30 @@ export function useSparringChat() {
             return { ...message, thinking: step.text };
           }
           if (step.kind === "tool" && step.tool) {
+            const tools = [...message.tools];
+            const open = tools.findLastIndex(
+              (tool) => tool.name === step.tool && tool.running,
+            );
+            if (open >= 0 && step.result !== undefined) {
+              tools[open] = {
+                ...tools[open],
+                result: step.result,
+                ok: step.ok,
+                running: false,
+              };
+            } else if (open < 0) {
+              tools.push({
+                name: step.tool,
+                args: step.args,
+                result: step.result,
+                ok: step.ok,
+                running: step.result === undefined,
+              });
+            }
             return {
               ...message,
-              thinking: "",
-              tools: [
-                ...message.tools,
-                {
-                  name: step.tool,
-                  args: step.args,
-                  result: step.result,
-                  ok: step.ok,
-                },
-              ],
+              thinking: step.result === undefined ? `Calling ${step.tool}…` : "",
+              tools,
             };
           }
           if (step.kind === "message") {

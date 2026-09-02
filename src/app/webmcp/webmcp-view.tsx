@@ -142,11 +142,7 @@ export function WebMCPView({
                   {step.title}
                 </p>
                 {step.n === "02" ? (
-                  <CopyLine text={JUDGE_PROMPT} className="mt-3">
-                    <span className="text-[15px] leading-snug">
-                      {JUDGE_PROMPT}
-                    </span>
-                  </CopyLine>
+                  <CopyLine text={JUDGE_PROMPT} className="mt-3" />
                 ) : (
                   <p className="mt-1.5 text-[16px] leading-relaxed text-graphite">
                     {step.detail}

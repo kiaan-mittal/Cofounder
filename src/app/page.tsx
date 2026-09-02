@@ -47,9 +47,11 @@ export default async function LandingPage() {
               />
             </span>
           </h1>
-          <p className="mt-8 max-w-[36ch] text-[18px] leading-relaxed text-graphite">
-            Open the Arena. IndieTerminal is already on the table. Ask ChatGPT
-            to stress-test it. Watch the tools fire.
+          <p className="mt-8 max-w-[42ch] text-[18px] leading-relaxed text-graphite">
+            Open the Arena. IndieTerminal is already on the table. Copy the
+            prompt, paste it into ChatGPT with this page open — or ask the
+            in-page agent. Either way the tools fire. You do not need an
+            account.
           </p>
           <div className="mt-10 flex flex-wrap items-baseline gap-x-6 gap-y-3">
             <Link
@@ -92,13 +94,9 @@ export default async function LandingPage() {
               <h2 className="type-display mt-3 text-[26px] font-semibold">
                 {step.title}
               </h2>
-              {step.n === "02" ? (
+                {step.n === "02" ? (
                 <div className="mt-4">
-                  <CopyLine text={JUDGE_PROMPT}>
-                    <span className="text-[15px] leading-snug">
-                      {JUDGE_PROMPT}
-                    </span>
-                  </CopyLine>
+                  <CopyLine text={JUDGE_PROMPT} />
                 </div>
               ) : (
                 <p className="mt-3 text-[16px] leading-relaxed text-graphite">
