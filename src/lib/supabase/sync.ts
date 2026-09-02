@@ -8,7 +8,7 @@ import {
 } from "@/lib/drafts";
 import type { ProjectSummary } from "@/lib/projects";
 import { isEphemeralSnapshot, withoutForeignArenas } from "@/lib/guest-workspace";
-import { isStaleShowcase } from "@/lib/showcase-seed";
+import { isStaleShowcase, showcaseSnapshot } from "@/lib/showcase-seed";
 import {
   getWorkspaceSnapshot,
   snapshotIsEmpty,
@@ -71,6 +71,10 @@ export function shouldAdoptRemote(
 }
 
 function applySnapshot(snapshot: PersistedSnapshot) {
+  if (isStaleShowcase(snapshot)) {
+    useArena.getState().importWorkspace(showcaseSnapshot());
+    return;
+  }
   const { arenaDraft, ...workspace } = snapshot;
   const cleaned = withoutForeignArenas(
     workspace as unknown as Record<string, unknown>,

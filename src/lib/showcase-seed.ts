@@ -415,7 +415,7 @@ const decisions: Decision[] = [
     question:
       "Should /research and /scan run without a Clerk session, so a browser agent can operate IndieTerminal?",
     context:
-      "You wrote that a product which needs clicks will not survive, and that agents should act rather than chat. Today every command sits behind sign-up. This Arena itself just stopped requiring GitHub to be used.",
+      "Every IndieTerminal command currently sits behind Clerk. You wrote that a product which needs clicks will not survive. The seats have not written yet — this is the live question.",
     options: [
       {
         id: "opt_guest",
@@ -658,205 +658,14 @@ const argumentList: Argument[] = [
     strength: 83,
     createdAt: daysAgo(28),
   }),
-
-  arg({
-    id: "arg_it01",
-    decisionId: "dec_it_live",
-    perspective: "technical",
-    stance: "for",
-    claim:
-      "An agent cannot call /research through Clerk. Guest /research is the smallest honest WebMCP surface.",
-    reasoning:
-      "The command is a GET-shaped read: a query in, citations out. Capping tokens per IP is an engineering problem. Requiring a Google account is a product problem you are exporting to every agent that lands on the page.",
-    basis: [
-      { type: "fact", ref: "fact_it07", label: "Every command sits behind Clerk" },
-    ],
-    strength: 82,
-    createdAt: daysAgo(1),
-  }),
-  arg({
-    id: "arg_it02",
-    decisionId: "dec_it_live",
-    perspective: "product",
-    stance: "conditional",
-    claim: "Guest /research is the demo. /post and /operate stay signed-in.",
-    reasoning:
-      "Reads can be anonymous. Writes to someone else's X account cannot. The mistake would be treating every slash command as the same permission. Split the registry: public reads, authed writes.",
-    basis: [
-      { type: "fact", ref: "fact_it03", label: "Outbound already has a gate" },
-    ],
-    strength: 77,
-    createdAt: daysAgo(1),
-  }),
-  arg({
-    id: "arg_it03",
-    decisionId: "dec_it_live",
-    perspective: "gtm",
-    stance: "for",
-    claim: "A command that works in the URL is the waitlist.",
-    reasoning:
-      "indieterminal.com already exists. Asking people to sign up before they have seen /research is the stealth habit with a nicer domain. One ungated command is a number you can be wrong about.",
-    basis: [{ type: "fact", ref: "fact_it01", label: "The site is already public" }],
-    strength: 74,
-    createdAt: daysAgo(1),
-  }),
-  arg({
-    id: "arg_it04",
-    decisionId: "dec_it_live",
-    perspective: "financial",
-    stance: "against",
-    claim: "Unauthenticated OpenAI calls are an open tab on the only real cost.",
-    reasoning:
-      "There is no price. The bill is tokens. A guest /research with no cap is a way to light money on fire for strangers scraping the endpoint. A signed-in user is at least a person you can turn off.",
-    basis: [{ type: "fact", ref: "fact_it08", label: "OpenAI drafts inside pipelines" }],
-    strength: 71,
-    createdAt: daysAgo(1),
-  }),
-  arg({
-    id: "arg_it05",
-    decisionId: "dec_it_live",
-    perspective: "contrarian",
-    stance: "against",
-    claim: "A guest session has no company. /research without a brain is a search box.",
-    reasoning:
-      "The product is stored context. A stranger hitting /research has no org_brain_records. You would be demoing the one part of the stack that is not the product, then calling it agent-native.",
-    basis: [
-      { type: "fact", ref: "fact_it04", label: "Commands reuse saved brain records" },
-    ],
-    strength: 85,
-    createdAt: daysAgo(1),
-  }),
 ];
 
-const defenses: Defense[] = [
-  {
-    id: "def_it01",
-    decisionId: "dec_it_live",
-    argumentId: "arg_it05",
-    text: "Guest /research can still load a sample company — the same way this Arena loads IndieTerminal without GitHub. The brain does not have to be empty just because the visitor is new.",
-    round: 1,
-    createdAt: daysAgo(1),
-  },
-];
-
-const reassessments: Reassessment[] = [
-  {
-    id: "rea_it01",
-    decisionId: "dec_it_live",
-    defenseId: "def_it01",
-    argumentId: "arg_it05",
-    perspective: "contrarian",
-    verdict: "weakened",
-    addressed: "A seeded sample company would make guest /research a real demo, not an empty search.",
-    unaddressed:
-      "You have not named which company gets seeded, or whether the visitor's next /post would write into that sample. A demo brain that can be mutated by strangers is a different risk.",
-    reply: "A sample company is an answer. It is not this product's company. If guest /research only ever runs against a fixture, you have built a marketing page that talks like a command. I move a little. I do not concede.",
-    strengthDelta: -8,
-    createdAt: daysAgo(1),
-  },
-];
-
-const risks: Risk[] = [
-  {
-    id: "risk_it01",
-    decisionId: "dec_it_live",
-    title: "Unbounded token spend",
-    detail:
-      "Guest /research without a per-IP cap is an OpenAI bill with no customer attached.",
-    severity: 4,
-    likelihood: "high",
-    status: "open",
-    perspective: "financial",
-    createdBy: "arena",
-    createdAt: daysAgo(1),
-  },
-  {
-    id: "risk_it02",
-    decisionId: "dec_it_live",
-    title: "Sample brain gets treated as production",
-    detail:
-      "If guest /research uses a fixture, someone will /post from it. The queue has to know the difference.",
-    severity: 3,
-    likelihood: "medium",
-    status: "open",
-    perspective: "product",
-    createdBy: "arena",
-    createdAt: daysAgo(1),
-  },
-  {
-    id: "risk_it03",
-    decisionId: "dec_it_live",
-    title: "Clerk stays on /research 'for now'",
-    detail:
-      "Keeping every command authed another month has no exit test. That is the stealth decision with a login wall.",
-    severity: 4,
-    likelihood: "high",
-    status: "open",
-    perspective: "gtm",
-    createdBy: "arena",
-    createdAt: daysAgo(1),
-  },
-];
-
-const contradictions: Contradiction[] = [
-  {
-    id: "con_it01",
-    decisionId: "dec_it_live",
-    summary:
-      "You argue agents must act without clicks, and every IndieTerminal command currently requires a Clerk click.",
-    sideA:
-      "Public writing: a product that does not work without clicks will not survive. Agents should act.",
-    sideB:
-      "README: sign up, then /command. The connected repo is private. No unauthenticated tool surface.",
-    resolved: false,
-    createdBy: "arena",
-    createdAt: daysAgo(1),
-  },
-];
-
-const evidence: Evidence[] = [
-  {
-    id: "ev_it01",
-    decisionId: "dec_it_live",
-    statement:
-      "Has anyone other than the founder run /research against a real startup profile?",
-    status: "requested",
-    requestedBy: "arena",
-    argumentId: "arg_it03",
-    createdAt: daysAgo(1),
-  },
-  {
-    id: "ev_it02",
-    decisionId: "dec_it_live",
-    statement:
-      "What is the per-day OpenAI cost of /research at the current prompt size?",
-    status: "requested",
-    requestedBy: "arena",
-    argumentId: "arg_it04",
-    createdAt: daysAgo(1),
-  },
-];
-
-const actionItems: ActionItem[] = [
-  {
-    id: "act_it01",
-    decisionId: "dec_it_live",
-    text: "Mark /research and /scan as public in the command registry; leave /post and /operate authed.",
-    owner: "founder",
-    done: false,
-    createdBy: "arena",
-    createdAt: daysAgo(1),
-  },
-  {
-    id: "act_it02",
-    decisionId: "dec_it_live",
-    text: "Cap guest /research at 5 runs per IP per day before touching Clerk.",
-    owner: "founder",
-    done: false,
-    createdBy: "arena",
-    createdAt: daysAgo(1),
-  },
-];
+const defenses: Defense[] = [];
+const reassessments: Reassessment[] = [];
+const risks: Risk[] = [];
+const contradictions: Contradiction[] = [];
+const evidence: Evidence[] = [];
+const actionItems: ActionItem[] = [];
 
 const predictions: Prediction[] = [
   {
@@ -1041,7 +850,9 @@ export function isStaleShowcase(state: {
     github?: string;
     brain?: { gaps?: string[]; product?: { features?: string[] } };
   } | null;
-  decisions?: Array<{ id?: string; question?: string }>;
+  decisions?: Array<{ id?: string; question?: string; context?: string }>;
+  argumentList?: Array<{ id?: string; decisionId?: string }>;
+  defenses?: Array<{ id?: string; decisionId?: string }>;
 }) {
   if (state.company?.id !== COMPANY_ID) return false;
   const github = (state.company.github ?? "").toLowerCase();
@@ -1052,6 +863,16 @@ export function isStaleShowcase(state: {
     return true;
   }
   if ((state.company.brain?.product?.features ?? []).length > 3) return true;
+  if ((state.argumentList ?? []).some((item) => /^arg_it\d+/.test(item.id ?? ""))) {
+    return true;
+  }
+  if ((state.defenses ?? []).some((item) => /^def_it/.test(item.id ?? ""))) {
+    return true;
+  }
+  const live = (state.decisions ?? []).find((item) => item.id === "dec_it_live");
+  if (live?.context && /stopped requiring GitHub/i.test(live.context)) {
+    return true;
+  }
   return (state.decisions ?? []).some((item) =>
     /startup school|founder directory for yc|\bycblr\b/i.test(item.question ?? ""),
   );

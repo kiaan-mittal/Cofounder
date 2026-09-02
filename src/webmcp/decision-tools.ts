@@ -75,6 +75,52 @@ function mostRecentDecision(decisions: Decision[]) {
   );
 }
 
+function normQuestion(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[?!.]+$/g, "")
+    .replace(/\s+/g, " ");
+}
+
+function questionsAlign(left: string, right: string) {
+  const a = normQuestion(left);
+  const b = normQuestion(right);
+  if (!a || !b) return false;
+  return a === b || a.includes(b) || b.includes(a);
+}
+
+function seatCount(decisionId: string) {
+  return state().argumentList.filter(
+    (item) => item.decisionId === decisionId && !item.challengesId,
+  ).length;
+}
+
+/**
+ * Reuse the live open floor instead of spawning a second arena when ChatGPT
+ * calls stress_test_decision / open_decision with the same question.
+ */
+function reusableOpenDecision(question: string): Decision | undefined {
+  const s = state();
+  const open = s.decisions.filter((item) => item.status === "open");
+  const exact = open.find((item) => questionsAlign(item.question, question));
+  if (exact) return exact;
+
+  const active = s.activeDecisionId
+    ? s.decisions.find(
+        (item) => item.id === s.activeDecisionId && item.status === "open",
+      )
+    : undefined;
+  if (active && (questionsAlign(active.question, question) || seatCount(active.id) === 0)) {
+    return active;
+  }
+
+  const live = open.find((item) => item.id === "dec_it_live");
+  if (live && seatCount(live.id) === 0) return live;
+  if (open.length === 1 && seatCount(open[0].id) === 0) return open[0];
+  return undefined;
+}
+
 export const decisionTools: ArenaTool[] = [
   {
     name: "stress_test_decision",
@@ -463,14 +509,16 @@ export const decisionTools: ArenaTool[] = [
       const existingId = str(args.decision_id);
       const existing = existingId
         ? s.decisions.find((d) => d.id === existingId)
-        : undefined;
+        : reusableOpenDecision(question);
+      const context = str(args.context);
       const decision =
         existing ??
         s.createDecision({
           question,
-          context: str(args.context),
+          context,
           options,
         });
+      const emptySeats = existing ? seatCount(existing.id) === 0 : true;
       s.updateDecision(decision.id, {
         agentConfidence: Math.max(
           0,
@@ -478,6 +526,8 @@ export const decisionTools: ArenaTool[] = [
         ),
         round: Math.max(1, decision.round),
         status: "open",
+        ...(existing && emptySeats ? { question } : {}),
+        ...(existing && emptySeats && context ? { context } : {}),
         ...(existing && existing.options.length === 0 && options.length
           ? { options }
           : {}),
@@ -700,7 +750,7 @@ export const decisionTools: ArenaTool[] = [
           });
         }
         return toolError(
-          "Only the founder can confirm a commitment. Call commit_decision to stage one for them. confirm_commit was refused.",
+          "Refused. confirm_commit is the founder's click. Agents propose. Founders commit.",
         );
       }
       const s = state();

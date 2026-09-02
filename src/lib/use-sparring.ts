@@ -15,20 +15,8 @@ export const AGENT_PROMPTS = [
     goal: `Call stress_test_decision with this question: ${JUDGE_DECISION} It returns the verdict — tell me whether the seats are deadlocked, the strongest attack, and the one thing that would change the call. Do not confirm_commit.`,
   },
   {
-    label: "Stress-test a launch",
-    goal: "Call stress_test_decision with this question: Should I spend the next month of runway launching this product now? It returns the verdict — tell me whether the seats are deadlocked, the strongest attack, and the one thing that would change the call. Do not confirm_commit.",
-  },
-  {
     label: "Find my blind spot",
     goal: "Read get_company_brain and get_current_decision. Add one argument I am missing with add_argument, from the seat that should have said it. Then tell me, in a few sentences, what I am not seeing.",
-  },
-  {
-    label: "Check this against my history",
-    goal: "Read get_decision_history. If I am repeating a failed rationale, flag_contradiction quoting both sides. Then tell me plainly whether I have made this mistake before.",
-  },
-  {
-    label: "Attack my weakest assumption",
-    goal: "Find the weakest assumption in the Company Brain. add_risk against the claim that rests on it, or add_argument from the seat that should have named it. Then tell me which assumption you attacked and why.",
   },
   {
     label: "Send this to Slack",

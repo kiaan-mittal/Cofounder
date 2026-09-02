@@ -4,15 +4,25 @@ import { useEffect, useRef, useState } from "react";
 
 import { ExportDecision } from "@/components/arena/export-decision";
 import { WatchPublisher } from "@/components/arena/watch-publisher";
+import { useArena } from "@/lib/store";
+
+const SHARE_URL_RE = /https?:\/\/\S+/;
 
 /**
  * Slack and Notion sit as logos on the quiet floor bar. Watch and the
  * share link stay behind Share so the row does not grow another cluster
- * of labeled buttons.
+ * of labeled buttons. After share_decision, the public URL sits beside it.
  */
 export function ShareMenu({ decisionId }: { decisionId: string }) {
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
+  const shareUrl = useArena((state) => {
+    const call = state.toolCalls.find(
+      (item) => item.tool === "share_decision" && item.ok,
+    );
+    const match = call?.summary.match(SHARE_URL_RE);
+    return match?.[0]?.replace(/[.,;:]+$/, "") ?? null;
+  });
 
   useEffect(() => {
     if (!open) return;
@@ -31,8 +41,18 @@ export function ShareMenu({ decisionId }: { decisionId: string }) {
   }, [open]);
 
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex items-center gap-2">
       <ExportDecision decisionId={decisionId} variant="logos" />
+      {shareUrl ? (
+        <a
+          href={shareUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="type-eyebrow hidden max-w-[14rem] truncate text-moss underline underline-offset-4 lg:inline"
+        >
+          Public link
+        </a>
+      ) : null}
       <div ref={root} className="relative">
         <button
           type="button"
@@ -50,6 +70,17 @@ export function ShareMenu({ decisionId }: { decisionId: string }) {
           >
             <WatchPublisher variant="menu" />
             <ExportDecision decisionId={decisionId} variant="menu" />
+            {shareUrl ? (
+              <a
+                role="menuitem"
+                href={shareUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="flex h-9 items-center px-3 text-[13px] text-moss hover:bg-tape"
+              >
+                Open public link
+              </a>
+            ) : null}
           </div>
         ) : null}
       </div>
