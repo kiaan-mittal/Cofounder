@@ -157,6 +157,19 @@ export async function paintOpeningRound(input: {
     argument: DebateOpeningRound["arguments"][number],
   ) {
     if (seenArgs.has(argument.perspective)) return;
+    const already = useArena
+      .getState()
+      .argumentList.some(
+        (item) =>
+          item.decisionId === decisionId &&
+          item.perspective === argument.perspective &&
+          !item.challengesId,
+      );
+    if (already) {
+      seenArgs.add(argument.perspective);
+      useArena.getState().markSeatReady(argument.perspective);
+      return;
+    }
     seenArgs.add(argument.perspective);
     useArena.getState().markSeatReady(argument.perspective);
     await call("add_argument", {

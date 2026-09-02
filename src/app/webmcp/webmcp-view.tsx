@@ -3,14 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import { CopyLine } from "@/components/ink/copy-line";
 import { HydrateWorkspace } from "@/components/shell/require-company";
-import {
-  JUDGE_CALLS,
-  JUDGE_COMPANY,
-  JUDGE_PROMPT,
-  JUDGE_STEPS,
-} from "@/lib/judge-path";
+import { JUDGE_CALLS, JUDGE_COMPANY } from "@/lib/judge-path";
 import { useArena } from "@/lib/store";
 import type { Company } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -154,28 +148,13 @@ export function WebMCPView({
       ) : null}
 
       <section className="mt-12 border border-rule bg-leaf px-6 py-6">
-        <p className="type-eyebrow">Run it</p>
-        <ol className="mt-5 space-y-5">
-          {JUDGE_STEPS.map((step) => (
-            <li key={step.n} className="flex gap-4">
-              <span className="type-figure w-8 shrink-0 pt-0.5 text-[13px] text-pencil">
-                {step.n}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="type-display text-[22px] font-semibold">
-                  {step.title}
-                </p>
-                {step.n === "02" ? (
-                  <CopyLine text={JUDGE_PROMPT} className="mt-3" />
-                ) : (
-                  <p className="mt-1.5 text-[16px] leading-relaxed text-graphite">
-                    {step.detail}
-                  </p>
-                )}
-              </div>
-            </li>
-          ))}
-        </ol>
+        <p className="type-eyebrow">This is the inspector</p>
+        <p className="mt-4 max-w-[58ch] text-[17px] leading-relaxed text-ink">
+          Native WebMCP is proved here: the header must read native, and
+          getTools() must list the same tools ChatGPT discovered. The one
+          ChatGPT prompt lives on the home page — paste it once, then come
+          back to the Arena.
+        </p>
         <div className="mt-6 flex flex-wrap items-baseline gap-x-6 gap-y-2">
           <Link
             href="/arena"
@@ -183,15 +162,17 @@ export function WebMCPView({
           >
             Open the Arena
           </Link>
-          <p className="text-[14px] text-graphite">
-            ChatGPT desktop: Sol or Terra, site tools on. Or Chrome 149+ with
-            the WebMCP flag.
-          </p>
+          <Link
+            href="/"
+            className="text-[14px] text-graphite underline decoration-rule underline-offset-4 hover:text-ink"
+          >
+            Copy the prompt →
+          </Link>
         </div>
       </section>
 
       <section className="mt-12">
-        <p className="type-eyebrow">Example calls</p>
+        <p className="type-eyebrow">What the three calls do</p>
         <ul className="mt-5 grid gap-4 sm:grid-cols-3">
           {JUDGE_CALLS.map((item) => (
             <li key={item.tool} className="border border-rule bg-paper p-5">
@@ -201,9 +182,6 @@ export function WebMCPView({
               <p className="mt-3 text-[16px] leading-relaxed text-graphite">
                 {item.happens}
               </p>
-              <CopyLine text={item.say} className="mt-4 px-3 py-2">
-                <span className="text-[13px] leading-snug">{item.say}</span>
-              </CopyLine>
             </li>
           ))}
         </ul>
