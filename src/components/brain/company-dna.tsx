@@ -215,7 +215,7 @@ export function CompanyDna({
         ))}
       </div>
 
-      <div className="relative hidden aspect-[25/12] w-full overflow-hidden paper-grid lg:block">
+      <div className="relative hidden h-[min(58vh,36rem)] w-full overflow-hidden paper-grid lg:block">
         <svg
           viewBox="0 0 1000 480"
           preserveAspectRatio="none"

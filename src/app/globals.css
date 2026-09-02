@@ -14,30 +14,30 @@
 :root {
   --radius: 0.25rem;
 
-  /* Surfaces */
-  --paper: #ffffff;
-  --leaf: #fbfaf8;
-  --tape: #f4f1ec;
+  /* Surfaces — warm paper, not stark white */
+  --paper: #fffdf8;
+  --leaf: #f3efe6;
+  --tape: #e8e1d4;
 
   /* Ink */
-  --ink: #14110f;
+  --ink: #1c1914;
   --graphite: #6e6862;
   --pencil: #a49d95;
-  --rule: #e5e1da;
-  --rule-strong: #cfc9c0;
+  --rule: #ddd6c8;
+  --rule-strong: #c9c0b3;
 
   /* Meaningful pens */
   --oxblood: #8a2015; /* the agent's objection */
-  --oxblood-wash: #fdf1ef;
+  --oxblood-wash: #f8ece9;
   --indigo: #23407f; /* the founder's defense */
-  --indigo-wash: #eef1f9;
+  --indigo-wash: #eef1f8;
   --ochre: #a9741a; /* unresolved / at risk */
-  --ochre-wash: #fbf4e4;
+  --ochre-wash: #f8f0de;
   --moss: #2f5d43; /* resolved / verified fact */
-  --moss-wash: #eef4ef;
+  --moss-wash: #e8f0ea;
 
   /* shadcn surface mapping */
-  --background: var(--paper);
+  --background: var(--leaf);
   --foreground: var(--ink);
   --card: var(--paper);
   --card-foreground: var(--ink);
