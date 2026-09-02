@@ -21,7 +21,7 @@ export const JUDGE_ORIGIN = "https://decisionarena.vercel.app";
 export const JUDGE_PROMPT = `You are a guest in Decision Arena. Do not sign in. Do not create an account. Do not open /login.
 
 How to open the floor:
-1. In this chat's in-app browser (Sol or Terra, site tools on), go to ${JUDGE_ORIGIN}
+1. In this chat's in-app browser (Sol or Terra, site tools on), go to ${JUDGE_ORIGIN}. That is native WebMCP. Do not use the in-page composer as the demo.
 2. On the home page, click the black button "Open IndieTerminal". That is the only click you need.
 3. You should land on ${JUDGE_ORIGIN}/arena. The header reads "Public floor · IndieTerminal". A live decision is already on the table: ${JUDGE_DECISION}
 4. If you are already on /arena, stay there. Do not click Sign in. Do not open ?demo=1. Do not type into the founder's composer.

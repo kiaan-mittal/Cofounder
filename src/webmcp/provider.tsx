@@ -100,9 +100,33 @@ function nativeWins(): boolean {
   return Boolean(nativeModelContext() || nativePlatformBound());
 }
 
+function sleep(ms: number) {
+  return new Promise<void>((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
+}
+
+/**
+ * Sol/Terra and Chrome often bind `document.modelContext` after first paint.
+ * Registering on the page object in that window makes the demo look like a
+ * shim. Wait for the native object before falling back.
+ */
+async function waitForNative(): Promise<boolean> {
+  if (nativeModelContext()) return true;
+  const deadline =
+    Date.now() + (nativePlatformBound() ? 3000 : 1200);
+  while (Date.now() < deadline) {
+    await sleep(100);
+    if (nativeModelContext()) return true;
+  }
+  return Boolean(nativeModelContext());
+}
+
 async function registerFull() {
   const gen = ++generation;
   try {
+    await waitForNative();
+    if (gen !== generation) return;
     const tools = await loadGuestTools();
     const stable = tools.filter((tool) => !LIVE_TOOL_NAMES.has(tool.name));
     const live = tools.filter((tool) => LIVE_TOOL_NAMES.has(tool.name));
@@ -119,7 +143,7 @@ async function registerFull() {
       if (nativeWins()) {
         await tick();
         if (gen !== generation) return;
-      } else {
+      } else if (!nativeModelContext()) {
         forcePolyfill();
       }
       [stableResult, liveResult] = await Promise.all([
@@ -143,7 +167,7 @@ async function registerFull() {
   } catch (error) {
     if (gen !== generation) return;
     try {
-      if (!nativeWins()) forcePolyfill();
+      if (!nativeModelContext() && !nativePlatformBound()) forcePolyfill();
       const fallback = await registerArenaTools(
         await loadGuestTools(),
         lifetime.signal,

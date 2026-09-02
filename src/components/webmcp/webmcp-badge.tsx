@@ -78,10 +78,10 @@ export function WebMcpBadge({
           <div className="max-h-[min(28rem,60dvh)] overflow-y-auto px-4 py-3">
             <p className="text-[13px] leading-relaxed text-graphite">
               {live
-                ? "This browser exposes the tools natively. ChatGPT can call them."
+                ? "Native WebMCP. This browser bound document.modelContext. ChatGPT can call the tools."
                 : inPage
-                  ? "Tools work in this page. Paste the prompt into ChatGPT in Sol or Terra, or ask the in-page agent. Login is not required."
-                  : "Tools are not reachable in this browser yet."}
+                  ? "Fallback only — this browser has no native WebMCP. Open this URL in ChatGPT desktop Sol or Terra (site tools on), or Chrome 149+ with chrome://flags/#enable-webmcp-testing. Do not demo the in-page agent as native."
+                  : "Waiting for document.modelContext. If this stays empty, open the page in Sol, Terra, or Chrome with the WebMCP flag."}
             </p>
 
             <p className="type-eyebrow mt-4">Paste this in ChatGPT</p>

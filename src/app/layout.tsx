@@ -78,9 +78,10 @@ export default async function RootLayout({
       className={`${fraunces.variable} ${instrumentSans.variable} ${jetbrainsMono.variable}`}
     >
       {/*
-        No pre-hydration WebMCP script. `document.modelContext` belongs to the
-        browser; the page only reads it, and publishes a shim there later from
-        the client if nothing native ever appears.
+        `document.modelContext` belongs to the browser. This page never
+        writes a shim there — ChatGPT Sol/Terra skip their native bind if
+        the slot is already taken. Tools register on the real object when
+        it exists; the in-page fallback stays private to the page.
       */}
       <body suppressHydrationWarning>
         <InkFilters />

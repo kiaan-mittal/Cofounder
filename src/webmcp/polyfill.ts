@@ -1,7 +1,5 @@
 import {
-  isPageContext,
   nativeModelContext,
-  nativePlatformBound,
   type GetToolsOptions,
   type ModelContext,
   type RegisterToolOptions,
@@ -116,13 +114,6 @@ class PageModelContext extends EventTarget implements ModelContext {
 let pageCtx: PageModelContext | null = null;
 let sawNativeObject = false;
 
-/**
- * Some embedded browsers expose a `modelContext` whose `registerTool` never
- * settles. After a timeout the page stops waiting on it and talks to its own
- * object instead — still without writing anything to `document`.
- */
-let skipNative = false;
-
 function pageContext(): PageModelContext {
   if (!pageCtx) pageCtx = new PageModelContext();
   return pageCtx;
@@ -140,19 +131,19 @@ export function browserContext(): ModelContext | null {
  * so the caller knows to register onto it.
  */
 export function adoptNativeIfPresent(): boolean {
-  if (nativePlatformBound() || nativeModelContext()) skipNative = false;
   const alreadyHadObject = sawNativeObject;
   const native = browserContext();
   return Boolean(native) && !alreadyHadObject;
 }
 
-/** Stop waiting on a native context that never settles. */
+/**
+ * Some embedded browsers expose a `modelContext` whose `registerTool` never
+ * settles. After a timeout the page talks to its own object instead — still
+ * without writing anything to `document`. A native object that appears later
+ * still wins via resolveModelContext.
+ */
 export function forcePolyfill(): WebMCPSupport {
-  if (nativePlatformBound() || nativeModelContext()) {
-    skipNative = false;
-    return "native";
-  }
-  skipNative = true;
+  if (nativeModelContext()) return "native";
   pageContext();
   return "page";
 }
@@ -161,28 +152,25 @@ export function forcePolyfill(): WebMCPSupport {
  * The context the tools are registered on: the browser's when it has one,
  * otherwise the page's own object. Never null, so founder clicks, Arena seats
  * and the in-page agent work in every browser.
+ *
+ * Native always wins. The page object is only for browsers with no
+ * `document.modelContext` — using it while a native slot exists would make
+ * the demo look like a shim.
  */
 export function resolveModelContext(): ModelContext | null {
   if (typeof document === "undefined") return null;
-  if (!skipNative) {
-    const native = browserContext();
-    if (native) return native;
-  }
-  return pageContext();
+  return browserContext() ?? pageContext();
 }
 
-/** Which implementation the tools ended up on. */
+/** Which implementation the tools ended up on. Never claim native for a page object. */
 export function ensureModelContext(): WebMCPSupport {
   if (typeof document === "undefined") return "unavailable";
-  if (!skipNative && (browserContext() || nativePlatformBound())) {
-    return "native";
-  }
+  if (browserContext()) return "native";
   pageContext();
   return "page";
 }
 
 /** True when the tools are on the page's own object rather than the browser's. */
 export function isPolyfilled(): boolean {
-  if (skipNative) return true;
   return !nativeModelContext();
 }
