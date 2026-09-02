@@ -119,7 +119,9 @@ export function FloorTalk({
               : "Seats write here. You answer."}
         </p>
       </header>
-      {readOnly ? null : <PatternBanner warnings={warnings} />}
+      {readOnly ? null : openings.length ? (
+        <PatternBanner warnings={warnings} />
+      ) : null}
 
       <div ref={scrollerRef} className="min-h-0 flex-1 overflow-y-auto px-5 py-5 lg:px-7">
         {!hasRecord ? (

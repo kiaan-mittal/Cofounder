@@ -400,7 +400,8 @@ function DecisionStart({
               </button>
             </div>
             <p className="mt-1.5 text-[13px] leading-snug text-graphite">
-              Or use the WebMCP badge — copy the prompt, don&rsquo;t type here.
+              The live IndieTerminal question is already open. ChatGPT should
+              call stress_test_decision there — this box is for a new arena.
             </p>
             {error ? (
               <div className="mt-2 border border-rule bg-oxblood-wash px-3 py-2">
@@ -545,7 +546,7 @@ function Workspace({
         seed={seed}
       />
       <FloorCue decision={decision} />
-      <WebMcpBadge lift />
+      <WebMcpBadge lift={args.length > 0 || committed} />
       <SplitPane
         storageKey="arena-floor"
         defaultPct={44}
@@ -592,6 +593,7 @@ function Workspace({
           {error.message}
         </div>
       ) : null}
+      {args.length > 0 || committed ? (
       <ArenaCallDock
         decision={decision}
         committed={committed}
@@ -603,6 +605,7 @@ function Workspace({
         contradictions={contradictions}
         reassessments={reassessments}
       />
+      ) : null}
       <CommitFlow
         decision={decision}
         summary={summary}
