@@ -4,7 +4,7 @@ import { readEventStream } from "@/lib/api";
 import type { SparringPlan, SparringPlanEvent } from "@/lib/reading";
 import { getModelContext } from "@/webmcp/registry";
 import { runTool } from "@/webmcp/run";
-import type { RegisteredTool } from "@/webmcp/spec";
+import { hostCall, type RegisteredTool } from "@/webmcp/spec";
 
 /**
  * The in-page sparring agent.
@@ -52,8 +52,8 @@ async function waitForTools(signal?: AbortSignal): Promise<RegisteredTool[]> {
   while (!signal?.aborted) {
     const modelContext = getModelContext();
     if (modelContext) {
-      const tools = await modelContext.getTools();
-      if (tools.length > 0) return tools;
+      const tools = await hostCall(modelContext.getTools());
+      if (Array.isArray(tools) && tools.length > 0) return tools;
     }
     if (Date.now() >= deadline) break;
     await new Promise((resolve) => window.setTimeout(resolve, 80));
@@ -64,7 +64,9 @@ async function waitForTools(signal?: AbortSignal): Promise<RegisteredTool[]> {
       "No WebMCP entry point is available in this browser, so the agent has nothing to connect to.",
     );
   }
-  return modelContext.getTools();
+  return hostCall(modelContext.getTools()).then((tools) =>
+    Array.isArray(tools) ? tools : [],
+  );
 }
 
 export async function runSparringAgent({
