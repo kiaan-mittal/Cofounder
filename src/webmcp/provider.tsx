@@ -14,7 +14,6 @@ import {
   type RegistrationOutcome,
 } from "@/webmcp/registry";
 import {
-  nativePlatformBound,
   type WebMCPSupport,
 } from "@/webmcp/spec";
 
@@ -112,8 +111,7 @@ function sleep(ms: number) {
  */
 async function waitForNative(): Promise<boolean> {
   if (browserContext()) return true;
-  const deadline =
-    Date.now() + (nativePlatformBound() ? 3000 : 1200);
+  const deadline = Date.now() + 4000;
   while (Date.now() < deadline) {
     await sleep(100);
     if (browserContext()) return true;
