@@ -47,21 +47,33 @@ interface TranscriptEntry {
 
 export class WebMCPUnavailableError extends Error {}
 
-export async function runSparringAgent({
-  goal,
-  onStep,
-  signal,
-  maxSteps = 8,
-}: SparringRunOptions): Promise<void> {
+async function waitForTools(signal?: AbortSignal): Promise<RegisteredTool[]> {
+  const deadline = Date.now() + 4000;
+  while (!signal?.aborted) {
+    const modelContext = getModelContext();
+    if (modelContext) {
+      const tools = await modelContext.getTools();
+      if (tools.length > 0) return tools;
+    }
+    if (Date.now() >= deadline) break;
+    await new Promise((resolve) => window.setTimeout(resolve, 80));
+  }
   const modelContext = getModelContext();
   if (!modelContext) {
     throw new WebMCPUnavailableError(
       "No WebMCP entry point is available in this browser, so the agent has nothing to connect to.",
     );
   }
+  return modelContext.getTools();
+}
 
-  // Discovery — the same call a browser agent makes.
-  const tools: RegisteredTool[] = await modelContext.getTools();
+export async function runSparringAgent({
+  goal,
+  onStep,
+  signal,
+  maxSteps = 6,
+}: SparringRunOptions): Promise<void> {
+  const tools = await waitForTools(signal);
   if (tools.length === 0) {
     throw new WebMCPUnavailableError(
       "No tools are registered on this page yet. Try again in a moment.",
@@ -142,6 +154,17 @@ export async function runSparringAgent({
         continue;
       }
     }
+
+    onStep({
+      kind: "thought",
+      text: plan.reasoning || `Calling ${target.name}…`,
+    });
+    onStep({
+      kind: "tool",
+      text: plan.reasoning,
+      tool: target.name,
+      args,
+    });
 
     try {
       const { text, ok } = await runTool(plan.tool, args, {
@@ -228,6 +251,9 @@ async function planSparringStep({
     (event) => {
       if (event.type === "error") {
         throw new Error(event.message);
+      }
+      if (event.type === "started") {
+        onPartial?.({ reasoning: "Working…" });
       }
       if (event.type === "partial") {
         onPartial?.({

@@ -8,6 +8,12 @@ import { briefFromState } from "@/lib/decision-brief";
 import { useArena } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type ExportDestination = "link" | "slack" | "notion";
 
@@ -54,6 +60,9 @@ export function ExportDecision({
   const [busy, setBusy] = useState<ExportDestination | null>(null);
   const [lastUrl, setLastUrl] = useState<string | null>(null);
   const [connected, setConnected] = useState<string[]>([]);
+  const [composio, setComposio] = useState(false);
+  const [signedIn, setSignedIn] = useState(false);
+  const [statusReady, setStatusReady] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -82,18 +91,39 @@ export function ExportDecision({
     let cancelled = false;
     fetch("/api/export/status")
       .then((response) => response.json())
-      .then((payload: { connected?: string[] }) => {
-        if (!cancelled && Array.isArray(payload.connected)) {
-          setConnected(payload.connected);
-        }
-      })
-      .catch(() => undefined);
+      .then(
+        (payload: {
+          connected?: string[];
+          composio?: boolean;
+          signedIn?: boolean;
+        }) => {
+          if (cancelled) return;
+          if (Array.isArray(payload.connected)) setConnected(payload.connected);
+          if (typeof payload.composio === "boolean") setComposio(payload.composio);
+          if (typeof payload.signedIn === "boolean") setSignedIn(payload.signedIn);
+          setStatusReady(true);
+        },
+      )
+      .catch(() => {
+        if (!cancelled) setStatusReady(true);
+      });
     return () => {
       cancelled = true;
     };
   }, []);
 
+  const loginHref = `/login?${new URLSearchParams({ returnTo }).toString()}`;
+  const canSendApps = composio;
+
   async function send(destination: ExportDestination) {
+    if (destination !== "link" && !canSendApps) {
+      toast("Sign in to send this decision.", {
+        description: "Slack and Notion need a connected account.",
+      });
+      window.location.href = loginHref;
+      return;
+    }
+
     const brief = briefFromState(useArena.getState(), decisionId);
     if (!brief) {
       toast("Nothing to export yet.");
@@ -136,57 +166,97 @@ export function ExportDecision({
     }
   }
 
-  const slackLabel = connected.includes("slack") ? "Send to Slack" : "Connect Slack";
-  const notionLabel = connected.includes("notion")
-    ? "Send to Notion"
-    : "Connect Notion";
+  function appTitle(toolkit: "slack" | "notion") {
+    if (!canSendApps) return "Sign in to send";
+    if (busy === toolkit) {
+      return toolkit === "slack" ? "Sending…" : "Writing…";
+    }
+    if (connected.includes(toolkit)) {
+      return toolkit === "slack" ? "Send to Slack" : "Send to Notion";
+    }
+    return toolkit === "slack" ? "Connect Slack" : "Connect Notion";
+  }
 
   return (
-    <div
-      className={cn(
-        "flex items-center gap-2",
-        compact ? "flex-nowrap" : "flex-wrap",
-      )}
-    >
-      <Button
-        type="button"
-        variant="outline"
-        className={compact ? "h-8 px-2.5 text-[12px]" : "h-8 px-3 text-[13px]"}
-        disabled={busy !== null}
-        onClick={() => void send("link")}
+    <TooltipProvider delayDuration={200}>
+      <div
+        className={cn(
+          "flex items-center gap-2",
+          compact ? "flex-nowrap" : "flex-wrap",
+        )}
       >
-        {busy === "link" ? "Copying…" : compact ? "Share" : "Copy link"}
-      </Button>
-      <Button
-        type="button"
-        variant="outline"
-        className={compact ? "h-8 px-2.5 text-[12px]" : "h-8 px-3 text-[13px]"}
-        disabled={busy !== null}
-        onClick={() => void send("slack")}
-      >
-        <AppLogo toolkit="slack" />
-        {busy === "slack" ? "Sending…" : slackLabel}
-      </Button>
-      <Button
-        type="button"
-        variant="outline"
-        className={compact ? "h-8 px-2.5 text-[12px]" : "h-8 px-3 text-[13px]"}
-        disabled={busy !== null}
-        onClick={() => void send("notion")}
-      >
-        <AppLogo toolkit="notion" />
-        {busy === "notion" ? "Writing…" : notionLabel}
-      </Button>
-      {lastUrl && !compact ? (
-        <a
-          href={lastUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="type-eyebrow text-ink underline underline-offset-4"
+        <Button
+          type="button"
+          variant="outline"
+          className={compact ? "h-8 px-2.5 text-[12px]" : "h-8 px-3 text-[13px]"}
+          disabled={busy !== null}
+          onClick={() => void send("link")}
         >
-          Open share
-        </a>
-      ) : null}
-    </div>
+          {busy === "link" ? "Copying…" : compact ? "Share" : "Copy link"}
+        </Button>
+        <AppSendButton
+          toolkit="slack"
+          label={appTitle("slack")}
+          busy={busy !== null || !statusReady}
+          onClick={() => void send("slack")}
+        />
+        <AppSendButton
+          toolkit="notion"
+          label={appTitle("notion")}
+          busy={busy !== null || !statusReady}
+          onClick={() => void send("notion")}
+        />
+        {lastUrl && !compact ? (
+          <a
+            href={lastUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="type-eyebrow text-ink underline underline-offset-4"
+          >
+            Open share
+          </a>
+        ) : null}
+        {!signedIn && !compact && !canSendApps ? (
+          <a
+            href={loginHref}
+            className="type-eyebrow text-graphite underline underline-offset-4 hover:text-ink"
+          >
+            Sign in to send
+          </a>
+        ) : null}
+      </div>
+    </TooltipProvider>
+  );
+}
+
+function AppSendButton({
+  toolkit,
+  label,
+  busy,
+  onClick,
+}: {
+  toolkit: "slack" | "notion";
+  label: string;
+  busy: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          size="icon-sm"
+          aria-label={label}
+          title={label}
+          className="size-8 border-rule"
+          disabled={busy}
+          onClick={onClick}
+        >
+          <AppLogo toolkit={toolkit} />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent side="bottom">{label}</TooltipContent>
+    </Tooltip>
   );
 }

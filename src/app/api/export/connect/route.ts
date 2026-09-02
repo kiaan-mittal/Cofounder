@@ -7,7 +7,8 @@ import {
   startExportConnect,
   type ExportToolkit,
 } from "@/server/composio-export";
-import { readGithubSession, safeReturnTo } from "@/server/github-oauth";
+import { resolveExportUser } from "@/server/export-identity";
+import { safeReturnTo } from "@/server/github-oauth";
 import { fail, handleRouteError, parseBody } from "@/server/http";
 
 export const runtime = "nodejs";
@@ -19,12 +20,11 @@ const bodySchema = z.object({
 
 export async function POST(request: Request) {
   try {
-    const session = await readGithubSession();
-    if (!session) return fail("Sign in first.", 401);
     if (!composioConfigured()) {
-      return fail("Add COMPOSIO_API_KEY to connect Slack or Notion.");
+      return fail("Sign in to send this decision to Slack or Notion.", 401);
     }
 
+    const { userId } = await resolveExportUser();
     const body = await parseBody(request, bodySchema);
     const toolkit = body.toolkit as ExportToolkit;
     const returnTo = safeReturnTo(body.returnTo, "/arena");
@@ -32,8 +32,6 @@ export async function POST(request: Request) {
     const callback = new URL("/api/export/callback", `${origin}/`);
     callback.searchParams.set("toolkit", toolkit);
     callback.searchParams.set("returnTo", returnTo);
-
-    const userId = session.composioUserId || `da_export_${session.login}`;
     const connection = await startExportConnect(
       userId,
       toolkit,

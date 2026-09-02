@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { ArenaMark } from "@/components/ink/marks";
+import { NewArenaButton } from "@/components/shell/new-arena-button";
 import { ProjectSwitcher } from "@/components/shell/project-switcher";
 import { WebMCPStatus } from "@/components/webmcp/webmcp-status";
 import type { ProjectSummary } from "@/lib/projects";
@@ -61,6 +62,8 @@ export function SiteHeader({
             );
           })}
         </nav>
+
+        <NewArenaButton />
 
         <div className="ml-auto flex items-center gap-3">
           {signedIn ? (

@@ -128,7 +128,7 @@ export function FloorTalk({
             <p className="text-[16px] leading-relaxed text-graphite">
               {readOnly
                 ? "Waiting for the seats."
-                : "Copy the prompt from the WebMCP badge. The seats write here."}
+                : "Ask the agent, or copy the prompt from the WebMCP badge. Replies type onto the floor."}
             </p>
           )
         ) : (

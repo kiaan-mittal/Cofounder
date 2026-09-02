@@ -31,16 +31,19 @@ named Kettle). Do **not** use a Vercel preview URL — those can sit behind
 Vercel Authentication.
 
 1. Open the home page. One button: **Open IndieTerminal**. A live decision is
-   already loaded. Header: `Public floor · IndieTerminal`.
-2. Copy the prompt on the page (or from the WebMCP badge on the Arena):
-   *Use Decision Arena to stress-test whether /research and /scan should run without a Clerk session.*
-3. You are talking to **the agent that can see this page**. In ChatGPT desktop
-   that is the chat on the left while the Arena is open in the in-app browser
-   (Sol or Terra, site tools on). In Chrome it is the same HTTPS tab after the
-   flag below, or the in-page agent on `/arena`.
-4. Watch `stress_test_decision` write on the table — the floating **WebMCP**
-   badge shows the calls. Then say *confirm the commit* (`confirm_commit`) —
-   refused. Then *share this decision* (`share_decision`).
+   already loaded. Header: `Public floor · IndieTerminal`. Do **not** sign in.
+2. Copy the prompt on the page (or from the WebMCP badge on the Arena). It
+   tells ChatGPT exactly where to go, what to click, and which three tools to
+   call. Paste it into ChatGPT desktop (Sol or Terra, site tools on) while
+   this URL is open in the in-app browser.
+3. You are talking to **the agent that can see this page**. Watch
+   `stress_test_decision` write on the table — the floating **WebMCP**
+   badge shows the calls. Then it should call `confirm_commit` — refused —
+   then `share_decision`.
+4. Optional backup if ChatGPT desktop is dead: on `/arena`, use **The agent**
+   tab in the prompt composer (it is the default). Type the same request. The
+   in-page agent calls the same WebMCP tools. Replies type onto the floor.
+   Login is not required.
 5. Optional: [`/webmcp`](/webmcp) lists the tools in one line each. You can
    run the read-only ones from that page.
 
@@ -50,10 +53,12 @@ ChatGPT desktop Sol/Terra with site tools uses the same
 the page leaves the slot untouched in those browsers. Luna, Enterprise, and
 Edu builds usually do not expose it either. The header never claims native
 when the browser has not bound the API.
-5. Optional backup if ChatGPT desktop is dead: click **Watch**, open
-   `/arena?watch=…` on a second laptop. That tab cannot write.
-6. Optional, only if you want to try onboarding with **your** GitHub: `/login`.
-   That is not required, and it is not the founder's account.
+
+Optional backup if ChatGPT desktop is dead: click **Watch**, open
+`/arena?watch=…` on a second laptop. That tab cannot write.
+
+Optional, only if you want to try onboarding with **your** GitHub: `/login`.
+That is not required, and it is not the founder's account.
 
 Brain, Arena, History, Calibration, and WebMCP are all public on this floor.
 Sign-in exists so a visitor can load *their* repository. It is not a gate on
@@ -86,12 +91,12 @@ Open with the part a prompt cannot.
 | --- | --- | --- |
 | 0:00 | `/` | One button: Open IndieTerminal. No account. |
 | 0:08 | `/arena` | Live decision on the table. WebMCP badge bottom-right. Do not type. |
-| 0:15 | ChatGPT desktop | “Use Decision Arena to stress-test whether /research and /scan should run without a Clerk session.” |
+| 0:15 | ChatGPT desktop | Paste the copied prompt. It tells ChatGPT to open `/arena` (click **Open IndieTerminal**, do not sign in) and call `stress_test_decision`. |
 | 0:20 | Same page | `stress_test_decision` fires. Seats write. The badge lists the calls. |
 | 0:45 | `/arena` | Verdict. Deadlock or a lean. What would change the call. |
 | 0:55 | ChatGPT | `confirm_commit` — refused. “Agents propose. Founders commit.” |
 | 1:05 | Same page | `share_decision`. Slack unfurls a card that says **confirm_commit was refused**. Open `/share/…`. No login. |
-| 1:15 | Slack or Notion | `share_decision` with a destination — or Connect, then send. The seats become a post. |
+| 1:15 | Slack or Notion | `share_decision` with a destination — or tap the Slack / Notion logos on the floor bar. Login is not required; Connect, then send. The seats become a post. |
 | 1:20 | Second laptop | Optional: **Watch** copies `/arena?watch=…`. Seats land live. That tab cannot write. |
 | 1:25 | Cut | “I didn't use the website. My agent used it with me. The record left the chat.” |
 

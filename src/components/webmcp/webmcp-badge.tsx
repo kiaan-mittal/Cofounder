@@ -80,14 +80,12 @@ export function WebMcpBadge({
               {live
                 ? "This browser exposes the tools natively. ChatGPT can call them."
                 : inPage
-                  ? "Tools work in this page. For ChatGPT, open this URL in Sol or Terra."
+                  ? "Tools work in this page. Paste the prompt into ChatGPT in Sol or Terra, or ask the in-page agent. Login is not required."
                   : "Tools are not reachable in this browser yet."}
             </p>
 
-            <p className="type-eyebrow mt-4">Say this</p>
-            <CopyLine text={JUDGE_PROMPT} className="mt-2 px-3 py-2.5">
-              <span className="text-[14px] leading-snug">{JUDGE_PROMPT}</span>
-            </CopyLine>
+            <p className="type-eyebrow mt-4">Paste this in ChatGPT</p>
+            <CopyLine text={JUDGE_PROMPT} className="mt-2 px-3 py-2.5" />
 
             <p className="type-eyebrow mt-4">Then try</p>
             <ul className="mt-2 space-y-2">
