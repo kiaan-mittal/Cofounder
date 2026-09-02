@@ -18,6 +18,7 @@ import { readToolOutput } from "@/webmcp/compat";
 import { getModelContext } from "@/webmcp/registry";
 import { useWebMCP } from "@/webmcp/provider";
 import {
+  hostCall,
   nativeModelContext,
   webmcpDiagnostics,
   type RegisteredTool,
@@ -57,19 +58,26 @@ export function WebMCPView({
 
     let cancelled = false;
     const refresh = () => {
-      modelContext
-        .getTools()
+      void hostCall(modelContext.getTools())
         .then((tools) => {
-          if (!cancelled) setDiscovered(tools);
+          if (!cancelled && Array.isArray(tools)) setDiscovered(tools);
         })
         .catch(() => undefined);
     };
 
     refresh();
-    modelContext.addEventListener("toolchange", refresh);
+    try {
+      modelContext.addEventListener("toolchange", refresh);
+    } catch {
+      /* Sol's context may not implement EventTarget. */
+    }
     return () => {
       cancelled = true;
-      modelContext.removeEventListener("toolchange", refresh);
+      try {
+        modelContext.removeEventListener("toolchange", refresh);
+      } catch {
+        /* ignore */
+      }
     };
   }, [ready, support, registered.length]);
 
@@ -376,9 +384,11 @@ function ReadOnlyRunner({ tool }: { tool: RegisteredTool | null }) {
 
     setRunning(true);
     try {
-      const result = await modelContext.executeTool(
-        tool,
-        nativeModelContext() ? "{}" : {},
+      const result = await hostCall(
+        modelContext.executeTool(
+          tool,
+          nativeModelContext() ? "{}" : {},
+        ),
       );
       setOutput(readToolOutput(result).text);
     } catch (caught) {
