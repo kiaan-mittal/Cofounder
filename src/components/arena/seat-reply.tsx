@@ -9,7 +9,6 @@ const PREFIX_RE =
   /^(?:(?:technical|tech|product|gtm|financial|finance|cfo|cto|contra(?:rian)?)\s*(?:co-?founder)?\s*[:—–-]\s*)+/i;
 const QUOTE_RE =
   /(?:you said(?:[,:]|\s+that)?\s*)[“"']([^”"'“]{2,140})[”"']/i;
-const POINT_RE = /(?:^|\s)(\d{1,2}[.)]|[-–—•])\s+(?=[A-Za-z“"'])/;
 
 const VERDICT_TONE: Record<Reassessment["verdict"], string> = {
   conceded: "bg-moss-wash text-moss",
@@ -55,39 +54,6 @@ function pullQuote(text: string) {
   return { quote, rest };
 }
 
-function pullPoints(text: string) {
-  const hits = [...text.matchAll(new RegExp(POINT_RE, "g"))];
-  if (hits.length < 2) {
-    return { prose: text, points: [] as string[], closing: "" };
-  }
-
-  const first = hits[0].index ?? 0;
-  const prose = text.slice(0, first).trim();
-  const tail = text.slice(first).trim();
-  const chunks = tail.split(POINT_RE).map((part) => part.trim()).filter(Boolean);
-  const points = chunks
-    .filter((chunk) => !/^(\d{1,2}[.)]|[-–—•])$/.test(chunk))
-    .map((chunk) => chunk.replace(/[.;]$/, "").trim())
-    .filter((chunk) => chunk.length > 8);
-
-  if (points.length < 2) {
-    return { prose: text, points: [] as string[], closing: "" };
-  }
-
-  const last = points[points.length - 1];
-  const [head, ...tailProse] = last.split(/\n{2,}/);
-  points[points.length - 1] = head.replace(/[.;]$/, "").trim();
-  let closing = tailProse.join("\n\n").trim();
-
-  const lastBits = splitSentences(points[points.length - 1]);
-  if (!closing && lastBits.length > 1 && points[points.length - 1].length > 140) {
-    points[points.length - 1] = lastBits[0].replace(/[.;]$/, "").trim();
-    closing = lastBits.slice(1).join(" ");
-  }
-
-  return { prose, points, closing };
-}
-
 function toParagraphs(text: string) {
   const chunks = text
     .split(/\n{2,}/)
@@ -97,7 +63,7 @@ function toParagraphs(text: string) {
   const paragraphs: string[] = [];
   for (const chunk of chunks) {
     const line = chunk.replace(/\n+/g, " ").replace(/\s{2,}/g, " ").trim();
-    if (line.length <= 220) {
+    if (line.length <= 280) {
       paragraphs.push(line);
       continue;
     }
@@ -109,59 +75,23 @@ function toParagraphs(text: string) {
   return paragraphs;
 }
 
-function absorbColonLists(paragraphs: string[], points: string[]) {
-  const kept: string[] = [];
-  const extra: string[] = [];
-
-  for (const paragraph of paragraphs) {
-    const colon = paragraph.match(/^([^:]{6,80}):\s+(.+)$/s);
-    if (!colon) {
-      kept.push(paragraph);
-      continue;
-    }
-    const bits = colon[2]
-      .split(/;\s+/)
-      .map((part) =>
-        part
-          .replace(/^and\s+/i, "")
-          .replace(/[.;]$/, "")
-          .trim(),
-      )
-      .filter((part) => part.length > 6);
-    if (bits.length >= 3) {
-      extra.push(...bits);
-    } else {
-      kept.push(paragraph);
-    }
-  }
-
-  return { paragraphs: kept, points: [...points, ...extra] };
-}
-
+/** Clean prose for a seat card — flowing text, not a form. */
 export function formatSeatBody(reply: string | undefined) {
   if (!reply?.trim()) {
     return {
       quote: null as string | null,
       paragraphs: [] as string[],
-      points: [] as string[],
-      closing: [] as string[],
     };
   }
 
   const cleaned = peelPrefix(scrub(reply));
   const { quote, rest } = pullQuote(cleaned);
-  const { prose, points, closing } = pullPoints(peelPrefix(rest));
-  const rawParagraphs = toParagraphs(peelPrefix(prose)).filter(
-    (paragraph) => paragraph.length > 1,
-  );
-  const parsed = absorbColonLists(rawParagraphs, points);
-  const closingParagraphs = closing ? toParagraphs(closing) : [];
 
   return {
     quote,
-    paragraphs: parsed.paragraphs,
-    points: parsed.points,
-    closing: closingParagraphs,
+    paragraphs: toParagraphs(peelPrefix(rest)).filter(
+      (paragraph) => paragraph.length > 1,
+    ),
   };
 }
 
@@ -172,12 +102,8 @@ export function SeatReply({
   item: Reassessment;
   className?: string;
 }) {
-  const { quote, paragraphs, points, closing } = formatSeatBody(item.reply);
-  const hasBody =
-    Boolean(quote) ||
-    paragraphs.length > 0 ||
-    points.length > 0 ||
-    closing.length > 0;
+  const { quote, paragraphs } = formatSeatBody(item.reply);
+  const hasBody = Boolean(quote) || paragraphs.length > 0;
 
   return (
     <article className={cn("max-w-[54ch] border border-rule bg-leaf", className)}>
@@ -208,13 +134,13 @@ export function SeatReply({
 
       <div className="space-y-3 px-3.5 py-3.5">
         {quote ? (
-          <p className="border-l-2 border-indigo pl-3 text-[15px] leading-relaxed text-graphite">
+          <p className="text-[15px] leading-relaxed text-graphite">
             You said, &ldquo;{quote}&rdquo;
           </p>
         ) : null}
 
         {item.streaming ? (
-          <p className="text-[15.5px] leading-[1.55] text-ink">
+          <p className="text-[15.5px] leading-[1.65] text-ink">
             {item.reply?.trim() ? (
               <span className="whitespace-pre-wrap">{item.reply}</span>
             ) : (
@@ -223,67 +149,27 @@ export function SeatReply({
             <StreamingCaret />
           </p>
         ) : hasBody ? (
-          <>
-            {paragraphs.map((paragraph, index) => (
-              <p key={index} className="text-[15.5px] leading-[1.55] text-ink">
-                {paragraph}
-              </p>
-            ))}
-            {points.length ? (
-              <div className="border-t border-rule pt-3">
-                <p className="type-eyebrow text-graphite">The terms</p>
-                <ol className="mt-2.5 space-y-2.5">
-                  {points.map((point, index) => (
-                    <li key={index} className="flex gap-3">
-                      <span className="type-figure mt-0.5 w-5 shrink-0 text-[11px] text-pencil">
-                        {String(index + 1).padStart(2, "0")}
-                      </span>
-                      <p className="text-[15px] leading-relaxed text-ink">
-                        {point}
-                      </p>
-                    </li>
-                  ))}
-                </ol>
-              </div>
-            ) : null}
-            {closing.map((paragraph, index) => (
-              <p key={`close-${index}`} className="text-[15.5px] leading-[1.55] text-ink">
-                {paragraph}
-              </p>
-            ))}
-          </>
+          paragraphs.map((paragraph, index) => (
+            <p key={index} className="text-[15.5px] leading-[1.65] text-ink">
+              {paragraph}
+            </p>
+          ))
         ) : null}
 
-        {(item.addressed ||
-          (item.unaddressed && item.verdict !== "conceded")) &&
-        !item.streaming ? (
-          <dl
-            className={cn(
-              "grid gap-3",
-              item.addressed &&
-                item.unaddressed &&
-                item.verdict !== "conceded"
-                ? "sm:grid-cols-2"
-                : "grid-cols-1",
-            )}
-          >
-            {item.addressed ? (
-              <div className="border border-rule bg-paper px-3 py-2.5">
-                <dt className="type-eyebrow text-indigo">Answered</dt>
-                <dd className="mt-1.5 text-[13.5px] leading-relaxed text-graphite">
-                  {item.addressed}
-                </dd>
-              </div>
-            ) : null}
-            {item.unaddressed && item.verdict !== "conceded" ? (
-              <div className="border border-rule bg-paper px-3 py-2.5">
-                <dt className="type-eyebrow text-oxblood">Still open</dt>
-                <dd className="mt-1.5 text-[13.5px] leading-relaxed text-graphite">
-                  {item.unaddressed}
-                </dd>
-              </div>
-            ) : null}
-          </dl>
+        {!item.streaming && item.addressed ? (
+          <p className="text-[15px] leading-relaxed text-graphite">
+            You covered {item.addressed}
+            {item.unaddressed && item.verdict !== "conceded"
+              ? `. Still open: ${item.unaddressed}`
+              : ""}
+            .
+          </p>
+        ) : !item.streaming &&
+          item.unaddressed &&
+          item.verdict !== "conceded" ? (
+          <p className="text-[15px] leading-relaxed text-graphite">
+            Still open: {item.unaddressed}
+          </p>
         ) : null}
       </div>
     </article>
@@ -296,7 +182,7 @@ const STANCE_COPY: Record<Argument["stance"], string> = {
   conditional: "only if",
 };
 
-/** First placement on the board: the full argument, not a caption. */
+/** First placement on the board: the full argument, as readable prose. */
 export function SeatOpening({
   argument,
   className,
@@ -304,17 +190,12 @@ export function SeatOpening({
   argument: Argument;
   className?: string;
 }) {
-  const { paragraphs, points, closing } = formatSeatBody(argument.reasoning);
-  const body =
-    paragraphs.length || points.length || closing.length
-      ? { paragraphs, points, closing }
-      : {
-          paragraphs: argument.reasoning.trim()
-            ? [argument.reasoning.trim()]
-            : [],
-          points: [] as string[],
-          closing: [] as string[],
-        };
+  const { paragraphs } = formatSeatBody(argument.reasoning);
+  const body = paragraphs.length
+    ? paragraphs
+    : argument.reasoning.trim()
+      ? [argument.reasoning.trim()]
+      : [];
 
   return (
     <article className={cn("max-w-[54ch] border border-rule bg-leaf", className)}>
@@ -336,39 +217,15 @@ export function SeatOpening({
         <p className="text-[17px] font-semibold leading-snug text-ink">
           {argument.claim}
         </p>
-        {body.paragraphs.map((paragraph, index) => (
-          <p key={index} className="text-[15.5px] leading-[1.55] text-ink">
-            {paragraph}
-          </p>
-        ))}
-        {body.points.length ? (
-          <ol className="space-y-2">
-            {body.points.map((point, index) => (
-              <li key={index} className="flex gap-3">
-                <span className="type-figure mt-0.5 w-5 shrink-0 text-[11px] text-pencil">
-                  {String(index + 1).padStart(2, "0")}
-                </span>
-                <p className="text-[15px] leading-relaxed text-ink">{point}</p>
-              </li>
-            ))}
-          </ol>
-        ) : null}
-        {body.closing.map((paragraph, index) => (
-          <p key={`close-${index}`} className="text-[15.5px] leading-[1.55] text-ink">
+        {body.map((paragraph, index) => (
+          <p key={index} className="text-[15.5px] leading-[1.65] text-ink">
             {paragraph}
           </p>
         ))}
         {argument.basis.length ? (
-          <ul className="flex flex-wrap gap-1.5 pt-1">
-            {argument.basis.map((basis, index) => (
-              <li
-                key={`${basis.label}-${index}`}
-                className="border border-rule px-1.5 py-0.5 type-eyebrow text-graphite"
-              >
-                {basis.label}
-              </li>
-            ))}
-          </ul>
+          <p className="pt-1 text-[13px] leading-relaxed text-graphite">
+            {argument.basis.map((item) => item.label).join(" · ")}
+          </p>
         ) : null}
       </div>
     </article>

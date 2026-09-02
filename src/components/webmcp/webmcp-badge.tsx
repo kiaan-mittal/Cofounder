@@ -31,7 +31,7 @@ export function WebMcpBadge({
 }) {
   const { support, registered, ready } = useWebMCP();
   const calls = useArena((state) => state.toolCalls);
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(lift);
   const [now, setNow] = useState(0);
 
   useEffect(() => {

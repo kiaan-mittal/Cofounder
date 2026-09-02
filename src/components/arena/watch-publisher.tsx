@@ -89,7 +89,13 @@ async function publishWatchOnce(lastFingerprint: { current: string }) {
  * Publishes the live floor to a capability URL a second laptop can open.
  * The write key never leaves this tab.
  */
-export function WatchPublisher({ compact = true }: { compact?: boolean }) {
+export function WatchPublisher({
+  compact = true,
+  variant = "button",
+}: {
+  compact?: boolean;
+  variant?: "button" | "menu" | "sync";
+}) {
   const [url, setUrl] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const lastFingerprint = useRef("");
@@ -143,6 +149,22 @@ export function WatchPublisher({ compact = true }: { compact?: boolean }) {
     } finally {
       setBusy(false);
     }
+  }
+
+  if (variant === "sync") return null;
+
+  if (variant === "menu") {
+    return (
+      <button
+        type="button"
+        role="menuitem"
+        disabled={busy}
+        onClick={() => void copy()}
+        className="flex h-9 w-full items-center px-3 text-left text-[13px] text-ink hover:bg-tape disabled:opacity-50"
+      >
+        {busy ? "Copying…" : "Copy watch link"}
+      </button>
+    );
   }
 
   return (
