@@ -165,12 +165,10 @@ function collectRawSlots(): unknown[] {
   return [
     readSlot(descriptor(document, "modelContext"), document),
     readSlot(descriptor(Document.prototype, "modelContext"), document),
-    readSlot(descriptor(navigator, "modelContext"), navigator),
-    readSlot(descriptor(Navigator.prototype, "modelContext"), navigator),
   ];
 }
 
-/** Every distinct platform ModelContext (document + navigator when both exist). */
+/** Every distinct browser-native context exposed through the Document slot. */
 export function platformModelContexts(): ModelContext[] {
   const found: ModelContext[] = [];
   const seen = new Set<object>();
@@ -208,16 +206,14 @@ export function nativePlatformBound(): boolean {
   return (
     isNativeGetter(descriptor(document, "modelContext")) ||
     isNativeGetter(descriptor(Document.prototype, "modelContext")) ||
-    isNativeGetter(descriptor(navigator, "modelContext")) ||
-    isNativeGetter(descriptor(Navigator.prototype, "modelContext")) ||
     platformModelContexts().length > 0
   );
 }
 
 /**
- * Feature detection exactly as the Chrome guidance recommends: prefer
- * `document.modelContext`, fall back to the deprecated `navigator` location,
- * and never assume either exists.
+ * Native support is claimed only for a usable `document.modelContext`.
+ * The deprecated navigator location is intentionally diagnostics-only: using
+ * it would make the UI claim the current API while the Document slot is absent.
  *
  * Only a browser-native registerTool counts. JS objects with the same
  * method names are the fallback path, not proof of WebMCP.

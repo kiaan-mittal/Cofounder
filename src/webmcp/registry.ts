@@ -162,12 +162,12 @@ export function getModelContext(): ModelContext | null {
 
 const REGISTER_MS = 3000;
 
-function timed<T>(promise: Promise<T>, label: string): Promise<T> {
+function timed<T>(value: PromiseLike<T> | T, label: string): Promise<T> {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
       reject(new Error(`${label} timed out`));
     }, REGISTER_MS);
-    promise.then(
+    Promise.resolve(value).then(
       (value) => {
         clearTimeout(timer);
         resolve(value);
