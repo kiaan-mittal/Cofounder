@@ -11,7 +11,6 @@ import { PatternBanner } from "@/components/arena/pattern-banner";
 import { PromptComposer } from "@/components/arena/prompt-composer";
 import { SeatOpening, SeatReply } from "@/components/arena/seat-reply";
 import { SharedState } from "@/components/arena/the-loop";
-import { ToolRail } from "@/components/arena/tool-rail";
 import { WatchPublisher } from "@/components/arena/watch-publisher";
 import { detectPatterns, warningsForDecision } from "@/lib/calibration";
 import { PERSPECTIVES, perspectiveName } from "@/lib/perspectives";
@@ -108,13 +107,13 @@ export function FloorTalk({
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-paper">
       <header className="flex shrink-0 items-baseline justify-between gap-3 border-b border-rule px-5 py-1.5">
-        <p className="type-eyebrow text-indigo">The floor</p>
+        <p className="type-eyebrow text-indigo">Floor</p>
         <p className="min-w-0 truncate text-[13px] text-graphite">
           {readOnly
-            ? "The seats are writing on the other laptop."
+            ? "Spectating."
             : committed
-              ? "The seats wrote this round onto the record."
-              : "Don't touch the site. Ask the agent to stress-test the decision."}
+              ? "Committed."
+              : "Seats write here. You answer."}
         </p>
       </header>
       {readOnly ? null : <PatternBanner warnings={warnings} />}
@@ -126,10 +125,10 @@ export function FloorTalk({
               The seats are writing the first arguments.
             </p>
           ) : (
-            <p className="text-[15px] leading-relaxed text-graphite">
+            <p className="text-[16px] leading-relaxed text-graphite">
               {readOnly
-                ? "Waiting for the seats. They write on the other laptop."
-                : "Say it in ChatGPT: “Use Decision Arena to stress-test whether I should …” The seats write here. You do not have to type."}
+                ? "Waiting for the seats."
+                : "Copy the prompt from the WebMCP badge. The seats write here."}
             </p>
           )
         ) : (
@@ -253,11 +252,11 @@ export function FloorBoard({
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-leaf">
       <header className="flex shrink-0 flex-wrap items-baseline justify-between gap-3 border-b border-rule bg-paper px-5 py-1.5">
-        <p className="type-eyebrow">The board</p>
+        <p className="type-eyebrow">Board</p>
         <p className="min-w-0 truncate text-[13px] text-graphite">
           {busy === "opening"
-            ? "Seats are writing. The board moves as each one finishes."
-            : "Technical, Product, GTM, Financial, Contrarian. Cards move when they speak."}
+            ? "Seats are writing."
+            : "Five seats. Cards move when they speak."}
         </p>
         {busy === "opening" ? (
           <ul className="flex w-full flex-wrap gap-x-3 gap-y-1">
@@ -280,7 +279,6 @@ export function FloorBoard({
           </ul>
         ) : null}
       </header>
-      <ToolRail />
       <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
         <SharedState
           risks={risks}

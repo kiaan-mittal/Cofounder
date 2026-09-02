@@ -15,6 +15,7 @@ import {
 import { SpectatorArena } from "@/components/arena/spectator-arena";
 import { DecisionGallery, DecisionRail } from "@/components/arena/decision-rail";
 import { SharedState } from "@/components/arena/the-loop";
+import { WebMcpBadge } from "@/components/webmcp/webmcp-badge";
 import { PerspectiveEmblem } from "@/components/ink/emblems";
 import { TableSketch } from "@/components/ink/table-drawings";
 import { RequireCompany } from "@/components/shell/require-company";
@@ -225,6 +226,7 @@ function DecisionStart({
   if (busy === "opening") {
     return (
       <div className="flex h-[calc(100dvh-3.5rem)] flex-col overflow-hidden bg-paper">
+        <WebMcpBadge />
         <div className="flex shrink-0 items-center gap-4 border-b border-rule px-4 py-2.5">
           <p className="type-eyebrow text-graphite">Opening the round</p>
           <p className="type-display min-w-0 flex-1 truncate text-[17px] font-semibold">
@@ -306,6 +308,7 @@ function DecisionStart({
 
   return (
     <div className="flex h-[calc(100dvh-3.5rem)] flex-col overflow-hidden bg-paper">
+      <WebMcpBadge />
       <div className="flex h-11 shrink-0 items-center gap-3 border-b border-rule px-3">
         <DecisionRail seed={decisions} />
         <p className="type-eyebrow hidden shrink-0 sm:block">
@@ -406,9 +409,8 @@ function DecisionStart({
                 Open the round
               </button>
             </div>
-            <p className="mt-1.5 text-[12.5px] leading-snug text-graphite">
-              Or don&rsquo;t type. In ChatGPT: “Use Decision Arena to
-              stress-test whether I should …” The seats write on this board.
+            <p className="mt-1.5 text-[13px] leading-snug text-graphite">
+              Or use the WebMCP badge — copy the prompt, don&rsquo;t type here.
             </p>
             {error ? (
               <div className="mt-2 border border-rule bg-oxblood-wash px-3 py-2">
@@ -552,8 +554,10 @@ function Workspace({
         decisionId={decision.id}
         seed={seed}
       />
+      <WebMcpBadge lift />
       <SplitPane
         storageKey="arena-floor"
+        defaultPct={44}
         left={
           <FloorTalk
             defenses={defenses}
