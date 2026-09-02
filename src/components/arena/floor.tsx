@@ -227,14 +227,13 @@ function LiveAgentStrip({
   running: boolean;
 }) {
   if (!message || message.role !== "agent") return null;
-  if (!running && !message.pending && !message.error) return null;
+  if (!running && !message.pending) return null;
+  if (message.error) return null;
 
   return (
     <div className="border-b border-rule px-4 py-2">
       <p className="type-eyebrow text-oxblood">Agent</p>
-      {message.error ? (
-        <p className="mt-1 text-[13.5px] text-oxblood">{message.error}</p>
-      ) : message.text ? (
+      {message.text ? (
         <p className="mt-1 max-h-24 overflow-y-auto whitespace-pre-wrap text-[14px] leading-snug text-ink">
           <TypewriterText text={message.text} active={message.pending} />
           {message.pending ? <StreamingCaret /> : null}
