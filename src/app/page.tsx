@@ -71,9 +71,12 @@ export default async function LandingPage() {
           <p className="mt-8 max-w-[44ch] text-[18px] leading-relaxed text-graphite">
             Decision Arena is a table, not a chatbot. Five seats — tech,
             product, GTM, finance, contrarian — argue a real company decision
-            on the page. Copy the prompt into ChatGPT with this page open, or
-            ask the in-page agent. Either way the tools fire. Only you can
-            close it.
+            on the page. Open this URL in ChatGPT desktop Sol or Terra with
+            site tools on. Tools register on{" "}
+            <code className="type-figure text-[14px] text-ink">
+              document.modelContext
+            </code>{" "}
+            — that is native WebMCP. Only you can close it.
           </p>
           <div className="mt-10 flex flex-wrap items-baseline gap-x-6 gap-y-3">
             <Link
@@ -128,9 +131,11 @@ export default async function LandingPage() {
             </h2>
             <p className="mt-5 max-w-[52ch] text-[17px] leading-relaxed text-graphite">
               Open the Arena and IndieTerminal is already on the floor — a
-              real product, a live question, no sign-in. Paste a prompt into
-              ChatGPT. Tools fire on this page. The five seats write. You
-              watch. When the agent tries to commit, the page says no.
+              real product, a live question, no sign-in. Paste the prompt into
+              ChatGPT in Sol or Terra. Native tools fire on this page. The
+              five seats write. You watch. When the agent tries to commit, the
+              page says no. The in-page composer is a fallback for browsers
+              that have no WebMCP — it is not the proof.
             </p>
             <p className="mt-4 max-w-[52ch] text-[17px] leading-relaxed text-graphite">
               The Company Brain is the map underneath: users, code, product,

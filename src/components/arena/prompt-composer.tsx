@@ -60,9 +60,7 @@ export function PromptComposer({
   toolDescription?: string;
   toolParamDescription?: string;
 }) {
-  const [ink, setInk] = useState<ComposerInk>(
-    agentOnly || allowAgent ? "agent" : "board",
-  );
+  const [ink, setInk] = useState<ComposerInk>(agentOnly ? "agent" : "board");
   const [agentDraft, setAgentDraft] = useState("");
   const fieldId = useId();
   const areaRef = useRef<HTMLTextAreaElement>(null);
@@ -112,18 +110,18 @@ export function PromptComposer({
       {allowAgent && !agentOnly ? (
         <div className="mb-2 flex items-center gap-px border border-rule">
           <InkTab
-            active={agentMode}
-            tone="oxblood"
-            onClick={() => setInk("agent")}
-          >
-            The agent
-          </InkTab>
-          <InkTab
             active={!agentMode}
             tone="indigo"
             onClick={() => setInk("board")}
           >
             The board
+          </InkTab>
+          <InkTab
+            active={agentMode}
+            tone="oxblood"
+            onClick={() => setInk("agent")}
+          >
+            Fallback agent
           </InkTab>
         </div>
       ) : null}
