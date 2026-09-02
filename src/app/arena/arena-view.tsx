@@ -13,7 +13,7 @@ import {
   targetSeatLabel,
 } from "@/components/arena/floor";
 import { SpectatorArena } from "@/components/arena/spectator-arena";
-import { DecisionGallery, DecisionRail } from "@/components/arena/decision-rail";
+import { DecisionGallery } from "@/components/arena/decision-rail";
 import { SharedState } from "@/components/arena/the-loop";
 import { WebMcpBadge } from "@/components/webmcp/webmcp-badge";
 import { PerspectiveEmblem } from "@/components/ink/emblems";
@@ -309,20 +309,8 @@ function DecisionStart({
   return (
     <div className="flex h-[calc(100dvh-3.5rem)] flex-col overflow-hidden bg-paper">
       <WebMcpBadge />
-      <div className="flex h-11 shrink-0 items-center gap-3 border-b border-rule px-3">
-        <DecisionRail seed={decisions} />
-        <p className="type-eyebrow hidden shrink-0 sm:block">
-          {company.name}
-        </p>
-      </div>
       <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-paper">
-        <header className="flex shrink-0 items-baseline justify-between gap-3 border-b border-rule px-5 py-2">
-          <p className="type-eyebrow text-indigo">You</p>
-          <p className="min-w-0 truncate text-[13px] text-graphite">
-            The board waits until you name the decision.
-          </p>
-        </header>
-          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
+          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 pb-8">
             {decisions.length === 0 ? (
               <p className="text-[15px] leading-relaxed text-graphite">
                 A question with more than one honest answer. The seats will
@@ -330,6 +318,7 @@ function DecisionStart({
               </p>
             ) : (
               <DecisionGallery
+                companyName={company.name}
                 decisions={decisions}
                 onOpen={(id) => {
                   useArena.getState().setActiveDecision(id);

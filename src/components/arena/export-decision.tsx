@@ -52,10 +52,12 @@ export function ExportDecision({
   decisionId,
   returnTo = "/arena",
   compact = false,
+  variant = "row",
 }: {
   decisionId: string;
   returnTo?: string;
   compact?: boolean;
+  variant?: "row" | "menu" | "logos";
 }) {
   const [busy, setBusy] = useState<ExportDestination | null>(null);
   const [lastUrl, setLastUrl] = useState<string | null>(null);
@@ -177,6 +179,67 @@ export function ExportDecision({
     return toolkit === "slack" ? "Connect Slack" : "Connect Notion";
   }
 
+  if (variant === "menu") {
+    const item =
+      "flex h-9 w-full items-center gap-2 px-3 text-left text-[13px] text-ink hover:bg-tape disabled:opacity-50";
+    return (
+      <div className="flex flex-col border-t border-rule">
+        <button
+          type="button"
+          role="menuitem"
+          disabled={busy !== null}
+          onClick={() => void send("link")}
+          className={item}
+        >
+          {busy === "link" ? "Copying…" : "Copy share link"}
+        </button>
+        <button
+          type="button"
+          role="menuitem"
+          disabled={busy !== null || !statusReady}
+          onClick={() => void send("slack")}
+          className={item}
+        >
+          <AppLogo toolkit="slack" />
+          {appTitle("slack")}
+        </button>
+        <button
+          type="button"
+          role="menuitem"
+          disabled={busy !== null || !statusReady}
+          onClick={() => void send("notion")}
+          className={item}
+        >
+          <AppLogo toolkit="notion" />
+          {appTitle("notion")}
+        </button>
+      </div>
+    );
+  }
+
+  if (variant === "logos") {
+    return (
+      <TooltipProvider delayDuration={200}>
+        <div className="flex items-center">
+          <AppSendButton
+            toolkit="slack"
+            label={appTitle("slack")}
+            busy={busy !== null || !statusReady}
+            quiet
+            onClick={() => void send("slack")}
+          />
+          <AppSendButton
+            toolkit="notion"
+            label={appTitle("notion")}
+            busy={busy !== null || !statusReady}
+            quiet
+            onClick={() => void send("notion")}
+          />
+        </div>
+      </TooltipProvider>
+    );
+  }
+
   return (
     <TooltipProvider delayDuration={200}>
       <div
@@ -234,22 +297,28 @@ function AppSendButton({
   label,
   busy,
   onClick,
+  quiet = false,
 }: {
   toolkit: "slack" | "notion";
   label: string;
   busy: boolean;
   onClick: () => void;
+  quiet?: boolean;
 }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
         <Button
           type="button"
-          variant="outline"
+          variant={quiet ? "ghost" : "outline"}
           size="icon-sm"
           aria-label={label}
           title={label}
-          className="size-8 border-rule"
+          className={
+            quiet
+              ? "size-8 rounded-none text-graphite hover:bg-transparent hover:text-ink"
+              : "size-8 border-rule"
+          }
           disabled={busy}
           onClick={onClick}
         >

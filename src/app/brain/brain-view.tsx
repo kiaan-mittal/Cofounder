@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { ArenaPath } from "@/components/arena/the-loop";
 import { CompanyDna } from "@/components/brain/company-dna";
 import { InkRule } from "@/components/ink/marks";
 import { RequireCompany } from "@/components/shell/require-company";
@@ -61,58 +60,54 @@ function Brain({ company }: { company: Company }) {
   }
 
   return (
-    <div className="mx-auto max-w-[1400px] px-5 py-12 lg:py-16">
-      <ArenaPath here="brain" />
+    <div className="mx-auto max-w-[1400px] px-5 py-8 lg:py-10">
       {isDemo ? (
-        <p className="type-eyebrow mb-8 inline-block border border-ochre bg-ochre-wash px-3 py-1.5 text-ochre">
+        <p className="type-eyebrow mb-6 text-ochre">
           Sample data — a fictional company, for demonstration
         </p>
       ) : null}
       {isShowcase ? (
-        <p className="type-eyebrow mb-8 inline-block border border-rule bg-leaf px-3 py-1.5 text-graphite">
-          Public judging floor —{" "}
-          <Href href={company.website}>IndieTerminal</Href>
-          {company.github ? (
-            <>
-              {", connected repo "}
-              <Href href={company.github}>kiaan-mittal/indieterminal</Href>
-            </>
-          ) : null}
-          . Sign in only if you want to load your own repository.
+        <p className="type-eyebrow mb-6 text-graphite">
+          Public floor · {company.name}
+          {company.github ? " · kiaan-mittal/indieterminal" : ""}. Sign in to load your own repo.
         </p>
       ) : null}
 
-      <header className="mt-8 flex flex-wrap items-end justify-between gap-6">
-        <div className="max-w-[58ch]">
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div>
           <p className="type-eyebrow">Company Brain</p>
-          <h1 className="type-display mt-4 text-[clamp(1.8rem,3.8vw,2.75rem)] font-semibold leading-[1.08]">
-            {brain.headline}
+          <h1 className="type-display mt-2 text-[clamp(1.8rem,3.4vw,2.6rem)] font-semibold leading-none">
+            {company.name}
           </h1>
-          <p className="mt-4 text-[16px] leading-relaxed text-graphite">
-            {brain.summary}
-          </p>
-          <p className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] leading-relaxed text-graphite">
-            {company.website ? (
-              <Href href={company.website}>{sourceLabel(company.website)}</Href>
-            ) : null}
-            {commandHref(company.website) ? (
-              <Href href={commandHref(company.website)}>/command</Href>
-            ) : null}
-            {company.github ? (
-              <Href href={company.github}>{sourceLabel(company.github)}</Href>
-            ) : null}
-          </p>
-          <p className="mt-2 text-[13px] leading-relaxed text-graphite">
-            {`Sources last read ${formatReadDate(brain.generatedAt)}. GitHub and the site resync every three days.`}
-          </p>
         </div>
         <Button asChild size="lg" className="h-11 px-6 text-[15px]">
           <Link href="/arena">Take a decision into the Arena</Link>
         </Button>
       </header>
 
-      <div className="mt-8">
+      <div className="mt-6">
         <CompanyDna company={company} onOpen={takeToArena} />
+      </div>
+
+      <div className="mt-6 max-w-[62ch]">
+        <p className="text-[17px] leading-relaxed text-ink">{brain.headline}</p>
+        <p className="mt-3 line-clamp-4 text-[15px] leading-relaxed text-graphite">
+          {brain.summary}
+        </p>
+        <p className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] leading-relaxed text-graphite">
+          {company.website ? (
+            <Href href={company.website}>{sourceLabel(company.website)}</Href>
+          ) : null}
+          {commandHref(company.website) ? (
+            <Href href={commandHref(company.website)}>/command</Href>
+          ) : null}
+          {company.github ? (
+            <Href href={company.github}>{sourceLabel(company.github)}</Href>
+          ) : null}
+        </p>
+        <p className="mt-2 text-[13px] leading-relaxed text-graphite">
+          {`Sources last read ${formatReadDate(brain.generatedAt)}. GitHub and the site resync every three days.`}
+        </p>
       </div>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
