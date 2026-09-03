@@ -296,12 +296,12 @@ function EmptyTable({
         <p className="type-eyebrow">Empty table</p>
         <h2 className="type-display mt-3 text-[24px] font-semibold leading-snug">
           {onOpenRound
-            ? "Five empty chairs. ChatGPT writes first."
+            ? "Five empty chairs."
             : "The seats write on the other laptop."}
         </h2>
         <p className="mt-3 text-[14px] leading-relaxed text-graphite">
           {onOpenRound
-            ? "Call stress_test_decision. The board fills as each seat finishes. The in-page composer is a fallback, not the demo."
+            ? "The question is on the rail. Weigh it up once the seats have written."
             : "This tab cannot open a round."}
         </p>
         {onOpenRound ? (

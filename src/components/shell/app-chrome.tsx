@@ -1,6 +1,7 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, type ReactNode } from "react";
 
 import { SiteHeader } from "@/components/shell/site-header";
 import { Toaster } from "@/components/ui/sonner";
@@ -23,6 +24,19 @@ export function AppChrome({
   projects: ProjectSummary[];
   activeProjectId: string | null;
 }) {
+  const router = useRouter();
+
+  useEffect(() => {
+    function onNavigate(event: Event) {
+      const path = (event as CustomEvent<string>).detail;
+      if (path === "/history" || path === "/calibration") {
+        router.push(path);
+      }
+    }
+    window.addEventListener("arena:navigate", onNavigate);
+    return () => window.removeEventListener("arena:navigate", onNavigate);
+  }, [router]);
+
   return (
     <>
       <WebMcpInstall />

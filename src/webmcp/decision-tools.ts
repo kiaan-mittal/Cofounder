@@ -127,7 +127,7 @@ export const decisionTools: ArenaTool[] = [
     group: "action",
     humanLabel: "Stress-test a decision",
     description:
-      "Opens a decision in the Arena and seats five perspectives — Technical, Product, GTM, Finance and Contrarian — which write arguments, risks, contradictions and evidence requests onto the shared table as each one finishes, visibly to the founder. Covers questions about launching, spending, hiring, raising or picking a market. Returns the decision id, every seat's claim, open contradictions, outstanding evidence, a deadlock flag and what would change the call.",
+      "Creates the arena if none is open, or fills the live empty question, then seats five perspectives — Technical, Product, GTM, Finance and Contrarian. Each seat writes a structured claim (position, strength, claim, evidence, risk, reversibility). Returns the decision id, every seat's claim, FOR/AGAINST split, dimension scores, flip conditions, next move, open contradictions and outstanding evidence.",
     annotations: { untrustedContentHint: true },
     inputSchema: {
       type: "object",
@@ -167,14 +167,19 @@ export const decisionTools: ArenaTool[] = [
         const verdict = verdictFor(painted.decisionId);
         const seats = painted.round.arguments.map((item) => ({
           seat: item.perspective,
-          stance: item.stance,
-          claim: item.claim,
+          position: item.stance,
           strength: item.strength,
+          claim: item.claim,
+          evidence: item.basis[0]?.label ?? null,
+          risk: item.riskLevel,
+          reversibility: item.reversibility,
         }));
+        const forPct = verdict?.forPct ?? 50;
+        const againstPct = verdict?.againstPct ?? 50;
         return toolResult(
           verdict?.deadlock
             ? `Arena opened. Deadlock: ${verdict.deadlockNote}`
-            : `Arena opened on “${question}”. ${seats.length} seats have written. ${verdict?.leaningLabel ?? ""}`,
+            : `Arena opened on “${question}”. Verdict: ${verdict?.verdictLabel ?? "too early"} (${verdict?.arenaConfidence ?? 0}%). FOR ${forPct} / AGAINST ${againstPct}. ${seats.length} seats have written.`,
           {
             decisionId: painted.decisionId,
             options: painted.round.options,

@@ -97,6 +97,7 @@ export async function paintOpeningRound(input: {
   const seenRisks = new Set<string>();
   const seenCons = new Set<string>();
   const seenEvidence = new Set<string>();
+  const seenActions = new Set<string>();
   const collected: { round: DebateOpeningRound | null } = { round: null };
   let queue: Promise<void> = Promise.resolve();
   const enqueue = (work: () => Promise<void>) => {
@@ -112,6 +113,10 @@ export async function paintOpeningRound(input: {
       | "risks"
       | "contradictions"
       | "evidenceRequests"
+      | "verdictWhy"
+      | "flipConditions"
+      | "nextMove"
+      | "nextMoveSteps"
     >,
   ) {
     await call("open_decision", {
@@ -121,6 +126,25 @@ export async function paintOpeningRound(input: {
       arena_confidence: frame.arenaConfidence,
       decision_id: decisionId,
     });
+    useArena.getState().updateDecision(decisionId, {
+      ...(frame.verdictWhy ? { verdictWhy: frame.verdictWhy } : {}),
+      ...(frame.flipConditions?.length
+        ? { flipConditions: frame.flipConditions }
+        : {}),
+      ...(frame.nextMove ? { nextMove: frame.nextMove } : {}),
+      ...(frame.nextMoveSteps?.length
+        ? { nextMoveSteps: frame.nextMoveSteps }
+        : {}),
+    });
+    for (const step of frame.nextMoveSteps ?? []) {
+      const text = step.trim();
+      if (!text || seenActions.has(text)) continue;
+      seenActions.add(text);
+      await call("add_action_item", {
+        text,
+        decision_id: decisionId,
+      });
+    }
     for (const risk of frame.risks) {
       if (seenRisks.has(risk.title)) continue;
       seenRisks.add(risk.title);
@@ -179,6 +203,8 @@ export async function paintOpeningRound(input: {
       reasoning: argument.reasoning,
       basis_items: argument.basis,
       strength: argument.strength,
+      risk: argument.riskLevel,
+      reversibility: argument.reversibility,
       decision_id: decisionId,
     });
   }
