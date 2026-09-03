@@ -56,6 +56,16 @@ function clamp(value: number) {
   return Math.max(0, Math.min(100, Math.round(value)));
 }
 
+function riskScoreFromSeats(args: Argument[]) {
+  if (!args.length) return 0;
+  const weight = { high: 78, medium: 42, low: 18 };
+  const total = args.reduce(
+    (sum, item) => sum + weight[item.riskLevel ?? "medium"],
+    0,
+  );
+  return clamp(total / args.length);
+}
+
 function reversibilityScore(args: Argument[]) {
   if (!args.length) return 55;
   const weight = { high: 88, medium: 55, low: 22 };
@@ -170,13 +180,14 @@ export function arenaVerdict(
       : actions.map((item) => item.text)
   ).slice(0, 5);
 
-  const riskScore = clamp(
+  const tableRisk = clamp(
     risks.reduce((sum, item) => {
       const chance =
         item.likelihood === "high" ? 18 : item.likelihood === "medium" ? 11 : 6;
       return sum + item.severity * 6 + chance;
     }, args.length ? 12 : 0),
   );
+  const riskScore = clamp(Math.max(tableRisk, riskScoreFromSeats(args)));
 
   const deadlockNote = deadlock
     ? `Seats agree this is a real decision and still disagree on the call. Missing: ${whatWouldChangeIt}`
