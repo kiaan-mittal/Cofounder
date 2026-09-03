@@ -13,7 +13,7 @@ import type { ProjectSummary } from "@/lib/projects";
 import { cn } from "@/lib/utils";
 
 const NAV = [
-  { href: "/arena", label: "Arena" },
+  { href: "/arena", label: "Floor" },
   { href: "/webmcp", label: "WebMCP" },
   { href: "/brain", label: "Brain" },
   { href: "/history", label: "History" },
@@ -41,7 +41,7 @@ export function SiteHeader({
         <Link href="/" className="flex shrink-0 items-center gap-2.5">
           <ArenaMark />
           <span className="type-display text-[17px] font-semibold text-ink">
-            Decision Arena
+            Dissent
           </span>
         </Link>
 

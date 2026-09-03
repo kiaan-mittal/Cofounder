@@ -229,7 +229,7 @@ export async function exportViaComposio(input: {
     let parent = pickId(input.parent?.trim() || "") || input.parent?.trim() || "";
     if (!parent) {
       const named = await executeTool(session, "NOTION_SEARCH_NOTION_PAGE", {
-        query: "Decision Arena",
+        query: "Dissent",
         filter_value: "page",
         page_size: 5,
       });

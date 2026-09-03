@@ -298,7 +298,7 @@ export function OnboardingView({
       </h1>
       <p className="mt-8 max-w-[46ch] text-[17px] leading-relaxed text-graphite">
         {step === "repo"
-          ? "These are repositories on the GitHub account you just signed in with. Pick one. The Arena will not guess."
+          ? "These are repositories on the GitHub account you just signed in with. Pick one. Dissent will not guess."
           : "The project name starts as the repository name. You can change it later without renaming the repo. Then the public site the Brain will read."}
       </p>
 
@@ -423,7 +423,7 @@ export function OnboardingView({
               {modelReady === false ? (
                 <div className="border border-rule bg-ochre-wash px-4 py-3">
                   <p className="text-sm text-ink">
-                    No model credentials are configured, so the Arena cannot
+                    No model credentials are configured, so Dissent cannot
                     build a Brain from live sources yet.
                   </p>
                   <p className="mt-1.5 text-[13px] text-graphite">

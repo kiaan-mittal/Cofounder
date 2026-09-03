@@ -75,7 +75,7 @@ export interface ArenaState {
   patternAlerts: PatternAlert[];
   /**
    * Bumped when the founder asks for a blank round. Not persisted.
-   * The start screen watches this so + New arena still works when no
+   * The start screen watches this so + New decision still works when no
    * decision is active.
    */
   composeNonce: number;

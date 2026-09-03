@@ -13,7 +13,7 @@ import { toolError, toolResult } from "@/webmcp/spec";
  * Context tools — everything an agent needs to understand the workspace
  * before it says anything.
  *
- * These are the tools that make Decision Arena worth building on WebMCP. An
+ * These are the tools that make Dissent worth building on WebMCP. An
  * agent without them can only read rendered text; with them it reads the same
  * structured decision record the founder is looking at, including provenance,
  * argument strengths and measured calibration history.
@@ -62,7 +62,7 @@ export const contextTools: ArenaTool[] = [
     group: "context",
     humanLabel: "Read the Company Brain",
     description:
-      "Returns the Company Brain: what the company builds, who it sells to, its stack, and the split between facts drawn from the founder's website and repository and assumptions it is betting on without proof. Facts carry source quotes; assumptions carry ids. The dossier holds verbatim excerpts from the scraped pages.",
+      "Opens the Brain page, then returns the Company Brain: what the company builds, who it sells to, its stack, and the split between facts drawn from the founder's website and repository and assumptions it is betting on without proof. Facts carry source quotes; assumptions carry ids. The dossier holds verbatim excerpts from the scraped pages.",
     annotations: { readOnlyHint: true, untrustedContentHint: true },
     inputSchema: {
       type: "object",
@@ -102,6 +102,10 @@ export const contextTools: ArenaTool[] = [
         dossier: brain.dossier ?? [],
       };
 
+      if (currentChannel() !== "founder") {
+        openWorkspacePage("/brain");
+      }
+
       if (typeof section === "string" && section !== "all" && sections[section]) {
         return toolResult(
           `Company Brain — ${section} for ${company.name}.`,
@@ -129,7 +133,7 @@ export const contextTools: ArenaTool[] = [
     group: "context",
     humanLabel: "Read the open decision",
     description:
-      "Returns one decision record as the founder sees it: the question, options, every seat as a structured claim (position, strength, claim, evidence, risk, reversibility), and the Arena verdict — FOR/AGAINST split, dimension scores (evidence, confidence, risk, reversibility, upside), flip conditions, next move, and what still blocks commit.",
+      "Returns one decision record as the founder sees it: the question, options, every dissenter as a structured claim (position, strength, claim, evidence, risk, reversibility), and the floor verdict: FOR/AGAINST split, dimension scores (evidence, confidence, risk, reversibility, upside), flip conditions, next move, and what still blocks commit.",
     annotations: { readOnlyHint: true, untrustedContentHint: true },
     inputSchema: {
       type: "object",
@@ -147,7 +151,7 @@ export const contextTools: ArenaTool[] = [
       const decision = requireDecision(decision_id);
       if (!decision) {
         return toolError(
-          "There is no decision open in the Arena right now. Call get_decision_history and pass a decision_id.",
+          "There is no decision open on the floor right now. Call get_decision_history and pass a decision_id.",
         );
       }
       const snapshot = decisionSnapshot(state(), decision.id);
@@ -164,7 +168,7 @@ export const contextTools: ArenaTool[] = [
     group: "context",
     humanLabel: "Read past decisions",
     description:
-      "Opens the History page, then returns an index of every arena this founder has run, newest first: question, status, chosen option, predictions, outcome, and a floor summary of seat claims. Each entry carries a decision id that get_current_decision accepts.",
+      "Opens the History page, then returns an index of every decision this founder has run, newest first: question, status, chosen option, predictions, outcome, and a floor summary of dissenter claims. Each entry carries a decision id that get_current_decision accepts.",
     annotations: { readOnlyHint: true, untrustedContentHint: true },
     inputSchema: {
       type: "object",
@@ -190,7 +194,7 @@ export const contextTools: ArenaTool[] = [
       if (filtered.length === 0) {
         return toolResult("No decisions on record yet.", {
           decisions: [],
-          note: "This founder has run no arenas, so there is no decision history to read.",
+          note: "This founder has run no decisions, so there is no decision history to read.",
         });
       }
       raiseHistoryAlert("get_decision_history", "history");

@@ -8,7 +8,7 @@ import { readWatch } from "@/server/watches";
 export const metadata: Metadata = {
   title: "The floor",
   description:
-    "Five seats argue one decision on a shared table. Agents write arguments, contradictions and evidence requests here; only the founder commits.",
+    "Five dissenters argue one decision on a shared table. Guests write claims, contradictions and evidence requests here; only the founder commits.",
   robots: { index: false, follow: false },
 };
 

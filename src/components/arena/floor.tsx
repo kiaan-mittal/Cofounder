@@ -207,7 +207,7 @@ export function FloorTalk({
             targetLabel={targetLabel}
             onClearTarget={onClearTarget}
             toolName="write_founder_judgment"
-            toolDescription="Writes the founder's judgment into their box on the Arena floor, where the five seats will reassess against it. The agent fills the box; the founder presses Write. To put a defense straight onto the record instead, call add_defense."
+            toolDescription="Writes the founder's judgment into their box on the floor, where the five dissenters will reassess against it. The guest fills the box; the founder presses Write. To put a defense straight onto the record instead, call add_defense."
             toolParamDescription="What the founder actually believes about this decision, in one honest paragraph, answering the seats' claims."
             allowAgent
             onAgentSubmit={(goal, display) => void sparring.run(goal, display)}
@@ -468,7 +468,7 @@ export function FloorBar({
             onClick={leave}
             className="type-eyebrow shrink-0 text-graphite hover:text-ink"
           >
-            Arenas
+            Decisions
           </button>
           <DecisionRail currentId={decisionId} seed={seed} showNew={false} />
         </>
@@ -480,7 +480,7 @@ export function FloorBar({
         <>
           {agentInRoom ? (
             <p className="type-eyebrow hidden whitespace-nowrap text-oxblood lg:block">
-              Agent in the room
+              Guest in the room
             </p>
           ) : null}
           <button
@@ -500,7 +500,7 @@ export function FloorBar({
       )}
       </div>
       <div className="border-t border-rule px-4 py-2">
-        <p className="type-eyebrow text-graphite">This arena</p>
+        <p className="type-eyebrow text-graphite">This decision</p>
         <h1 className="type-display mt-0.5 text-[18px] font-semibold leading-snug text-ink sm:text-[20px]">
           {question}
         </h1>

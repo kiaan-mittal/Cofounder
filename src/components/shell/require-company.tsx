@@ -109,7 +109,7 @@ export function RequireCompany({
     return (
       <div className="flex h-[calc(100dvh-3.5rem)] flex-col overflow-hidden bg-paper">
         <div className="flex shrink-0 items-center gap-4 border-b border-rule px-4 py-2.5">
-          <p className="type-eyebrow text-graphite">Arena</p>
+          <p className="type-eyebrow text-graphite">Floor</p>
           <p className="type-display min-w-0 flex-1 truncate text-[17px] font-semibold">
             No Company Brain yet
           </p>

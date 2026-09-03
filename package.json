@@ -1,8 +1,8 @@
 {
-  "name": "decision-arena",
+  "name": "dissent",
   "version": "1.0.0",
   "private": true,
-  "description": "AI that argues with you before reality does. A human + agent collaborative decision workspace built on WebMCP.",
+  "description": "Make your decision defend itself. A founder and dissenters on one table, built on WebMCP.",
   "license": "MIT",
   "scripts": {
     "dev": "next dev --turbopack",

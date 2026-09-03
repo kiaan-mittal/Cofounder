@@ -12,7 +12,7 @@ import { JUDGE_DECISION } from "@/lib/judge-path";
 export const AGENT_PROMPTS = [
   {
     label: "Stress-test this floor",
-    goal: `Call stress_test_decision with this question: ${JUDGE_DECISION} It creates the arena and returns the verdict — FOR/AGAINST, scores, flip conditions, next move. Then call get_current_decision. Do not confirm_commit yet.`,
+    goal: `Call stress_test_decision with this question: ${JUDGE_DECISION} Wait until five dissenters have written. It returns the verdict: FOR/AGAINST, scores, flip conditions, next move. Then call get_current_decision. Do not confirm_commit yet.`,
   },
   {
     label: "Find my blind spot",

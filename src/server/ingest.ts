@@ -30,7 +30,7 @@ const MAX_SITE_PAGES = 10;
 /** Extra guesses we are willing to try so 404s do not starve the keep list. */
 const MAX_TRY_PAGES = 16;
 const USER_AGENT =
-  "DecisionArena/1.0 (+https://github.com/decision-arena; WebMCP Challenge entry)";
+  "Dissent/1.0 (+https://github.com/kiaan-mittal/Cofounder; WebMCP Challenge entry)";
 
 const PRIORITY_PATHS = [
   "/pricing",

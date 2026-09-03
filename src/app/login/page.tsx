@@ -11,7 +11,7 @@ import { pathAfterLogin } from "@/server/login-path";
 export const metadata: Metadata = {
   title: "Sign in",
   description:
-    "Sign in with GitHub. Decision Arena reads the repository and site you point it at so the first decision opens already knowing the company.",
+    "Sign in with GitHub. Dissent reads the repository and site you point it at so the first decision opens already knowing the company.",
 };
 
 export default async function LoginPage({
@@ -39,7 +39,7 @@ export default async function LoginPage({
         <Link href="/" className="flex items-center gap-2.5">
           <ArenaMark />
           <span className="type-display text-[17px] font-semibold">
-            Decision Arena
+            Dissent
           </span>
         </Link>
       </header>

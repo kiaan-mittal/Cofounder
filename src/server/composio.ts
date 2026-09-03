@@ -14,9 +14,9 @@ const LEGACY_GITHUB_FILE = join(process.cwd(), ".composio-github.local.json");
 const GITHUB_SCOPES = "read:user repo";
 
 const AUTH_NAMES: Record<ComposioToolkit, string> = {
-  github: "Decision Arena GitHub",
-  slack: "Decision Arena Slack",
-  notion: "Decision Arena Notion",
+  github: "Dissent GitHub",
+  slack: "Dissent Slack",
+  notion: "Dissent Notion",
 };
 
 const ENV_AUTH_IDS: Record<ComposioToolkit, string> = {
@@ -142,7 +142,7 @@ export async function resolveAuthConfigId(
   }
 
   const named = items.find((item) =>
-    /decision arena/i.test(item.name ?? ""),
+    /dissent|decision arena/i.test(item.name ?? ""),
   );
   if (named?.id) {
     resolvedIds.set(memoryKey, named.id);

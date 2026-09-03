@@ -1,25 +1,26 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useArena } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { useWebMCP } from "@/webmcp/provider";
+import { TOOL_SUMMARIES } from "@/webmcp/tools";
 
 const CHANNEL_LABEL: Record<string, string> = {
-  "browser-agent": "browser",
+  "browser-agent": "guest",
   "in-page-agent": "in-page",
   founder: "you",
-  seat: "seat",
-  arena: "arena",
+  seat: "dissenter",
+  arena: "floor",
 };
 
 /**
- * Floating WebMCP badge on the Arena.
+ * Floating WebMCP badge on the floor.
  *
- * Starts closed so the floor is the demo. Native vs fallback, live calls —
- * no second ChatGPT prompt.
+ * Opens itself on the first call so a judge can see what the agent did
+ * without hunting. Native vs fallback, live calls, no second ChatGPT prompt.
  */
 export function WebMcpBadge({
   lift = false,
@@ -31,6 +32,14 @@ export function WebMcpBadge({
   const calls = useArena((state) => state.toolCalls);
   const [open, setOpen] = useState(false);
   const [now, setNow] = useState(0);
+  const seen = useRef(0);
+
+  useEffect(() => {
+    if (calls.length > 0 && seen.current === 0) {
+      setOpen(true);
+    }
+    seen.current = calls.length;
+  }, [calls.length]);
 
   useEffect(() => {
     if (!open) return;
@@ -41,16 +50,17 @@ export function WebMcpBadge({
   const latest = calls[0] ?? null;
   const live = ready && support === "native";
   const inPage = ready && support === "page";
+  const timeline = [...calls].slice(0, 16).reverse();
 
   return (
     <div
       className={cn(
-        "pointer-events-none fixed right-4 z-50 flex max-w-[min(24rem,calc(100vw-2rem))] flex-col items-end",
+        "pointer-events-none fixed right-4 z-50 flex max-w-[min(26rem,calc(100vw-2rem))] flex-col items-end",
         lift ? "bottom-20" : "bottom-5",
       )}
     >
       {open ? (
-        <div className="pointer-events-auto mb-2 w-[min(24rem,calc(100vw-2rem))] border border-ink bg-paper shadow-[0_16px_40px_rgba(20,17,15,0.12)]">
+        <div className="pointer-events-auto mb-2 w-[min(26rem,calc(100vw-2rem))] border border-ink bg-paper shadow-[0_16px_40px_rgba(20,17,15,0.12)]">
           <header className="flex items-center gap-3 border-b border-rule px-4 py-2.5">
             <span
               className={cn(
@@ -79,56 +89,61 @@ export function WebMcpBadge({
             </button>
           </header>
 
-          <div className="max-h-[min(28rem,60dvh)] overflow-y-auto px-4 py-3">
+          <div className="max-h-[min(32rem,62dvh)] overflow-y-auto px-4 py-3">
             <p className="text-[13px] leading-relaxed text-graphite">
               {live
                 ? "Native site tools. ChatGPT discovered document.modelContext on this page."
                 : inPage
-                  ? "Fallback only — this browser has no native WebMCP. Open this URL in ChatGPT desktop Sol or Terra (site tools on). Do not demo the in-page agent as native."
+                  ? "Fallback only. This browser has no native WebMCP. Open this URL in ChatGPT desktop Sol or Terra (site tools on). Do not demo the in-page guest as native."
                   : "Waiting for document.modelContext. Open the page in Sol, Terra, or Chrome with the WebMCP flag."}
             </p>
 
             {calls.length ? (
               <>
-                <p className="type-eyebrow mt-4">
-                  Calls · {calls.length} this session
+                <p className="type-eyebrow mt-4">What the agent did</p>
+                <p className="mt-1 text-[12.5px] leading-snug text-graphite">
+                  {calls.length} call{calls.length === 1 ? "" : "s"} this
+                  session, oldest first.
                 </p>
-                <ul className="mt-2 space-y-1.5">
-                  {calls.slice(0, 8).map((call) => (
+                <ol className="mt-3 space-y-2.5">
+                  {timeline.map((call, index) => (
                     <li
                       key={call.id}
-                      className="flex items-baseline gap-2 text-[12.5px] leading-snug"
+                      className="grid grid-cols-[1.5rem_1fr_auto] items-start gap-x-2 text-[12.5px] leading-snug"
                     >
-                      <span
-                        className={cn(
-                          "mt-[5px] inline-block size-1.5 shrink-0 rounded-full",
-                          call.ok ? "bg-moss" : "bg-oxblood",
-                        )}
-                      />
-                      <code
-                        className={cn(
-                          "type-figure shrink-0",
-                          call.ok ? "text-ink" : "text-oxblood",
-                        )}
-                      >
-                        {call.tool}
-                      </code>
-                      <span className="type-eyebrow shrink-0 text-pencil">
-                        {CHANNEL_LABEL[call.channel] ?? call.channel}
+                      <span className="type-figure pt-0.5 text-pencil">
+                        {String(index + 1).padStart(2, "0")}
                       </span>
-                      <span className="min-w-0 flex-1 truncate text-graphite">
-                        {call.summary}
-                      </span>
-                      <span className="type-eyebrow shrink-0 text-pencil">
+                      <div className="min-w-0">
+                        <p className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                          <code
+                            className={cn(
+                              "type-figure",
+                              call.ok ? "text-ink" : "text-oxblood",
+                            )}
+                          >
+                            {call.tool}
+                          </code>
+                          <span className="type-eyebrow text-pencil">
+                            {CHANNEL_LABEL[call.channel] ?? call.channel}
+                          </span>
+                        </p>
+                        <p className="mt-0.5 text-graphite">
+                          {call.summary ||
+                            TOOL_SUMMARIES[call.tool] ||
+                            "Called."}
+                        </p>
+                      </div>
+                      <span className="type-eyebrow shrink-0 pt-0.5 text-pencil">
                         {age(call.at, now)}
                       </span>
                     </li>
                   ))}
-                </ul>
+                </ol>
               </>
             ) : (
               <p className="mt-4 text-[13px] leading-snug text-graphite">
-                No calls yet. When ChatGPT runs a tool, it lands here.
+                No calls yet. When ChatGPT runs a tool, it lands here, in order.
               </p>
             )}
 
@@ -136,7 +151,7 @@ export function WebMcpBadge({
               href="/webmcp"
               className="type-eyebrow mt-4 inline-block text-ink underline underline-offset-4"
             >
-              All tools →
+              All 17 tools →
             </Link>
           </div>
         </div>

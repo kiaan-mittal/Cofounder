@@ -153,14 +153,14 @@ export function WebMCPView({
           Native WebMCP is proved here: the header must read native, and
           getTools() must list the same tools ChatGPT discovered. The one
           ChatGPT prompt lives on the home page — paste it once, then come
-          back to the Arena.
+          back to the floor.
         </p>
         <div className="mt-6 flex flex-wrap items-baseline gap-x-6 gap-y-2">
           <Link
             href="/arena"
             className="inline-flex h-11 items-center bg-ink px-5 text-[15px] font-medium text-paper"
           >
-            Open the Arena
+            Open the floor
           </Link>
           <Link
             href="/"
@@ -189,26 +189,41 @@ export function WebMCPView({
 
       {toolCalls.length ? (
         <section className="mt-12">
-          <p className="type-eyebrow">Calls this session</p>
-          <ul className="mt-4 space-y-2">
-            {toolCalls.slice(0, 12).map((call) => (
+          <p className="type-eyebrow">What the agent did</p>
+          <p className="mt-2 text-[15px] leading-relaxed text-graphite">
+            {toolCalls.length} call{toolCalls.length === 1 ? "" : "s"} this
+            session, oldest first.
+          </p>
+          <ol className="mt-4 space-y-3">
+            {[...toolCalls].slice(0, 16).reverse().map((call, index) => (
               <li
                 key={call.id}
-                className="flex items-baseline gap-3 text-[15px] leading-relaxed"
+                className="grid grid-cols-[1.75rem_1fr] items-start gap-3 text-[15px] leading-relaxed"
               >
-                <span
-                  className={cn(
-                    "mt-[7px] inline-block size-1.5 shrink-0 rounded-full",
-                    call.ok ? "bg-moss" : "bg-oxblood",
-                  )}
-                />
-                <code className="type-figure text-[14px] text-ink">
-                  {call.tool}
-                </code>
-                <span className="text-graphite">{call.summary}</span>
+                <span className="type-figure pt-0.5 text-pencil">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                <div className="min-w-0">
+                  <p className="flex flex-wrap items-baseline gap-x-2">
+                    <code
+                      className={cn(
+                        "type-figure text-[14px]",
+                        call.ok ? "text-ink" : "text-oxblood",
+                      )}
+                    >
+                      {call.tool}
+                    </code>
+                    <span className="type-eyebrow text-pencil">
+                      {call.ok ? "ok" : "refused"}
+                    </span>
+                  </p>
+                  <p className="mt-1 text-graphite">
+                    {call.summary || toolSummary({ name: call.tool, humanLabel: call.tool })}
+                  </p>
+                </div>
               </li>
             ))}
-          </ul>
+          </ol>
         </section>
       ) : null}
 
@@ -338,7 +353,7 @@ export function WebMCPView({
             </dl>
           ) : null}
           <p>
-            The two boxes on the Arena are HTML forms with{" "}
+            The two boxes on the floor are HTML forms with{" "}
             <code className="type-figure text-[13px] text-ink">toolname</code>.
             The agent fills them. You press the button. No{" "}
             <code className="type-figure text-[13px] text-ink">

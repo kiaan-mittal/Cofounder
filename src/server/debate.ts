@@ -241,7 +241,7 @@ async function generateOpeningFrame(
       schemaName: "OpeningFrame",
       system: `${ANTI_SYCOPHANCY}
 
-You are framing the opening of a Decision Arena session. Name the real mutually exclusive options, the material risks, any contradiction you can actually support, and the specific checks that would settle the disagreement. Do not write the five specialist arguments.
+You are framing the opening of a Dissent session. Name the real mutually exclusive options, the material risks, any contradiction you can actually support, and the specific checks that would settle the disagreement. Do not write the five specialist arguments.
 
 Set arenaConfidence honestly. If the founder's instinct looks right, say so with a high number and still name the costs.
 

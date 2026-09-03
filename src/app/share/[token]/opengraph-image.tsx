@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 
 import { readDecisionShare } from "@/server/shares";
 
-export const alt = "Decision Arena record";
+export const alt = "Dissent record";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -17,12 +17,12 @@ export default async function ShareOpenGraphImage({
     : null;
   const question =
     brief?.question ?? "A decision ChatGPT can join, not own.";
-  const company = brief?.company ?? "Decision Arena";
+  const company = brief?.company ?? "Dissent";
   const verdict = brief
     ? brief.deadlock
       ? "Deadlock"
       : brief.leaningLabel
-    : "Agents propose. Founders commit.";
+    : "Guests propose. Founders commit.";
   const sizeForQuestion = question.length > 90 ? 42 : question.length > 54 ? 50 : 58;
 
   return new ImageResponse(
@@ -105,7 +105,7 @@ export default async function ShareOpenGraphImage({
         >
           {brief?.commitRefused
             ? "confirm_commit was refused"
-            : "Agents propose. Founders commit."}
+            : "Guests propose. Founders commit."}
         </div>
       </div>
     ),

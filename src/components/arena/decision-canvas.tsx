@@ -585,7 +585,7 @@ export function DecisionCanvas({
       <header className="sticky top-14 z-30 flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-rule bg-paper px-3 py-2.5">
         <p className="type-eyebrow mr-auto">Decision canvas</p>
         <Hand label="You" tone="indigo" />
-        <Hand label="Arena" tone="ink" />
+        <Hand label="Floor" tone="ink" />
         <Hand label="Agent" tone="oxblood" />
         <div className="flex flex-wrap items-center gap-0.5">
           {(

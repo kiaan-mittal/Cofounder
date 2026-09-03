@@ -1,5 +1,5 @@
 /**
- * Decision Arena domain model.
+ * Dissent domain model.
  *
  * The whole product rests on one idea: a decision is *structured state*, not a
  * chat transcript. Every claim, objection, risk, assumption and prediction is a
