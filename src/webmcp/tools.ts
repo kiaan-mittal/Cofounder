@@ -9,7 +9,7 @@ import { shareTools } from "@/webmcp/share-tools";
 import type { ArenaTool } from "@/webmcp/registry";
 
 /**
- * The Decision Arena tool surface.
+ * The Dissent tool surface.
  *
  * Two layers, on purpose:
  *
@@ -42,16 +42,16 @@ export const GUEST_TOOLS: ArenaTool[] = ARENA_TOOLS.filter(
 /** One-line human copy for /webmcp. Agent-facing descriptions stay long. */
 export const TOOL_SUMMARIES: Record<string, string> = {
   the_room: "Company and open decision, already in this room.",
-  get_company_brain: "What the company builds, facts vs bets.",
-  get_current_decision: "Structured seats plus the Arena verdict.",
-  get_decision_history: "Opens History. Past arenas, newest first.",
+  get_company_brain: "Opens Brain. What the company builds, facts vs bets.",
+  get_current_decision: "Structured dissenters plus the floor verdict.",
+  get_decision_history: "Opens History. Past decisions, newest first.",
   get_founder_track_record: "Opens Calibration. How this founder has missed.",
-  add_argument: "A structured seat claim: position, strength, risk, undo.",
+  add_argument: "A structured dissenter claim: position, strength, risk, undo.",
   request_evidence: "A checkable ask. Blocks commit until answered.",
   flag_contradiction: "Two things that cannot both be true.",
   add_risk: "Severity and likelihood. Stays open until resolved.",
   add_defense: "The founder's pushback, on the record.",
-  stress_test_decision: "Creates the arena, seats five claims, returns the verdict.",
+  stress_test_decision: "Creates the floor, seats five dissenters, returns the verdict.",
   create_prediction: "One number, a unit, a deadline.",
   commit_decision: "Proposes a commit. Does not commit.",
   confirm_commit: "Founder only. Agents are refused.",

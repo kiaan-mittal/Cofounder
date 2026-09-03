@@ -7,7 +7,7 @@ import { requireGithubLogin } from "@/server/require-session";
 export const metadata: Metadata = {
   title: "Load the company",
   description:
-    "Point Decision Arena at a repository and a site so the Arena opens already knowing what the company builds.",
+    "Point Dissent at a repository and a site so the floor opens already knowing what the company builds.",
   robots: { index: false, follow: false },
 };
 

@@ -12,7 +12,7 @@ import {
 } from "@/webmcp/spec";
 
 /**
- * Tool registration for Decision Arena.
+ * Tool registration for Dissent.
  *
  * `document.modelContext` belongs to the browser. This file never writes to
  * it — not at boot, not as a fallback, not ever. When the browser implements

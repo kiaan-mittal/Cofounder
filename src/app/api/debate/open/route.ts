@@ -38,7 +38,7 @@ export async function POST(request: Request) {
             type: "error",
             message:
               payload?.error ??
-              "The Arena could not open this round.",
+              "Dissent could not open this round.",
             hint: payload?.hint,
           });
         } finally {

@@ -60,7 +60,7 @@ export function briefFromState(
   );
 
   return {
-    company: state.company?.name ?? "Decision Arena",
+    company: state.company?.name ?? "Dissent",
     question: decision.question,
     context: decision.context,
     status: decision.status,
@@ -127,7 +127,7 @@ export function briefToMarkdown(brief: DecisionBrief, shareUrl?: string): string
   return [
     `# ${brief.question}`,
     "",
-    `${brief.company} · ${brief.status} · Arena ${brief.arenaConfidence}% · Founder ${brief.founderConfidence}%`,
+    `${brief.company} · ${brief.status} · Floor ${brief.arenaConfidence}% · Founder ${brief.founderConfidence}%`,
     "",
     brief.deadlock
       ? `**Deadlock.** ${brief.deadlockNote ?? brief.leaningLabel}`
@@ -161,8 +161,8 @@ export function briefToMarkdown(brief: DecisionBrief, shareUrl?: string): string
     shareUrl ? `Live record: ${shareUrl}` : "",
     "",
     brief.commitRefused
-      ? "**confirm_commit was refused.** Agents proposed. The founder commits. Exported from Decision Arena."
-      : "_Agents proposed. The founder commits. Exported from Decision Arena._",
+      ? "**confirm_commit was refused.** Guests proposed. The founder commits. Exported from Dissent."
+      : "_Guests proposed. The founder commits. Exported from Dissent._",
   ]
     .filter((line) => line !== undefined)
     .join("\n")

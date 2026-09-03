@@ -275,7 +275,7 @@ function ReadinessStage({
           </Note>
 
           <div className="border border-rule bg-oxblood-wash px-4 py-3">
-            <p className="type-eyebrow text-oxblood">The Arena&rsquo;s view</p>
+            <p className="type-eyebrow text-oxblood">The floor&rsquo;s view</p>
             <p className="mt-1.5 text-[15px] leading-relaxed text-ink">
               {summary.verdict}
             </p>
@@ -288,7 +288,7 @@ function ReadinessStage({
               tone="indigo"
             />
             <Confidence
-              label="The Arena's confidence"
+              label="The floor's confidence"
               value={summary.arenaConfidence ?? decision.agentConfidence}
               tone="oxblood"
             />
@@ -472,7 +472,7 @@ function PredictionStage({
         </DialogTitle>
         <DialogDescription className="mt-3 text-[15px] leading-relaxed text-graphite">
           One number, one unit, one deadline. This is what your calibration will
-          be measured against — and what the Arena will quote back at you next
+          be measured against, and what Dissent will quote back at you next
           time.
         </DialogDescription>
       </DialogHeader>

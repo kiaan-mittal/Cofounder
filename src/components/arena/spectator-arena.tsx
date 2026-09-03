@@ -63,7 +63,7 @@ export function SpectatorArena({
     return (
       <div className="flex h-[calc(100dvh-3.5rem)] items-center justify-center bg-paper px-6">
         <p className="max-w-[42ch] text-center text-[16px] leading-relaxed text-graphite">
-          This watch has not started, or it ended. Open the live Arena on the
+          This watch has not started, or it ended. Open the live floor on the
           other laptop and copy Watch again.
         </p>
       </div>

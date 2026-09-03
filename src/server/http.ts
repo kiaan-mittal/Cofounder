@@ -33,7 +33,7 @@ export async function parseBody<T extends z.ZodTypeAny>(
 export function handleRouteError(error: unknown) {
   if (error instanceof ZodError) {
     return fail(
-      "The request was missing something the Arena needs.",
+      "The request was missing something Dissent needs.",
       422,
       error.issues.map((i) => `${i.path.join(".") || "body"}: ${i.message}`).join("; "),
     );
@@ -46,10 +46,10 @@ export function handleRouteError(error: unknown) {
       error.message,
       503,
       schemaMiss
-        ? "The model answered, but not in the shape the Arena expected. Try the build again."
+        ? "The model answered, but not in the shape Dissent expected. Try the build again."
         : "If this keeps happening, check OPENAI_API_KEY in .env.local.",
     );
   }
   const detail = error instanceof Error ? error.message : String(error);
-  return fail("The Arena hit an unexpected problem.", 500, detail);
+  return fail("Dissent hit an unexpected problem.", 500, detail);
 }

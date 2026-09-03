@@ -124,7 +124,7 @@ export function DecisionReady({
             <Note label="Cheapest test that would change your mind">{test}</Note>
             {summary?.verdict ? (
               <div className="border border-rule bg-oxblood-wash px-4 py-3">
-                <p className="type-eyebrow text-oxblood">The Arena’s view</p>
+                <p className="type-eyebrow text-oxblood">The floor’s view</p>
                 <p className="mt-1.5 text-[15px] leading-relaxed text-ink">
                   {summary.verdict}
                 </p>
@@ -146,7 +146,7 @@ export function DecisionReady({
               </div>
               <div>
                 <p className="type-eyebrow flex items-baseline justify-between text-oxblood">
-                  <span>The Arena’s confidence</span>
+                  <span>The floor’s confidence</span>
                   <span className="type-figure text-ink">
                     {summary?.arenaConfidence ?? decision.agentConfidence}
                   </span>

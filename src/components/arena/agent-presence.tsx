@@ -13,7 +13,7 @@ export function AgentPresence() {
 
   return (
     <p className="type-eyebrow hidden whitespace-nowrap text-oxblood lg:block">
-      Agent in the room
+      Guest in the room
     </p>
   );
 }

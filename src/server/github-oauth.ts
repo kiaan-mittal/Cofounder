@@ -258,7 +258,7 @@ export async function sessionFromAccessToken(
       accept: "application/vnd.github+json",
       authorization: `Bearer ${accessToken}`,
       "x-github-api-version": "2022-11-28",
-      "user-agent": "DecisionArena/1.0",
+      "user-agent": "Dissent/1.0",
     },
     cache: "no-store",
   });

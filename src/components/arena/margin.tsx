@@ -72,7 +72,7 @@ export function Margin({
         </div>
         {openContradictions.length === 0 ? (
           <p className="mt-3 text-[13.5px] leading-relaxed text-pencil">
-            None open. The Arena flags one only when two things you have said
+            None open. Dissent flags one only when two things you have said
             cannot both be true.
           </p>
         ) : (

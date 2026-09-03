@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 
-export const alt = "Decision Arena — a decision ChatGPT can join, not own";
+export const alt = "Dissent. Make your decision defend itself";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -31,7 +31,7 @@ export default function OpenGraphImage() {
               color: "#6B645C",
             }}
           >
-            Decision Arena
+            Dissent
           </div>
         </div>
         <div
@@ -50,10 +50,10 @@ export default function OpenGraphImage() {
               color: "#14110F",
             }}
           >
-            A decision ChatGPT can join, not own.
+            Make your decision defend itself.
           </div>
           <div style={{ fontSize: 28, color: "#6B645C", lineHeight: 1.35 }}>
-            Five seats write on the table. Agents cannot press commit.
+            Five dissenters write on the table. Guests cannot press commit.
           </div>
         </div>
       </div>

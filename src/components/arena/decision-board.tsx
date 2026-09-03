@@ -206,12 +206,12 @@ function PresenceStrip({
       <HandDot label="You" tone="indigo" active />
       <HandDot
         label={
-          agentWriting ? "Arena writing" : busy === "defending" ? "Arena" : "Arena"
+          agentWriting ? "Dissenters writing" : busy === "defending" ? "Table" : "Table"
         }
         tone="oxblood"
         active={agentWriting || busy === "defending"}
       />
-      <HandDot label="Agent" tone="ochre" active={agentLive} />
+      <HandDot label="Guest" tone="ochre" active={agentLive} />
     </div>
   );
 }

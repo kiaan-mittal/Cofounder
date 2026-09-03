@@ -34,28 +34,28 @@ const jetbrainsMono = localFont({
 export const metadata: Metadata = {
   metadataBase: new URL(appOrigin()),
   title: {
-    default: "Decision Arena — AI that argues with you before reality does",
-    template: "%s · Decision Arena",
+    default: "Dissent. Make your decision defend itself",
+    template: "%s · Dissent",
   },
   description:
-    "A decision workspace where founders and AI agents challenge each other's reasoning, commit to predictions, and learn from outcomes. Built on WebMCP.",
-  applicationName: "Decision Arena",
+    "Give it a decision. Invite opposing perspectives. Attack the assumptions. Commit when the argument survives. Dissent exposes its deliberation system to agents through WebMCP.",
+  applicationName: "Dissent",
   icons: {
     icon: "/icon",
     apple: "/apple-icon",
   },
   openGraph: {
     type: "website",
-    siteName: "Decision Arena",
-    title: "Decision Arena — AI that argues with you before reality does",
+    siteName: "Dissent",
+    title: "Dissent. Make your decision defend itself",
     description:
-      "Five seats argue your decision on a table an AI agent can write on but cannot close. Built on WebMCP.",
+      "Five dissenters argue your decision on a table a guest can write on but cannot close. Built on WebMCP.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Decision Arena — AI that argues with you before reality does",
+    title: "Dissent. Make your decision defend itself",
     description:
-      "Five seats argue your decision on a table an AI agent can write on but cannot close. Built on WebMCP.",
+      "Five dissenters argue your decision on a table a guest can write on but cannot close. Built on WebMCP.",
   },
 };
 

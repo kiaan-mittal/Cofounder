@@ -76,7 +76,7 @@ export function DecisionRail({
           <span aria-hidden className="type-figure text-[14px] leading-none">
             +
           </span>
-          New arena
+          New decision
         </button>
       ) : null}
 
@@ -148,7 +148,7 @@ export function DecisionGallery({
     <div>
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="type-eyebrow">Your arenas</p>
+          <p className="type-eyebrow">Your decisions</p>
           {companyName ? (
             <p className="mt-1 truncate text-[13px] text-graphite">{companyName}</p>
           ) : null}

@@ -259,7 +259,7 @@ export async function paintOpeningRound(input: {
       );
     }
     throw new OpeningPaintError(
-      caught instanceof Error ? caught.message : "The Arena could not open this round.",
+      caught instanceof Error ? caught.message : "Dissent could not open this round.",
       undefined,
       decisionId,
     );

@@ -123,7 +123,7 @@ export function ArenaCallDock({
           <div className="flex flex-wrap items-baseline justify-between gap-3">
             <div>
               <p className="type-eyebrow">
-                {call.deadlock ? "Arena deadlock" : "Arena verdict"}
+                {call.deadlock ? "Deadlock" : "Verdict"}
               </p>
               <p className="type-display mt-1 text-[22px] font-semibold leading-tight">
                 {call.verdictLabel}
@@ -222,7 +222,7 @@ export function ArenaCallDock({
             </div>
             <div>
               <p className="type-eyebrow flex items-baseline justify-between">
-                <span className="text-oxblood">Arena confidence</span>
+                <span className="text-oxblood">Floor confidence</span>
                 <span className="type-figure text-ink">
                   {current.agentConfidence}
                 </span>

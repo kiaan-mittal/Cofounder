@@ -21,7 +21,7 @@ import {
 } from "@/webmcp/spec";
 
 /**
- * Registration, attribution and logging for Decision Arena's WebMCP tools.
+ * Registration, attribution and logging for Dissent's WebMCP tools.
  *
  * WebMCP Challenge (https://webmcp.devpost.com/rules) asks public repos to
  * contain a document.modelContext.registerTool example. Live tools are

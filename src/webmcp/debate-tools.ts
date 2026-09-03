@@ -207,7 +207,7 @@ export const debateTools: ArenaTool[] = [
     },
     execute: (args) => {
       const decision = resolveDecision(args.decision_id);
-      if (!decision) return toolError("There is no decision open in the Arena.");
+      if (!decision) return toolError("There is no decision open on the floor.");
 
       const claim = str(args.claim);
       if (!claim) return toolError("An argument needs a claim.");
@@ -348,7 +348,7 @@ export const debateTools: ArenaTool[] = [
     group: "debate",
     humanLabel: "Request evidence",
     description:
-      "Puts a specific, checkable evidence request on the record — something the founder could look up that would settle a disagreement. The Arena blocks commitment while any request is outstanding. Returns the evidence id.",
+      "Puts a specific, checkable evidence request on the record: something the founder could look up that would settle a disagreement. The floor blocks commitment while any request is outstanding. Returns the evidence id.",
     inputSchema: {
       type: "object",
       properties: {
@@ -372,7 +372,7 @@ export const debateTools: ArenaTool[] = [
     },
     execute: (args) => {
       const decision = resolveDecision(args.decision_id);
-      if (!decision) return toolError("There is no decision open in the Arena.");
+      if (!decision) return toolError("There is no decision open on the floor.");
       const statement = str(args.statement);
       if (!statement) return toolError("An evidence request needs a statement.");
 
@@ -432,7 +432,7 @@ export const debateTools: ArenaTool[] = [
     },
     execute: (args) => {
       const decision = resolveDecision(args.decision_id);
-      if (!decision) return toolError("There is no decision open in the Arena.");
+      if (!decision) return toolError("There is no decision open on the floor.");
 
       const summary = str(args.summary);
       const sideA = str(args.side_a);
@@ -539,7 +539,7 @@ export const debateTools: ArenaTool[] = [
     },
     execute: (args) => {
       const decision = resolveDecision(args.decision_id);
-      if (!decision) return toolError("There is no decision open in the Arena.");
+      if (!decision) return toolError("There is no decision open on the floor.");
 
       const title = str(args.title);
       if (!title) return toolError("A risk needs a title.");
@@ -777,7 +777,7 @@ export const debateTools: ArenaTool[] = [
     },
     execute: (args) => {
       const decision = resolveDecision(args.decision_id);
-      if (!decision) return toolError("There is no decision open in the Arena.");
+      if (!decision) return toolError("There is no decision open on the floor.");
       const text = str(args.text);
       if (!text) return toolError("A defense needs text.");
       const actor = actorFromChannel();
@@ -867,7 +867,7 @@ export const debateTools: ArenaTool[] = [
     },
     execute: (args) => {
       const decision = resolveDecision(args.decision_id);
-      if (!decision) return toolError("There is no decision open in the Arena.");
+      if (!decision) return toolError("There is no decision open on the floor.");
       const argumentId = str(args.argument_id);
       const defenseId = str(args.defense_id);
       const target = state().argumentList.find((a) => a.id === argumentId);

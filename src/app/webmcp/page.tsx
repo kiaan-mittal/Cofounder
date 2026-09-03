@@ -5,7 +5,7 @@ import { loadWorkspaceSnapshot } from "@/server/workspace";
 export const metadata: Metadata = {
   title: "WebMCP",
   description:
-    "The tools ChatGPT can call on this page, in one line each, plus the prompt to run them on IndieTerminal.",
+    "The tools ChatGPT can call on this page, in one line each. Dissent exposes its deliberation system through WebMCP.",
 };
 
 // Deliberately ungated. Anonymous visitors receive the IndieTerminal

@@ -123,12 +123,12 @@ function CanvasWorkspace({
             {decision?.question ?? company.name}
           </h1>
           <p className="mt-3 text-[15px] leading-relaxed text-graphite">
-            The map of this decision. The Arena is the loop. This is the
+            The map of this decision. The floor is the loop. This is the
             drawing.
           </p>
         </div>
         <Button asChild variant="outline" className="h-10">
-          <Link href="/arena">Open the Arena</Link>
+          <Link href="/arena">Open the floor</Link>
         </Button>
       </header>
 

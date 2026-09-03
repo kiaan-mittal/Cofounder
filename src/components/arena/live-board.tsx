@@ -116,7 +116,7 @@ export function LiveBoard({
       <header className="sticky top-14 z-30 flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-rule bg-paper px-4 py-3">
         <p className="type-eyebrow mr-auto">The table</p>
         <Hand label="You" tone="indigo" />
-        <Hand label="Arena" tone="ink" />
+        <Hand label="Floor" tone="ink" />
         <Hand label="Agent" tone="oxblood" />
         <div className="flex items-center gap-1">
           <ToolButton

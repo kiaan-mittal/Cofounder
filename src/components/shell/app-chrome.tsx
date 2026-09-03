@@ -29,7 +29,13 @@ export function AppChrome({
   useEffect(() => {
     function onNavigate(event: Event) {
       const path = (event as CustomEvent<string>).detail;
-      if (path === "/history" || path === "/calibration") {
+      if (
+        path === "/history" ||
+        path === "/calibration" ||
+        path === "/brain" ||
+        path === "/webmcp" ||
+        path === "/arena"
+      ) {
         router.push(path);
       }
     }

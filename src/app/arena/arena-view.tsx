@@ -337,7 +337,7 @@ function DecisionStart({
             onSubmit={start}
             action="#"
             toolname="draft_decision"
-            tooldescription="Writes a decision into the founder's composer on the Arena page and leaves it for them to open. The agent fills the form; the founder presses Open the round. To seat the five perspectives directly instead, call stress_test_decision."
+            tooldescription="Writes a decision into the founder's composer on the floor and leaves it for them to open. The guest fills the form; the founder presses Open the round. To seat the five dissenters directly instead, call stress_test_decision."
             className="shrink-0 border-t border-rule bg-paper px-4 py-2.5"
           >
             <label htmlFor="question" className="sr-only">

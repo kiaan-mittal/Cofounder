@@ -10,7 +10,7 @@ import { founderCall } from "@/webmcp/run";
 const STEPS = [
   { id: "brain", label: "Brain", href: "/brain" },
   { id: "decision", label: "Decision" },
-  { id: "arena", label: "Arena" },
+  { id: "arena", label: "Floor" },
   { id: "commit", label: "Commit" },
   { id: "predict", label: "Prediction" },
   { id: "outcome", label: "Outcome", href: "/history" },
@@ -86,7 +86,7 @@ export function SharedState({
   return (
     <section className="min-w-0 overflow-hidden border border-rule">
       <header className="flex items-baseline justify-between gap-3 border-b border-rule bg-paper px-4 py-1.5">
-        <p className="type-eyebrow">Shared arena state</p>
+        <p className="type-eyebrow">Shared floor state</p>
         <p className="min-w-0 truncate text-[13px] text-graphite">
           Risks, contradictions, evidence, and what is still unpaid.
         </p>

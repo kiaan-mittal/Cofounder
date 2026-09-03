@@ -3,7 +3,7 @@
  *
  * Mirrors the W3C Web Machine Learning CG explainer for `document.modelContext`
  * (registerTool / getTools / executeTool / toolchange). Nothing here is
- * Decision Arena specific; it is only the shape of the platform API so the
+ * Dissent specific; it is only the shape of the platform API so the
  * rest of the app can be written against the real standard.
  *
  * https://github.com/webmachinelearning/webmcp

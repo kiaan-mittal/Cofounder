@@ -26,8 +26,8 @@ export function NewArenaButton({ className }: { className?: string }) {
     <button
       type="button"
       onClick={start}
-      title="New arena"
-      aria-label="New arena"
+      title="New decision"
+      aria-label="New decision"
       className={cn(
         "inline-flex h-8 shrink-0 items-center gap-1.5 bg-ink px-2.5 text-[12px] text-paper transition-colors hover:bg-ink/90",
         className,
@@ -36,7 +36,7 @@ export function NewArenaButton({ className }: { className?: string }) {
       <span aria-hidden className="type-figure text-[15px] leading-none">
         +
       </span>
-      <span className="hidden sm:inline">New arena</span>
+      <span className="hidden sm:inline">New decision</span>
     </button>
   );
 }

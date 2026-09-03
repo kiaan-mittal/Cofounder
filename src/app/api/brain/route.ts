@@ -20,7 +20,7 @@ export async function POST(request: Request) {
 
     if (!input.website.trim() && !input.github.trim()) {
       return fail(
-        "Give the Arena at least one source to read: a website or a repository.",
+        "Give Dissent at least one source to read: a website or a repository.",
       );
     }
 
