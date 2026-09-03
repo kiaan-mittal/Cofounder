@@ -54,6 +54,9 @@ export function SeatClaim({
     </>
   );
 
+  const body = argument.reasoning.trim();
+  const showBody = body && body !== argument.claim.trim();
+
   return (
     <article
       className={cn(
@@ -74,6 +77,12 @@ export function SeatClaim({
       ) : (
         <div className="flex w-full min-w-0 items-start gap-3">{head}</div>
       )}
+
+      {showBody ? (
+        <p className="mt-3 whitespace-pre-wrap text-[14.5px] leading-[1.65] text-ink [overflow-wrap:anywhere]">
+          {body}
+        </p>
+      ) : null}
 
       <HatchMeter
         value={argument.strength}

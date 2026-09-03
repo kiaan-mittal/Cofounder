@@ -50,7 +50,9 @@ const argumentSchema = z.object({
   claim: z.string().describe("One sentence. The assertion itself, stated flatly."),
   reasoning: z
     .string()
-    .describe("One sentence of evidence. Not an essay."),
+    .describe(
+      "Two to four sentences of specific support drawn from this company's context. This is the argument the founder reads.",
+    ),
   basis: z.array(basisSchema),
   strength: z
     .number()
@@ -301,8 +303,8 @@ Seat rules:
 If the founder is asking to spend money or launch, this seat's claim should make them uncomfortable unless the dossier already proves the bet.
 
 Speak only from this remit. Cite fact and assumption ids in basis when you have them.
-The card is structured: stance, strength 0-100, one-sentence claim, one-sentence evidence, riskLevel, reversibility. No essay.`,
-      prompt: `${shared}\n\nWrite the ${meta?.name ?? perspective} argument. One claim, one sentence of evidence, riskLevel and reversibility (low/medium/high), and at least one basis entry. Stance must be for, against, or conditional — pick one and carry it.`,
+Keep the card structured: stance, strength 0-100, one-sentence claim, riskLevel, reversibility. Then write two to four sentences of reasoning the founder can actually read. Do not collapse the argument into a caption.`,
+      prompt: `${shared}\n\nWrite the ${meta?.name ?? perspective} argument. One claim, two to four sentences of reasoning, riskLevel and reversibility (low/medium/high), and at least one basis entry. Stance must be for, against, or conditional — pick one and carry it.`,
       purpose: `Writing the ${meta?.name ?? perspective} argument`,
       models: fastModels(),
       timeoutMs: 35_000,
