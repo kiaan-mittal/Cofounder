@@ -20,16 +20,6 @@ import { readGithubSession } from "@/server/github-oauth";
 import { pathAfterLogin } from "@/server/login-path";
 import { WEBMCP_CHALLENGE_EXAMPLE } from "@/webmcp/challenge-example";
 
-const STEP_WASH = ["bg-indigo-wash", "bg-ochre-wash", "bg-moss-wash"] as const;
-const CALL_WASH = [
-  "bg-indigo-wash",
-  "bg-oxblood-wash",
-  "bg-moss-wash",
-  "bg-ochre-wash",
-  "bg-indigo-wash",
-  "bg-moss-wash",
-  "bg-ochre-wash",
-] as const;
 
 const REGISTER_SNIPPET = `${WEBMCP_CHALLENGE_EXAMPLE}
 
@@ -105,20 +95,8 @@ export default async function LandingPage() {
           </div>
         </div>
 
-        <div className="relative overflow-hidden border border-rule bg-paper px-5 py-5 sm:px-7 sm:py-6">
-          <div
-            aria-hidden
-            className="pointer-events-none absolute -left-10 -top-12 size-44 rounded-full bg-indigo-wash"
-          />
-          <div
-            aria-hidden
-            className="pointer-events-none absolute -right-8 top-10 size-36 rounded-full bg-ochre-wash"
-          />
-          <div
-            aria-hidden
-            className="pointer-events-none absolute bottom-6 left-1/3 size-28 rounded-full bg-moss-wash"
-          />
-          <div className="relative">
+        <div className="border border-rule bg-paper px-5 py-5 sm:px-7 sm:py-6">
+          <div>
             <SecondChair className="mx-auto max-w-[420px]" />
             <div className="mt-6 border-t border-rule pt-4">
               <p className="type-eyebrow text-indigo">Loaded example</p>
@@ -169,8 +147,8 @@ export default async function LandingPage() {
       <section className="border-t border-rule py-14">
         <p className="type-eyebrow">How to try it</p>
         <ol className="mt-8 grid gap-5 lg:grid-cols-3">
-          {JUDGE_STEPS.map((step, index) => (
-            <li key={step.n} className={`border border-rule px-5 py-5 ${STEP_WASH[index]}`}>
+          {JUDGE_STEPS.map((step) => (
+            <li key={step.n} className="border border-rule bg-paper px-5 py-5">
               <span className="type-figure text-[13px] text-pencil">
                 {step.n}
               </span>
@@ -194,8 +172,8 @@ export default async function LandingPage() {
       <section className="border-t border-rule py-14">
         <p className="type-eyebrow">What you will see</p>
         <ul className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {JUDGE_CALLS.map((item, index) => (
-            <li key={item.tool} className={`border border-rule p-6 ${CALL_WASH[index]}`}>
+          {JUDGE_CALLS.map((item) => (
+            <li key={item.tool} className="border border-rule bg-paper p-6">
               <code className="type-figure text-[14px] text-ink">
                 {item.tool}
               </code>

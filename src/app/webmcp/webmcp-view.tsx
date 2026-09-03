@@ -135,7 +135,7 @@ export function WebMCPView({
       {ready && support !== "native" ? (
         <p className="mt-6 max-w-[62ch] border border-rule bg-ochre-wash px-4 py-3 text-[15px] leading-relaxed text-ink">
           This tab is not native WebMCP. Open{" "}
-          <span className="type-figure">decisionarena.vercel.app</span> in
+          <span className="type-figure">trydissent.vercel.app</span> in
           ChatGPT desktop Sol or Terra with site tools on — or Chrome 149+
           with{" "}
           <span className="type-figure">chrome://flags/#enable-webmcp-testing</span>

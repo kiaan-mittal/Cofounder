@@ -2,7 +2,7 @@
 
 Make your decision defend itself.
 
-Live demo: https://decisionarena.vercel.app
+Live demo: https://trydissent.vercel.app
 No account. Open IndieTerminal. Paste the prompt on the home page into ChatGPT desktop (Sol or Terra, site tools on).
 
 ## What it does
@@ -142,7 +142,7 @@ Every model call is schema-constrained. Founder clicks, dissenters, and browser 
 
 Do not sign in. Do not use a Vercel preview URL. Do not use `/arena?demo=1` (that is a fake company named Kettle).
 
-1. Open https://decisionarena.vercel.app
+1. Open https://trydissent.vercel.app
 2. Click Open IndieTerminal. Header should read `Public floor · IndieTerminal`.
 3. Copy the prompt on the home page. One paste. Nothing else.
 4. Paste it into ChatGPT desktop, Sol or Terra, site tools on, with this URL open in the in-app browser.

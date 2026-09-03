@@ -12,47 +12,19 @@ export const JUDGE_COMPANY = "IndieTerminal";
 export const JUDGE_DECISION =
   "Should /research and /scan run without a Clerk session?";
 
-export const JUDGE_ORIGIN = "https://decisionarena.vercel.app";
+export const JUDGE_ORIGIN = "https://trydissent.vercel.app";
 
 /**
  * The only line a judge copies into ChatGPT.
  */
-export const JUDGE_PROMPT = `Open ${JUDGE_ORIGIN}/arena in this chat's browser (Sol or Terra, site tools on). Do not sign in. Do not use the in-page composer.
-
-IndieTerminal is already loaded. The live question is the heading. Call these tools in order. Keep every reply short. Do not write an essay.
-
-1. stress_test_decision with question: "${JUDGE_DECISION}"
-   Wait until five dissenters have written on the page (about 30 seconds). Weigh it up should show a verdict.
-   Then, in this chat, list each dissenter in one line: seat, FOR or AGAINST, their claim. That recap should land as soon as the seats finish. Do not stall.
-
-2. get_current_decision
-   Read the structured claims and the verdict. Then a short analysis only: who is strongest, what evidence is thin, what would flip it, what the next move is. Under 8 lines.
-
-3. confirm_commit
-   This needs founder confirmation — human-in-the-loop. ChatGPT proposes; the founder commits. One sentence.
-
-4. share_decision with destination "link"
-   Return the public /share URL.
-
-5. get_company_brain
-   The Brain page opens. One sentence on what IndieTerminal is.
-
-6. get_decision_history
-   History opens.
-
-7. get_founder_track_record
-   Calibration opens.
-
-Then click WebMCP in the header. Confirm 17 tools and that the call log matches what you just did. Then click Floor.
-
-If getTools() is empty, stay on /arena with site tools on and try again.`;
+export const JUDGE_PROMPT = `Open Dissent and stress-test whether /research and /scan should run without a Clerk session. Read the resulting verdict, propose the strongest next move, and let me retain final authority over the commitment.`;
 
 export const JUDGE_STEPS = [
   {
     n: "01",
     title: "Open Dissent",
     detail:
-      "Go to decisionarena.vercel.app. Click Open IndieTerminal. Do not sign in. The live question is already the heading. The dissenters have not written yet.",
+      "Go to trydissent.vercel.app. Click Open IndieTerminal. Do not sign in. The live question is already the heading. The dissenters have not written yet.",
   },
   {
     n: "02",
