@@ -49,13 +49,13 @@ export const metadata: Metadata = {
     siteName: "Dissent",
     title: "Dissent. Make your decision defend itself",
     description:
-      "Five dissenters argue your decision on a table a guest can write on but cannot close. Built on WebMCP.",
+      "Five dissenters argue your decision. ChatGPT joins through WebMCP. You confirm the commit.",
   },
   twitter: {
     card: "summary_large_image",
     title: "Dissent. Make your decision defend itself",
     description:
-      "Five dissenters argue your decision on a table a guest can write on but cannot close. Built on WebMCP.",
+      "Five dissenters argue your decision. ChatGPT joins through WebMCP. You confirm the commit.",
   },
 };
 

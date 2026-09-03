@@ -53,7 +53,7 @@ export default function OpenGraphImage() {
             Make your decision defend itself.
           </div>
           <div style={{ fontSize: 28, color: "#6B645C", lineHeight: 1.35 }}>
-            Five dissenters write on the table. Guests cannot press commit.
+            Five dissenters write on the table. ChatGPT joins. You confirm.
           </div>
         </div>
       </div>

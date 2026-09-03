@@ -19,7 +19,7 @@ import { founderCall, runTool } from "@/webmcp/run";
 
 /**
  * The matrix after seats have written. Deadlock is a first-class result.
- * Accept / hold / reject stay with the founder — agents cannot press these.
+ * Accept / hold / reject stay with the founder — human-in-the-loop.
  */
 
 export function ArenaCallDock({

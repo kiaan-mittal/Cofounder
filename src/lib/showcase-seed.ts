@@ -239,7 +239,7 @@ export const SHOWCASE_COMPANY: Company = {
       {
         id: "asm_it01",
         statement:
-          "Founders will run a startup from slash commands instead of ChatGPT plus a doc.",
+          "Founders will run a startup from slash commands instead of a chat plus a doc.",
         rationale:
           "The README is the founder's own pain. There is no count of people who have run /command besides him.",
         risk: "high",
@@ -269,9 +269,9 @@ export const SHOWCASE_COMPANY: Company = {
       {
         id: "asm_it04",
         statement:
-          "An approval queue is enough of a moat versus 'just do it in ChatGPT'.",
+          "An approval queue is enough of a moat versus posting from a chat.",
         rationale:
-          "ChatGPT will post if asked. The queue is the product. It also makes every external action slower.",
+          "A human gate on outbound posts is the product. It also makes every external action slower.",
         risk: "medium",
         status: "unverified",
         provenance: { kind: "inferred" },
@@ -471,7 +471,7 @@ const argumentList: Argument[] = [
     stance: "conditional",
     claim: "Ship /command, but stop calling it a terminal on the landing page.",
     reasoning:
-      "People who want Ghostty will bounce. People who lost a ChatGPT thread will stay. The name can wait. The object on the page cannot be a lie.",
+      "People who want Ghostty will bounce. People who lost a thread will stay. The name can wait. The object on the page cannot be a lie.",
     basis: [
       {
         type: "assumption",
@@ -538,9 +538,9 @@ const argumentList: Argument[] = [
     decisionId: "dec_it_queue",
     perspective: "product",
     stance: "for",
-    claim: "The gate is the reason to leave ChatGPT.",
+    claim: "The gate is the reason someone wants a command surface with memory.",
     reasoning:
-      "ChatGPT will post. You will not, until you tap. That is the only sentence on the site a competitor cannot copy this week.",
+      "Nothing leaves until they tap. That is the only sentence on the site a competitor cannot copy this week.",
     basis: [
       {
         type: "assumption",

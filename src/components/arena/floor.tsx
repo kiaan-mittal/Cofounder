@@ -387,7 +387,7 @@ function shareUrlFromSummary(summary: string) {
 }
 
 /**
- * One strip a judge can read without hunting: empty floor, refused commit,
+ * One strip a judge can read without hunting: empty floor, founder confirmation,
  * then the public share link.
  */
 export function FloorCue({ decision }: { decision: Decision }) {
@@ -403,7 +403,7 @@ export function FloorCue({ decision }: { decision: Decision }) {
       {refused ? (
         <p className="bg-oxblood-wash px-4 py-2 text-[14px] leading-snug text-ink">
           <span className="type-eyebrow mr-2 text-oxblood">confirm_commit</span>
-          Refused. Agents propose. You commit.
+          Needs you. ChatGPT proposed; you confirm.
         </p>
       ) : null}
       {shareUrl ? (

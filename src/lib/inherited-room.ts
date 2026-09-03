@@ -85,7 +85,7 @@ export function inheritedRoomLine(state?: ArenaState) {
     ? clip(room.decision.question, 90)
     : "none open";
   return clip(
-    `Inherited: ${room.company.name}. Open: ${question}. Blocker: ${clip(blocker, 80)}. confirm_commit is refused for agents.`,
+    `Inherited: ${room.company.name}. Open: ${question}. Blocker: ${clip(blocker, 80)}. confirm_commit waits for the founder.`,
     LINE_CAP,
   );
 }
@@ -142,17 +142,17 @@ export function describeInheritedRoom(state?: ArenaState) {
     }
     if (room.commitRefused) {
       lines.push(
-        `confirm_commit was refused (${room.commitRefusedCount}×). Agents propose. Founders commit.`,
+        `confirm_commit is waiting for the founder (${room.commitRefusedCount}×). ChatGPT proposes; the founder confirms.`,
       );
     } else {
       lines.push(
-        "confirm_commit is refused for agents. Agents propose. Founders commit.",
+        "confirm_commit waits for the founder. ChatGPT proposes; the founder confirms.",
       );
     }
   } else {
     lines.push("No decision is open. Call stress_test_decision with a real question.");
     lines.push(
-      "confirm_commit is refused for agents. Agents propose. Founders commit.",
+      "confirm_commit waits for the founder. ChatGPT proposes; the founder confirms.",
     );
   }
 

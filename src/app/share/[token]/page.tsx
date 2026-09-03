@@ -17,7 +17,7 @@ export async function generateMetadata({
   return {
     title: brief.question,
     description: brief.commitRefused
-      ? `${brief.company} · confirm_commit was refused. ${brief.deadlock ? "Deadlock" : brief.leaningLabel}`
+      ? `${brief.company} · waiting for founder confirmation. ${brief.deadlock ? "Deadlock" : brief.leaningLabel}`
       : `${brief.company} · ${brief.deadlock ? "Deadlock" : brief.leaningLabel}. What would change it: ${brief.whatWouldChangeIt}`,
   };
 }
@@ -47,11 +47,11 @@ export default async function SharePage({
       {brief.commitRefused ? (
         <p className="mt-12 border border-rule bg-oxblood-wash px-5 py-4">
           <span className="type-eyebrow text-oxblood">
-            confirm_commit was refused
+            waiting for founder confirmation
           </span>
           <span className="mt-2 block text-[15px] leading-relaxed text-ink">
-            An agent asked to finish this decision. The page said no. Agents
-            proposed. The founder commits.
+            ChatGPT asked to finish this decision. Confirm it on the floor —
+            human-in-the-loop.
           </span>
         </p>
       ) : null}
@@ -109,8 +109,8 @@ export default async function SharePage({
 
       <p className="mt-14 max-w-[52ch] text-[14px] leading-relaxed text-graphite">
         {brief.commitRefused
-          ? "This is a record, not a chat. confirm_commit was refused. Agents proposed. The founder commits."
-          : "This is a record, not a chat. Agents proposed. The founder commits."}
+          ? "This is a record, not a chat. ChatGPT proposed the commit. The founder confirms."
+          : "This is a record, not a chat. ChatGPT proposed. The founder confirms."}
       </p>
       <Link
         href="/arena"

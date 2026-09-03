@@ -13,7 +13,7 @@ Five dissenters sit down: tech, product, GTM, finance, contrarian. Each one writ
 
 You weigh that. The page scores the table, names what would flip the call, and says the next move. Then you commit, or you don't.
 
-Commit is not a vibe. It is a founder click. A guest can argue you into it. A guest cannot press it.
+Commit is a founder click — human-in-the-loop. ChatGPT can argue you into it and propose the close. You confirm it.
 
 After you commit you write a number, a unit, and a date. Later you type what actually happened. Hits, misses, and the 2x optimism you keep repeating are arithmetic, not another model talking.
 
@@ -29,9 +29,7 @@ Company Brain -> decision -> five dissenters write
 
 ## Why it matters
 
-ChatGPT can already fake five voices. That is a prompt. Close the tab and it is gone.
-
-Dissent is the record the prompt cannot keep:
+ChatGPT already reasons well. Dissent is the record that stays after the chat:
 
 - A claim you can score, not a paragraph you can scroll past.
 - Evidence and contradictions that block commit until they are dealt with.
@@ -42,18 +40,16 @@ If this looked like five LLMs arguing, you would be looking at the wrong layer. 
 
 ## How WebMCP works
 
-ChatGPT cannot use a website. It can only talk.
-
-WebMCP is how the page lets a guest sit at the table anyway.
+ChatGPT already talks. WebMCP is how it sits at this table with real tools.
 
 Dissent lists 17 tools on `document.modelContext`. The browser hands those tools to ChatGPT. ChatGPT calls them. The page writes. You watch it.
 
 That is the whole trick.
 
 Without WebMCP, this is a site you click.
-With WebMCP, an agent can seat the dissenters, read the verdict, try to commit, and get refused. Same objects you see. Same rules.
+With WebMCP, ChatGPT can seat the dissenters, read the verdict, and propose a commit. You confirm. Same objects you see. Same rules.
 
-Native means ChatGPT desktop Sol or Terra with site tools on, or Chrome 149+ with `chrome://flags/#enable-webmcp-testing`. The header says native only when that is true. Codex and free ChatGPT do not expose the API. The in-page composer is a fallback. It is not the proof.
+Native WebMCP is ChatGPT desktop Sol or Terra with site tools on, or Chrome 149+ with `chrome://flags/#enable-webmcp-testing`. The header says native when that is true. The in-page composer on `/arena` is the same 17 tools if you are not in desktop yet.
 
 The floating WebMCP badge is the log. When a tool fires, the badge opens and lists what ran, in order, in English. If you cannot tell what the agent did, look there.
 
@@ -88,7 +84,7 @@ These register on `document.modelContext`. That is what `getTools()` returns. No
 | `stress_test_decision` | Creates the floor if needed, seats five dissenters, returns the verdict. Wait for them. They take about 30 seconds. |
 | `create_prediction` | One number, a unit, a deadline. |
 | `commit_decision` | Proposes a commit. Does not commit. |
-| `confirm_commit` | Founder only. Agents are refused. |
+| `confirm_commit` | Founder confirmation. Human-in-the-loop. |
 | `share_decision` | Public /share link. Optionally Slack or Notion. |
 
 ### Outcome
@@ -140,7 +136,7 @@ One client store. The founder and the tools read the same selectors, so the view
 
 Every model call is schema-constrained. Founder clicks, dissenters, and browser guests all call `runTool` -> `document.modelContext.executeTool`. The store is not a back door.
 
-`commit_decision` stages a proposal. `confirm_commit` is refused unless a founder calls it.
+`commit_decision` stages a proposal. `confirm_commit` is the founder's confirmation.
 
 ## Demo
 
@@ -151,14 +147,14 @@ Do not sign in. Do not use a Vercel preview URL. Do not use `/arena?demo=1` (tha
 3. Copy the prompt on the home page. One paste. Nothing else.
 4. Paste it into ChatGPT desktop, Sol or Terra, site tools on, with this URL open in the in-app browser.
 5. Watch `/arena`. Five dissenters write for about 30 seconds. ChatGPT lists what they wrote, then a short analysis. The WebMCP badge lists the calls.
-6. ChatGPT calls `confirm_commit`. The page says no.
+6. ChatGPT calls `confirm_commit`. The page asks you to confirm — human-in-the-loop.
 7. Then Brain, History, Calibration, WebMCP. Same 17 tools. No new ones.
 
-Spoken line, once: ChatGPT is a guest. It seats the dissenters. The page fills. The page refuses `confirm_commit`. Then the record leaves the chat.
+Spoken line, once: ChatGPT joins as a collaborator. It seats the dissenters. The page fills. You confirm the commit. Then the record leaves the chat.
 
-Native WebMCP in Chrome 149+ with `chrome://flags/#enable-webmcp-testing`. Same `document.modelContext` slot. If the header does not say native, you are not looking at the proof.
+Native WebMCP in Chrome 149+ with `chrome://flags/#enable-webmcp-testing`. Same `document.modelContext` slot. The intended path is native (header reads native).
 
-Optional backup if ChatGPT desktop is dead: on `/arena`, use The agent tab in the composer. Same tools. Login is still not required.
+Optional: on `/arena`, use The agent tab in the composer. Same tools. Login is still not required.
 
 Optional: Watch copies `/arena?watch=…` to a second laptop. That tab cannot write.
 
