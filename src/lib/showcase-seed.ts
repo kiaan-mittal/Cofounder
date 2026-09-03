@@ -415,7 +415,7 @@ const decisions: Decision[] = [
     question:
       "Should /research and /scan run without a Clerk session, so a browser agent can operate IndieTerminal?",
     context:
-      "Every IndieTerminal command currently sits behind Clerk. You wrote that a product which needs clicks will not survive. The seats have not written yet — this is the live question.",
+      "Every IndieTerminal command currently sits behind Clerk. A product that needs clicks will not survive a browser agent.",
     options: [
       {
         id: "opt_guest",

@@ -131,11 +131,46 @@ export function adoptSnapshotIfRicher(
   applySnapshot(snapshot as PersistedSnapshot);
 }
 
+function writeGuestSnapshot(snapshot: WorkspaceSnapshot) {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.setItem(
+      "arena:guest-workspace",
+      JSON.stringify(snapshot),
+    );
+  } catch {
+    /* quota */
+  }
+}
+
+export function readGuestSnapshot(): WorkspaceSnapshot | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.sessionStorage.getItem("arena:guest-workspace");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as WorkspaceSnapshot;
+    if (!parsed?.company) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+export function rememberGuestWorkspace() {
+  const snapshot = getWorkspaceSnapshot();
+  if (isEphemeralSnapshot(snapshot) && snapshot.company) {
+    writeGuestSnapshot(snapshot);
+  }
+}
+
 export async function flushWorkspaceSave(draft?: OnboardingDraft) {
   if (typeof window === "undefined") return;
   window.clearTimeout(saveTimer);
   const snapshot = getWorkspaceSnapshot();
-  if (isEphemeralSnapshot(snapshot)) return;
+  if (isEphemeralSnapshot(snapshot)) {
+    rememberGuestWorkspace();
+    return;
+  }
   await request("PUT", {
     draft: draft ?? readOnboardingDraft(),
     snapshot: {

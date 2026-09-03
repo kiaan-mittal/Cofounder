@@ -121,10 +121,14 @@ export function decisionSnapshot(state: ArenaState, decisionId: string) {
       perspective: a.perspective,
       perspectiveName: PERSPECTIVE_MAP[a.perspective]?.name ?? a.perspective,
       seat: perspectiveSeat(a.perspective),
+      position: a.stance,
       stance: a.stance,
       claim: a.claim,
+      evidence: a.basis[0]?.label ?? null,
       reasoning: a.reasoning,
       strength: a.strength,
+      risk: a.riskLevel ?? "medium",
+      reversibility: a.reversibility ?? "medium",
       status: a.status,
       basis: a.basis,
       round: a.round,
@@ -203,6 +207,10 @@ export function decisionSnapshot(state: ArenaState, decisionId: string) {
       status: p.status,
       actualValue: p.actualValue ?? null,
     })),
+    nextMove: decision.nextMove ?? null,
+    nextMoveSteps: decision.nextMoveSteps ?? [],
+    flipConditions: decision.flipConditions ?? [],
+    verdictWhy: decision.verdictWhy ?? null,
   };
 }
 
@@ -234,8 +242,12 @@ export function decisionHistory(state: ArenaState, includeRecord = false) {
           id: a.id,
           seat: perspectiveSeat(a.perspective),
           perspective: a.perspective,
+          position: a.stance,
           stance: a.stance,
           claim: a.claim,
+          strength: a.strength,
+          risk: a.riskLevel ?? "medium",
+          reversibility: a.reversibility ?? "medium",
         })),
       },
       outcome: outcome

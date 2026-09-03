@@ -21,7 +21,14 @@ import { pathAfterLogin } from "@/server/login-path";
 import { WEBMCP_CHALLENGE_EXAMPLE } from "@/webmcp/challenge-example";
 
 const STEP_WASH = ["bg-indigo-wash", "bg-ochre-wash", "bg-moss-wash"] as const;
-const CALL_WASH = ["bg-indigo-wash", "bg-oxblood-wash", "bg-moss-wash"] as const;
+const CALL_WASH = [
+  "bg-indigo-wash",
+  "bg-oxblood-wash",
+  "bg-moss-wash",
+  "bg-ochre-wash",
+  "bg-indigo-wash",
+  "bg-moss-wash",
+] as const;
 
 const REGISTER_SNIPPET = `${WEBMCP_CHALLENGE_EXAMPLE}
 
@@ -131,11 +138,13 @@ export default async function LandingPage() {
             </h2>
             <p className="mt-5 max-w-[52ch] text-[17px] leading-relaxed text-graphite">
               Open the Arena and IndieTerminal is already on the floor — a
-              real product, a live question, empty chairs, no sign-in. Paste
-              the prompt once into ChatGPT in Sol or Terra. Native tools
-              appear. Five seats write. When the agent tries to commit, the
-              page says no. Then you get a public link. The in-page composer
-              is a fallback — it is not the proof.
+              real product, a live question as the heading, empty chairs, no
+              sign-in. Paste the prompt once into ChatGPT in Sol or Terra.
+              Native tools appear. ChatGPT creates the arena, five seats write
+              structured claims, and Weigh it up lands a verdict. When the
+              agent tries to commit, the page says no. Then History, then
+              Calibration. The in-page composer is a fallback — it is not the
+              proof.
             </p>
             <p className="mt-4 max-w-[52ch] text-[17px] leading-relaxed text-graphite">
               The Company Brain is the map underneath: users, code, product,
@@ -180,7 +189,7 @@ export default async function LandingPage() {
 
       <section className="border-t border-rule py-14">
         <p className="type-eyebrow">What you will see</p>
-        <ul className="mt-8 grid gap-5 sm:grid-cols-3">
+        <ul className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {JUDGE_CALLS.map((item, index) => (
             <li key={item.tool} className={`border border-rule p-6 ${CALL_WASH[index]}`}>
               <code className="type-figure text-[14px] text-ink">

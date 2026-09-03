@@ -20,9 +20,6 @@ import { founderCall, runTool } from "@/webmcp/run";
 /**
  * The matrix after seats have written. Deadlock is a first-class result.
  * Accept / hold / reject stay with the founder — agents cannot press these.
- *
- * Lives as a one-line dock so the board keeps the page. The full call
- * opens over the floor, it does not take another permanent strip.
  */
 
 export function ArenaCallDock({
@@ -47,6 +44,7 @@ export function ArenaCallDock({
   reassessments?: Reassessment[];
 }) {
   const decisionId = decision.id;
+  const seats = args.filter((item) => !item.challengesId).length;
   const [open, setOpen] = useState(false);
   const panelId = useId();
   const live = useArena((state) =>
@@ -87,6 +85,10 @@ export function ArenaCallDock({
   }, [decisionId]);
 
   useEffect(() => {
+    if (seats >= 5) setOpen(true);
+  }, [seats]);
+
+  useEffect(() => {
     if (!open) return;
     function onKey(event: KeyboardEvent) {
       if (event.key === "Escape") setOpen(false);
@@ -94,14 +96,6 @@ export function ArenaCallDock({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
-
-  const headline = call
-    ? call.deadlock
-      ? "The seats will not give you a clean call."
-      : call.leaningLabel
-    : committed
-      ? "This round is on the record."
-      : "Weigh the seats when you have read them.";
 
   function setFounderConfidence(value: number) {
     updateDecision(decisionId, { founderConfidence: value });
@@ -124,53 +118,82 @@ export function ArenaCallDock({
       {open && call ? (
         <section
           id={panelId}
-          className="absolute bottom-full left-0 right-0 max-h-[min(48vh,26rem)] overflow-y-auto border-t border-rule bg-leaf px-4 py-4 shadow-[0_-12px_32px_rgba(28,24,20,0.08)]"
+          className="absolute bottom-full left-0 right-0 max-h-[min(62vh,34rem)] overflow-y-auto border-t border-rule bg-leaf px-4 py-4 shadow-[0_-12px_32px_rgba(28,24,20,0.08)]"
         >
-          {call.deadlock ? (
-            <p className="type-eyebrow text-oxblood">Arena deadlock</p>
-          ) : (
-            <p className="type-eyebrow">Weigh it up</p>
-          )}
-          <p className="type-display mt-1.5 text-[20px] font-semibold leading-tight">
-            {headline}
-            <span className="ml-2 type-figure text-[13px] font-normal text-graphite">
-              {call.arenaConfidence}% arena
-            </span>
-          </p>
-          {call.deadlock && call.deadlockNote ? (
-            <p className="mt-2 max-w-[62ch] text-[14px] leading-relaxed text-ink">
-              {call.deadlockNote}
+          <div className="flex flex-wrap items-baseline justify-between gap-3">
+            <div>
+              <p className="type-eyebrow">
+                {call.deadlock ? "Arena deadlock" : "Arena verdict"}
+              </p>
+              <p className="type-display mt-1 text-[22px] font-semibold leading-tight">
+                {call.verdictLabel}
+              </p>
+            </div>
+            <p className="type-figure text-[28px] leading-none text-ink">
+              {call.arenaConfidence}
+              <span className="ml-1 type-eyebrow text-graphite">%</span>
             </p>
-          ) : null}
+          </div>
 
-          <dl className="mt-3 grid gap-3 sm:grid-cols-2">
-            <div>
-              <dt className="type-eyebrow text-moss">Strongest for</dt>
-              <dd className="mt-1 text-[14px] leading-snug text-ink">
-                {call.strongestFor
-                  ? `${call.strongestFor.seat} — ${call.strongestFor.claim}`
-                  : "No seat argued to act."}
-              </dd>
-            </div>
-            <div>
-              <dt className="type-eyebrow text-oxblood">Strongest against</dt>
-              <dd className="mt-1 text-[14px] leading-snug text-ink">
-                {call.strongestAgainst
-                  ? `${call.strongestAgainst.seat} — ${call.strongestAgainst.claim}`
-                  : "No seat argued to wait."}
-              </dd>
-            </div>
+          <div className="mt-3 flex items-baseline justify-between">
+            <p className="type-eyebrow text-indigo">For {call.forPct}</p>
+            <p className="type-eyebrow text-oxblood">Against {call.againstPct}</p>
+          </div>
+          <div className="mt-1.5 flex h-2 overflow-hidden border border-rule bg-paper">
+            <span
+              className="h-full bg-indigo"
+              style={{ width: `${call.forPct}%` }}
+            />
+            <span
+              className="h-full bg-oxblood"
+              style={{ width: `${call.againstPct}%` }}
+            />
+          </div>
+
+          <p className="mt-3 max-w-[62ch] text-[14px] leading-relaxed text-ink">
+            {call.why}
+          </p>
+
+          <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-5">
+            <Score label="Evidence" value={call.scores.evidence} />
+            <Score label="Confidence" value={call.scores.confidence} />
+            <Score label="Risk" value={call.scores.risk} tone="oxblood" />
+            <Score label="Undo" value={call.scores.reversibility} />
+            <Score label="Upside" value={call.scores.upside} />
           </dl>
 
-          <p className="mt-3 text-[13.5px] leading-relaxed text-graphite">
-            What would change it: {call.whatWouldChangeIt}
-            {call.contradictionsOpen
-              ? ` · ${call.contradictionsOpen} contradiction${call.contradictionsOpen === 1 ? "" : "s"} open`
-              : ""}
-            {call.evidenceOutstanding.length
-              ? ` · ${call.evidenceOutstanding.length} evidence still out`
-              : ""}
-          </p>
+          {call.flipConditions.length ? (
+            <div className="mt-5">
+              <p className="type-eyebrow">Would flip if</p>
+              <ul className="mt-2 space-y-1.5">
+                {call.flipConditions.map((item) => (
+                  <li
+                    key={item}
+                    className="flex gap-2 text-[13.5px] leading-snug text-ink"
+                  >
+                    <span className="type-figure text-moss">✓</span>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          {call.nextMove ? (
+            <div className="mt-5 border-t border-rule pt-4">
+              <p className="type-eyebrow">Next move</p>
+              <p className="type-display mt-1 text-[18px] font-semibold leading-snug">
+                {call.nextMove}
+              </p>
+              {call.nextMoveSteps.length ? (
+                <ol className="mt-2 list-decimal space-y-1 pl-5 text-[13.5px] leading-snug text-ink">
+                  {call.nextMoveSteps.map((step) => (
+                    <li key={step}>{step}</li>
+                  ))}
+                </ol>
+              ) : null}
+            </div>
+          ) : null}
 
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <div>
@@ -199,7 +222,7 @@ export function ArenaCallDock({
             </div>
             <div>
               <p className="type-eyebrow flex items-baseline justify-between">
-                <span className="text-oxblood">The Arena&rsquo;s confidence</span>
+                <span className="text-oxblood">Arena confidence</span>
                 <span className="type-figure text-ink">
                   {current.agentConfidence}
                 </span>
@@ -218,12 +241,15 @@ export function ArenaCallDock({
         <div className="min-w-0 flex-1">
           <p className="truncate text-[13.5px] leading-snug text-ink">
             <span className="type-eyebrow mr-2 text-graphite">
-              {call?.deadlock ? "Deadlock" : "Weigh it up"}
+              Weigh it up
               {call
-                ? ` · ${call.arenaConfidence}% · you ${current.founderConfidence}`
+                ? ` · ${call.arenaConfidence}% · for ${call.forPct} / against ${call.againstPct}`
                 : ` · you ${current.founderConfidence} · arena ${current.agentConfidence}`}
             </span>
-            {headline}
+            {call?.verdictLabel ??
+              (committed
+                ? "This round is on the record."
+                : "Weigh the seats when you have read them.")}
           </p>
         </div>
 
@@ -237,7 +263,7 @@ export function ArenaCallDock({
               aria-controls={panelId}
               onClick={() => setOpen((current) => !current)}
             >
-              {open ? "Hide" : "Details"}
+              {open ? "Hide" : "Verdict"}
             </Button>
           ) : null}
 
@@ -245,51 +271,32 @@ export function ArenaCallDock({
             <Button asChild variant="outline" className="h-8 px-3 text-[13px]">
               <Link href="/history">Open the record</Link>
             </Button>
-          ) : call ? (
+          ) : (
             <>
               <Button
                 type="button"
                 className="h-8 px-3 text-[13px]"
+                disabled={weighDisabled}
                 onClick={onCommit}
               >
-                Weigh it up
+                {call ? "Commit decision" : "Weigh it up"}
               </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="h-8 px-3 text-[13px]"
-                onClick={() =>
-                  founderCall("set_decision_status", {
-                    status: "investigating",
-                    decision_id: decisionId,
-                  })
-                }
-              >
-                Hold
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="h-8 px-3 text-[13px]"
-                onClick={() =>
-                  founderCall("set_decision_status", {
-                    status: "abandoned",
-                    decision_id: decisionId,
-                  })
-                }
-              >
-                Reject
-              </Button>
+              {call ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-8 px-3 text-[13px]"
+                  onClick={() =>
+                    founderCall("set_decision_status", {
+                      status: "investigating",
+                      decision_id: decisionId,
+                    })
+                  }
+                >
+                  Hold
+                </Button>
+              ) : null}
             </>
-          ) : (
-            <Button
-              type="button"
-              className="h-8 px-3 text-[13px]"
-              disabled={weighDisabled}
-              onClick={onCommit}
-            >
-              Weigh it up
-            </Button>
           )}
         </div>
       </div>
@@ -298,6 +305,33 @@ export function ArenaCallDock({
 }
 
 export { ArenaCallDock as ArenaVerdict };
+
+function Score({
+  label,
+  value,
+  tone = "ink",
+}: {
+  label: string;
+  value: number;
+  tone?: "ink" | "oxblood";
+}) {
+  return (
+    <div>
+      <dt className="type-eyebrow flex items-baseline justify-between">
+        <span>{label}</span>
+        <span className="type-figure text-ink">{value}</span>
+      </dt>
+      <dd>
+        <HatchMeter
+          value={value}
+          tone={tone}
+          strokes={10}
+          className="mt-1"
+        />
+      </dd>
+    </div>
+  );
+}
 
 function withVisibleRecord(
   state: ArenaState,

@@ -50,13 +50,19 @@ const argumentSchema = z.object({
   claim: z.string().describe("One sentence. The assertion itself, stated flatly."),
   reasoning: z
     .string()
-    .describe("Two to four sentences of specific support drawn from this company's context."),
+    .describe("One sentence of evidence. Not an essay."),
   basis: z.array(basisSchema),
   strength: z
     .number()
     .min(0)
     .max(100)
     .describe("How much weight this argument deserves given the evidence behind it."),
+  riskLevel: z
+    .enum(["low", "medium", "high"])
+    .describe("Residual risk if this seat is right."),
+  reversibility: z
+    .enum(["low", "medium", "high"])
+    .describe("How easy it is to undo the implied move."),
 });
 
 const riskSchema = z.object({
@@ -94,6 +100,20 @@ const openingFrameSchema = z.object({
   evidenceRequests: z
     .array(z.string())
     .describe("Specific things the founder could check that would settle a disagreement."),
+  verdictWhy: z
+    .string()
+    .describe("One or two sentences: why the Arena leans this way."),
+  flipConditions: z
+    .array(z.string())
+    .describe(
+      "Three or four checks that would reverse the current leaning. Phrase each as something that could become true.",
+    ),
+  nextMove: z
+    .string()
+    .describe("The cheapest honest next move, one line."),
+  nextMoveSteps: z
+    .array(z.string())
+    .describe("Three to five ordered steps under that next move."),
 });
 
 const openingSchema = openingFrameSchema.extend({
@@ -221,8 +241,10 @@ async function generateOpeningFrame(
 
 You are framing the opening of a Decision Arena session. Name the real mutually exclusive options, the material risks, any contradiction you can actually support, and the specific checks that would settle the disagreement. Do not write the five specialist arguments.
 
-Set arenaConfidence honestly. If the founder's instinct looks right, say so with a high number and still name the costs.`,
-      prompt: `${shared}\n\nFrame the round. Two or three options. Two to four risks. At most two contradictions.`,
+Set arenaConfidence honestly. If the founder's instinct looks right, say so with a high number and still name the costs.
+
+Also return: a one-line verdict why, three or four flip conditions (what would reverse the call), one nextMove, and three to five nextMoveSteps. Signal, not essays.`,
+      prompt: `${shared}\n\nFrame the round. Two or three options. Two to four risks. At most two contradictions. Name the flip conditions and the next move.`,
       purpose: "Framing the Arena round",
       models: fastModels(),
       timeoutMs: 35_000,
@@ -236,6 +258,16 @@ Set arenaConfidence honestly. If the founder's instinct looks right, say so with
       risks: (raw.risks.length > 0 ? raw.risks : fallback.risks).slice(0, 4),
       contradictions: raw.contradictions.slice(0, 2),
       evidenceRequests: raw.evidenceRequests.slice(0, 3),
+      verdictWhy: raw.verdictWhy || fallback.verdictWhy,
+      flipConditions: (raw.flipConditions.length
+        ? raw.flipConditions
+        : fallback.flipConditions
+      ).slice(0, 4),
+      nextMove: raw.nextMove || fallback.nextMove,
+      nextMoveSteps: (raw.nextMoveSteps.length
+        ? raw.nextMoveSteps
+        : fallback.nextMoveSteps
+      ).slice(0, 5),
     };
   } catch {
     return fallbackFrame(context);
@@ -268,8 +300,9 @@ Seat rules:
 
 If the founder is asking to spend money or launch, this seat's claim should make them uncomfortable unless the dossier already proves the bet.
 
-Speak only from this remit. Cite fact and assumption ids in basis when you have them.`,
-      prompt: `${shared}\n\nWrite the ${meta?.name ?? perspective} argument. One claim, two to four sentences of reasoning, and at least one basis entry. Stance must be for, against, or conditional — pick one and carry it.`,
+Speak only from this remit. Cite fact and assumption ids in basis when you have them.
+The card is structured: stance, strength 0-100, one-sentence claim, one-sentence evidence, riskLevel, reversibility. No essay.`,
+      prompt: `${shared}\n\nWrite the ${meta?.name ?? perspective} argument. One claim, one sentence of evidence, riskLevel and reversibility (low/medium/high), and at least one basis entry. Stance must be for, against, or conditional — pick one and carry it.`,
       purpose: `Writing the ${meta?.name ?? perspective} argument`,
       models: fastModels(),
       timeoutMs: 35_000,
@@ -295,6 +328,20 @@ function asNumber(value: unknown, fallback: number, min: number, max: number): n
   const n = typeof value === "number" ? value : Number(value);
   if (!Number.isFinite(n)) return fallback;
   return Math.min(max, Math.max(min, n));
+}
+
+function asLevel(value: unknown): "low" | "medium" | "high" {
+  const v = String(value ?? "").toLowerCase();
+  if (v === "low" || v === "high") return v;
+  return "medium";
+}
+
+function asStringList(value: unknown, cap: number): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => asString(item))
+    .filter(Boolean)
+    .slice(0, cap);
 }
 
 function normalizeArgument(
@@ -334,6 +381,8 @@ function normalizeArgument(
         ? basis
         : [{ type: "inference", label: "No Brain id was attached." }],
     strength: asNumber(record.strength, 50, 0, 100),
+    riskLevel: asLevel(record.riskLevel ?? record.risk),
+    reversibility: asLevel(record.reversibility),
   };
 }
 
@@ -400,6 +449,10 @@ function normalizeOpeningFrame(value: unknown): z.infer<typeof openingFrameSchem
     )
       .map((item) => asString(item))
       .filter(Boolean),
+    verdictWhy: asString(record.verdictWhy),
+    flipConditions: asStringList(record.flipConditions, 4),
+    nextMove: asString(record.nextMove),
+    nextMoveSteps: asStringList(record.nextMoveSteps, 5),
   };
 }
 
@@ -424,6 +477,15 @@ function fallbackFrame(context: DebateContext): z.infer<typeof openingFrameSchem
     ],
     contradictions: [],
     evidenceRequests: context.brain.openQuestions.slice(0, 2),
+    verdictWhy:
+      "Hold until a cheaper test is on the table — the Brain is thinner than the decision.",
+    flipConditions: context.brain.openQuestions.slice(0, 3),
+    nextMove: "Run the cheapest test that would reverse this call.",
+    nextMoveSteps: [
+      "Name a cap the founder can live with",
+      "Instrument cost per run",
+      "Re-evaluate after 100 runs",
+    ],
   };
 }
 
@@ -455,6 +517,14 @@ function fallbackArgument(
         ? [{ type: "fact", ref: fact.id, label: fact.statement }]
         : [{ type: "inference", label: "The Brain had no checkable assumption to cite." }],
     strength: 42,
+    riskLevel:
+      perspective === "contrarian" || perspective === "financial"
+        ? "high"
+        : "medium",
+    reversibility:
+      perspective === "technical" || perspective === "product"
+        ? "high"
+        : "medium",
   };
 }
 

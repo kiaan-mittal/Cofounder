@@ -3,10 +3,11 @@
 import { arenaVerdict } from "@/lib/arena-verdict";
 import { detectPatterns, warningsForDecision } from "@/lib/calibration";
 import { inheritedRoomPayload } from "@/lib/inherited-room";
+import { openWorkspacePage } from "@/lib/open-page";
 import { calibrationSnapshot, decisionHistory, decisionSnapshot, activeDecision } from "@/lib/selectors";
 import { useArena } from "@/lib/store";
+import { currentChannel, type ArenaTool } from "@/webmcp/registry";
 import { toolError, toolResult } from "@/webmcp/spec";
-import type { ArenaTool } from "@/webmcp/registry";
 
 /**
  * Context tools — everything an agent needs to understand the workspace
@@ -128,7 +129,7 @@ export const contextTools: ArenaTool[] = [
     group: "context",
     humanLabel: "Read the open decision",
     description:
-      "Returns one decision record as the founder sees it on the floor: the question, the options, every seat opening with its claim, reasoning and basis, the founder's defenses in full, and each seat's reassessment reply. Also returns risks, evidence, contradictions, action items, predictions and what is still unpaid.",
+      "Returns one decision record as the founder sees it: the question, options, every seat as a structured claim (position, strength, claim, evidence, risk, reversibility), and the Arena verdict — FOR/AGAINST split, dimension scores (evidence, confidence, risk, reversibility, upside), flip conditions, next move, and what still blocks commit.",
     annotations: { readOnlyHint: true, untrustedContentHint: true },
     inputSchema: {
       type: "object",
@@ -163,7 +164,7 @@ export const contextTools: ArenaTool[] = [
     group: "context",
     humanLabel: "Read past decisions",
     description:
-      "Returns an index of every arena this founder has run, newest first: question, status, chosen option, predictions, outcome, and a floor summary of seat claims with defense and reply counts. Each entry carries a decision id that get_current_decision and open_saved_decision both accept.",
+      "Opens the History page, then returns an index of every arena this founder has run, newest first: question, status, chosen option, predictions, outcome, and a floor summary of seat claims. Each entry carries a decision id that get_current_decision accepts.",
     annotations: { readOnlyHint: true, untrustedContentHint: true },
     inputSchema: {
       type: "object",
@@ -193,6 +194,9 @@ export const contextTools: ArenaTool[] = [
         });
       }
       raiseHistoryAlert("get_decision_history", "history");
+      if (currentChannel() !== "founder") {
+        openWorkspacePage("/history");
+      }
       return toolResult(`${filtered.length} decisions on record.`, filtered);
     },
   },
@@ -202,7 +206,7 @@ export const contextTools: ArenaTool[] = [
     group: "context",
     humanLabel: "Read the founder's track record",
     description:
-      "Returns everything measured about how this founder estimates: their patterns, such as overestimating growth by 2.1x across five predictions; their calibration profile per domain with the sample size each score rests on; and every prediction with what was expected and what actually happened. A domain whose reliable flag is false has too few outcomes to conclude from.",
+      "Opens the Calibration page, then returns everything measured about how this founder estimates: their patterns, such as overestimating growth by 2.1x across five predictions; their calibration profile per domain with the sample size each score rests on; and every prediction with what was expected and what actually happened. A domain whose reliable flag is false has too few outcomes to conclude from.",
     annotations: { readOnlyHint: true },
     inputSchema: {
       type: "object",
@@ -249,6 +253,10 @@ export const contextTools: ArenaTool[] = [
           "calibration",
           scopedPatterns,
         );
+      }
+
+      if (currentChannel() !== "founder") {
+        openWorkspacePage("/calibration");
       }
 
       return toolResult(

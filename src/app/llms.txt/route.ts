@@ -35,15 +35,17 @@ table fill in real time.
   \`get_company_brain\` returns the full dossier when you need quotes.
   \`get_founder_track_record\` returns how this founder has historically
   mis-estimated, with sample sizes.
-- Argue as a seat. \`add_argument\` attaches a claim to one of five
-  perspectives — technical, product, go-to-market, financial, contrarian —
-  weighted by strength and grounded in a fact or assumption id.
+- Argue as a seat. \`add_argument\` attaches a structured claim to one of
+  five perspectives — position, strength, evidence, risk, reversibility —
+  grounded in a fact or assumption id.
 - Block, don't nag. A contradiction raised with \`flag_contradiction\` and
   evidence requested with \`request_evidence\` become objects that gate the
   commit. They persist after the tab closes.
 - You cannot end the decision. There is no tool that commits on the founder's
   behalf, by design. \`confirm_commit\` requires the founder's own act.
   Agents propose; founders commit.
+- After a round, \`get_decision_history\` opens History and
+  \`get_founder_track_record\` opens Calibration.
 
 ## Tool surface
 
@@ -56,8 +58,9 @@ is a map and not a contract.
   \`get_founder_track_record\`
 - **debate** (writes on the table) — \`add_argument\`, \`request_evidence\`,
   \`flag_contradiction\`, \`add_risk\`, \`add_defense\`
-- **action** — \`stress_test_decision\` seats all five perspectives on a
-  question in one call and returns the verdict. Also \`create_prediction\`,
+- **action** — \`stress_test_decision\` creates the arena, seats all five
+  perspectives as structured claims, and returns the verdict (FOR/AGAINST,
+  scores, flip conditions, next move). Also \`create_prediction\`,
   \`commit_decision\`, \`confirm_commit\`, \`share_decision\`
 - **outcome** — \`evaluate_prediction\`, \`record_outcome\`. Reality scores the
   founder's numbers and recomputes calibration.

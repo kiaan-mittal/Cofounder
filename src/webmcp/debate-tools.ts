@@ -50,6 +50,12 @@ function asPerspective(value: unknown): PerspectiveId {
     : "contrarian";
 }
 
+function asLevel(value: unknown): "low" | "medium" | "high" {
+  const v = String(value ?? "").toLowerCase();
+  if (v === "low" || v === "high") return v;
+  return "medium";
+}
+
 function str(value: unknown, fallback = ""): string {
   return typeof value === "string" && value.trim() ? value.trim() : fallback;
 }
@@ -133,7 +139,7 @@ export const debateTools: ArenaTool[] = [
     group: "debate",
     humanLabel: "Add an argument",
     description:
-      "Adds a structured argument to the shared table, attributed to one of the five Arena seats and weighted by strength. It lands as ink on the founder's board rather than as a chat reply, and can be marked as challenging an argument already there. Returns the new argument id.",
+      "Adds a structured seat claim to the shared table: position (for/against), strength 0-100, one-sentence claim, evidence, residual risk, and reversibility. It lands as a card on the founder's board rather than as a chat reply, and can be marked as challenging an argument already there. Returns the new argument id.",
     annotations: { untrustedContentHint: true },
     inputSchema: {
       type: "object",
@@ -151,7 +157,7 @@ export const debateTools: ArenaTool[] = [
         claim: { type: "string", description: "One sentence. The assertion itself." },
         reasoning: {
           type: "string",
-          description: "Two to four sentences of company-specific support.",
+          description: "One sentence of evidence. Not an essay.",
         },
         basis: {
           type: "string",
@@ -179,6 +185,16 @@ export const debateTools: ArenaTool[] = [
         strength: {
           type: "number",
           description: "How much weight the argument deserves, 0-100. Defaults to 60.",
+        },
+        risk: {
+          type: "string",
+          enum: ["low", "medium", "high"],
+          description: "Residual risk if this seat is right. Defaults to medium.",
+        },
+        reversibility: {
+          type: "string",
+          enum: ["low", "medium", "high"],
+          description: "How easy it is to undo the implied move. Defaults to medium.",
         },
         decision_id: {
           type: "string",
@@ -209,6 +225,8 @@ export const debateTools: ArenaTool[] = [
         reasoning: str(args.reasoning, claim),
         basis: parseBasis(args),
         strength: Math.max(0, Math.min(100, Math.round(num(args.strength, 60)))),
+        riskLevel: asLevel(args.risk ?? args.risk_level),
+        reversibility: asLevel(args.reversibility),
         status: "standing",
         round: decision.round,
         createdBy: actor,
@@ -228,8 +246,15 @@ export const debateTools: ArenaTool[] = [
       spotlight(argument.id);
 
       return toolResult(
-        `Wrote a ${argument.stance} argument from the ${argument.perspective} seat onto the table.`,
-        { argumentId: argument.id, claim: argument.claim },
+        `Wrote a ${argument.stance} claim from the ${argument.perspective} seat (${argument.strength}/100).`,
+        {
+          argumentId: argument.id,
+          claim: argument.claim,
+          stance: argument.stance,
+          strength: argument.strength,
+          risk: argument.riskLevel,
+          reversibility: argument.reversibility,
+        },
       );
     },
   },

@@ -172,6 +172,14 @@ export interface Decision {
   agentCommitRefusedAt?: string;
   /** How many times an agent has been refused on this decision. */
   agentCommitRefusedCount?: number;
+  /** Checks that would flip the current leaning. */
+  flipConditions?: string[];
+  /** The cheapest honest next move, one line. */
+  nextMove?: string;
+  /** Ordered steps under nextMove. */
+  nextMoveSteps?: string[];
+  /** Why the Arena leans this way, one or two sentences. */
+  verdictWhy?: string;
 }
 
 export type ArgumentStance = "for" | "against" | "conditional";
@@ -202,6 +210,10 @@ export interface Argument {
   basis: ArgumentBasis[];
   /** 0–100. How much weight the Arena currently gives this argument. */
   strength: number;
+  /** Residual risk if this seat is right. */
+  riskLevel?: "low" | "medium" | "high";
+  /** How easy it is to undo the implied move. */
+  reversibility?: "low" | "medium" | "high";
   status: ArgumentStatus;
   round: number;
   createdBy: Actor;

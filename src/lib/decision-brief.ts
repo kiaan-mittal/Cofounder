@@ -30,11 +30,17 @@ export type DecisionBrief = {
     stance: string;
     claim: string;
     reasoning: string;
+    risk: string;
+    reversibility: string;
+    strength: number;
   }>;
   contradictions: Array<{ summary: string; sideA: string; sideB: string }>;
   evidence: string[];
   risks: Array<{ title: string; detail: string }>;
   whatWouldChangeIt: string;
+  flipConditions: string[];
+  nextMove: string | null;
+  nextMoveSteps: string[];
   createdAt: string;
   /** Present when an agent called confirm_commit and was refused. */
   commitRefused?: boolean;
@@ -69,7 +75,10 @@ export function briefFromState(
       name: PERSPECTIVE_MAP[item.perspective]?.name ?? item.perspective,
       stance: item.stance,
       claim: item.claim,
-      reasoning: item.reasoning,
+      reasoning: item.basis[0]?.label ?? item.reasoning,
+      risk: item.riskLevel ?? "medium",
+      reversibility: item.reversibility ?? "medium",
+      strength: item.strength,
     })),
     contradictions: contradictionsFor(state, decisionId)
       .filter((item) => !item.resolved)
@@ -86,6 +95,9 @@ export function briefFromState(
       detail: item.detail,
     })),
     whatWouldChangeIt: verdict?.whatWouldChangeIt ?? "A number and a date.",
+    flipConditions: verdict?.flipConditions ?? [],
+    nextMove: verdict?.nextMove ?? null,
+    nextMoveSteps: verdict?.nextMoveSteps ?? [],
     createdAt: new Date().toISOString(),
     commitRefused: Boolean(decision.agentCommitRefusedAt),
     commitRefusedAt: decision.agentCommitRefusedAt,
@@ -97,7 +109,7 @@ export function briefToMarkdown(brief: DecisionBrief, shareUrl?: string): string
   const seats = brief.seats
     .map(
       (seat) =>
-        `### ${seat.seat} · ${seat.name} — ${seat.stance}\n**${seat.claim}**\n\n${seat.reasoning}`,
+        `### ${seat.seat} · ${seat.stance.toUpperCase()} · ${seat.strength}/100\n**${seat.claim}**\nEvidence: ${seat.reasoning} · Risk: ${seat.risk} · Undo: ${seat.reversibility}`,
     )
     .join("\n\n");
   const contradictions = brief.contradictions.length
@@ -129,6 +141,13 @@ export function briefToMarkdown(brief: DecisionBrief, shareUrl?: string): string
     "## Still open",
     "",
     `What would change the call: ${brief.whatWouldChangeIt}`,
+    brief.flipConditions.length
+      ? brief.flipConditions.map((item) => `- ${item}`).join("\n")
+      : "",
+    brief.nextMove ? `\n**Next move:** ${brief.nextMove}` : "",
+    brief.nextMoveSteps.length
+      ? brief.nextMoveSteps.map((step, i) => `${i + 1}. ${step}`).join("\n")
+      : "",
     "",
     "### Contradictions",
     contradictions,

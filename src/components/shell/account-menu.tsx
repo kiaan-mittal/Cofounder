@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { GithubMark } from "@/components/ink/emblems";
@@ -20,6 +21,9 @@ export function AccountMenu({
 }) {
   const [user, setUser] = useState<GithubIdentity | null>(initialUser);
   const detailsRef = useRef<HTMLDetailsElement>(null);
+  const pathname = usePathname();
+  const returnTo =
+    pathname && pathname !== "/login" ? pathname : "/arena";
 
   useEffect(() => {
     fetch("/api/status", { cache: "no-store", credentials: "same-origin" })
@@ -43,9 +47,10 @@ export function AccountMenu({
   if (!user) {
     return (
       <Link
-        href="/login"
-        className="type-eyebrow px-2 py-1.5 text-graphite transition-colors hover:text-ink"
+        href={authHref("/api/auth/github", returnTo)}
+        className="inline-flex h-8 items-center gap-2 bg-ink px-3 text-[13px] font-medium text-paper transition-colors hover:bg-ink/90"
       >
+        <GithubMark className="h-3.5 w-3.5 text-paper" />
         Sign in
       </Link>
     );
