@@ -16,13 +16,13 @@ export default async function ShareOpenGraphImage({
     ? await readDecisionShare(token)
     : null;
   const question =
-    brief?.question ?? "A decision ChatGPT can join, not own.";
+    brief?.question ?? "A decision ChatGPT can join.";
   const company = brief?.company ?? "Dissent";
   const verdict = brief
     ? brief.deadlock
       ? "Deadlock"
       : brief.leaningLabel
-    : "Guests propose. Founders commit.";
+    : "ChatGPT proposes. Founders confirm.";
   const sizeForQuestion = question.length > 90 ? 42 : question.length > 54 ? 50 : 58;
 
   return new ImageResponse(
@@ -104,8 +104,8 @@ export default async function ShareOpenGraphImage({
           }}
         >
           {brief?.commitRefused
-            ? "confirm_commit was refused"
-            : "Guests propose. Founders commit."}
+            ? "waiting for founder confirmation"
+            : "ChatGPT proposes. Founders confirm."}
         </div>
       </div>
     ),

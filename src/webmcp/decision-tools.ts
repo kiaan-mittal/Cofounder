@@ -721,7 +721,7 @@ export const decisionTools: ArenaTool[] = [
     group: "action",
     humanLabel: "Confirm a commitment",
     description:
-      "Commits a decision to one option and writes it to the permanent record, which cannot be undone. It uses the proposal staged by commit_decision when one exists, otherwise the option and rationale passed here. Only the founder's own controls can complete it; calls from any other channel are refused.",
+      "Commits a decision to one option and writes it to the permanent record, which cannot be undone. It uses the proposal staged by commit_decision when one exists, otherwise the option and rationale passed here. Only the founder's own controls complete it — human-in-the-loop. ChatGPT can propose; the founder confirms.",
     annotations: { untrustedContentHint: true },
     inputSchema: {
       type: "object",
@@ -755,7 +755,7 @@ export const decisionTools: ArenaTool[] = [
           });
         }
         return toolError(
-          "Refused. confirm_commit is the founder's click. Agents propose. Founders commit.",
+          "confirm_commit needs the founder's confirmation. ChatGPT can propose with commit_decision; the founder closes it here.",
         );
       }
       const s = state();

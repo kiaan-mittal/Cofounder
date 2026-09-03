@@ -18,9 +18,9 @@ export async function GET() {
 
 > Make your decision defend itself.
 > A founder puts a decision on the table. Five dissenters write structured
-> claims. A guest can join through WebMCP, write on the same table, and still
-> cannot commit. Dissent exposes its deliberation system to agents at
-> document.modelContext.
+> claims. ChatGPT can join through WebMCP and write on the same table.
+> The founder confirms the commit. Dissent exposes its deliberation system
+> to agents at document.modelContext.
 
 ## How an agent should work here
 
@@ -39,9 +39,9 @@ the table fill in real time.
 - Block, don't nag. A contradiction raised with \`flag_contradiction\` and
   evidence requested with \`request_evidence\` become objects that gate the
   commit. They persist after the tab closes.
-- You cannot end the decision. There is no tool that commits on the founder's
-  behalf, by design. \`confirm_commit\` requires the founder's own act.
-  Agents propose; founders commit.
+- Propose, then wait. There is no tool that commits on the founder's
+  behalf. \`commit_decision\` stages a proposal. \`confirm_commit\` is the
+  founder's confirmation — human-in-the-loop.
 - After a round, \`get_decision_history\` opens History and
   \`get_founder_track_record\` opens Calibration.
 

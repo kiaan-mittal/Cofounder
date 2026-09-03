@@ -36,7 +36,7 @@ const COPY = {
     label: "WebMCP unavailable",
     dot: "bg-pencil",
     detail:
-      "No native document.modelContext yet. If this stays empty, this tab cannot prove native WebMCP — switch to Sol, Terra, or Chrome with the flag.",
+      "No native document.modelContext yet. Open this tab in Sol, Terra, or Chrome with the WebMCP flag for native site tools.",
   },
 } as const;
 

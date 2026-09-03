@@ -41,7 +41,7 @@ document.modelContext.registerTool({
     properties: { question: { type: "string" } },
   },
   execute: async (input) => {
-    /* the page writes; only the founder can commit */
+    /* the page writes; the founder confirms the commit */
   },
 });`;
 
@@ -87,7 +87,7 @@ export default async function LandingPage() {
               document.modelContext
             </code>
             . Open this URL in ChatGPT desktop Sol or Terra with site tools on.
-            Only you can close it.
+            You confirm the commit.
           </p>
           <div className="mt-10 flex flex-wrap items-baseline gap-x-6 gap-y-3">
             <Link
@@ -145,10 +145,10 @@ export default async function LandingPage() {
               a live question as the heading, empty chairs, no sign-in. Paste
               the prompt once into ChatGPT in Sol or Terra. Native tools appear.
               ChatGPT waits while five dissenters write claims. You see the
-              recap in about 30 seconds. Weigh it up lands a verdict. When the
-              guest tries to commit, the page says no. Then Brain, History,
-              Calibration, WebMCP. The in-page composer is a fallback. It is
-              not the proof.
+              recap in about 30 seconds. Weigh it up lands a verdict. ChatGPT
+              proposes a commit; you confirm it. Then Brain, History,
+              Calibration, WebMCP. The in-page composer on the floor is the
+              same 17 tools.
             </p>
             <p className="mt-4 max-w-[52ch] text-[17px] leading-relaxed text-graphite">
               This is not five models chatting. Each seat is a claim you can
@@ -210,7 +210,7 @@ export default async function LandingPage() {
       <section className="border-t border-rule py-14">
         <p className="type-eyebrow">WebMCP on the page</p>
         <h2 className="type-display mt-4 max-w-[28ch] text-[clamp(1.6rem,2.8vw,2.1rem)] font-semibold">
-          ChatGPT cannot use a website. WebMCP is how it sits at this table.
+          ChatGPT joins this table through WebMCP.
         </h2>
         <p className="mt-4 max-w-[54ch] text-[16px] leading-relaxed text-graphite">
           Dissent exposes its deliberation system to agents through WebMCP. Tools
@@ -218,8 +218,8 @@ export default async function LandingPage() {
           <code className="type-figure text-[13px] text-ink">
             document.modelContext
           </code>
-          . ChatGPT finds them, calls them, writes on the same table you see,
-          and still cannot commit for you.
+          . ChatGPT finds them, calls them, and writes on the same table you
+          see. You confirm the commit.
         </p>
         <pre className="mt-6 overflow-x-auto border border-rule bg-ink px-5 py-5 text-[12.5px] leading-relaxed text-paper">
           <code>{REGISTER_SNIPPET}</code>

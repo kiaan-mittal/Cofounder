@@ -312,7 +312,7 @@ function ReadinessStage({
             {pendingCommitRationale}
           </p>
           <p className="mt-2 text-[13px] text-graphite">
-            It cannot commit for you. Confirm it below or change it.
+            Confirm it below or change it. ChatGPT proposed it; you close it.
           </p>
         </div>
       ) : null}

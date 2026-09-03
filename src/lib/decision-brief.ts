@@ -161,8 +161,8 @@ export function briefToMarkdown(brief: DecisionBrief, shareUrl?: string): string
     shareUrl ? `Live record: ${shareUrl}` : "",
     "",
     brief.commitRefused
-      ? "**confirm_commit was refused.** Guests proposed. The founder commits. Exported from Dissent."
-      : "_Guests proposed. The founder commits. Exported from Dissent._",
+      ? "**Waiting for founder confirmation.** ChatGPT proposed. The founder commits. Exported from Dissent."
+      : "_ChatGPT proposed. The founder commits. Exported from Dissent._",
   ]
     .filter((line) => line !== undefined)
     .join("\n")

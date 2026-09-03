@@ -3,7 +3,7 @@
  *
  * One paste. Landing is the only place the prompt is copied. The floor is
  * the room those calls write on. ChatGPT waits for the dissenters, recaps
- * them, tries to commit, then walks Brain, History, Calibration, and WebMCP
+ * them, proposes a commit, then walks Brain, History, Calibration, and WebMCP
  * with the tools already on the page.
  */
 
@@ -29,7 +29,7 @@ IndieTerminal is already loaded. The live question is the heading. Call these to
    Read the structured claims and the verdict. Then a short analysis only: who is strongest, what evidence is thin, what would flip it, what the next move is. Under 8 lines.
 
 3. confirm_commit
-   It will be refused. That is founder approval in this box. Agents propose. Founders commit. One sentence.
+   This needs founder confirmation — human-in-the-loop. ChatGPT proposes; the founder commits. One sentence.
 
 4. share_decision with destination "link"
    Return the public /share URL.
@@ -63,7 +63,7 @@ export const JUDGE_STEPS = [
     n: "03",
     title: "Watch it walk the product",
     detail:
-      "Seats write for about 30 seconds. ChatGPT recaps them, tries to commit, then opens Brain, History, Calibration, and WebMCP. confirm_commit is refused on purpose.",
+      "Seats write for about 30 seconds. ChatGPT recaps them, proposes a commit, then opens Brain, History, Calibration, and WebMCP. confirm_commit waits for the founder.",
   },
 ] as const;
 
@@ -79,7 +79,7 @@ export const JUDGE_CALLS = [
   },
   {
     tool: "confirm_commit",
-    happens: "Refused. Agents propose. Founders commit.",
+    happens: "Founder confirms. ChatGPT proposes; you close it.",
   },
   {
     tool: "share_decision",

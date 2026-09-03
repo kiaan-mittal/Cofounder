@@ -94,7 +94,7 @@ export function WebMcpBadge({
               {live
                 ? "Native site tools. ChatGPT discovered document.modelContext on this page."
                 : inPage
-                  ? "Fallback only. This browser has no native WebMCP. Open this URL in ChatGPT desktop Sol or Terra (site tools on). Do not demo the in-page guest as native."
+                  ? "In-page tools. For native site tools, open this URL in ChatGPT desktop Sol or Terra (site tools on)."
                   : "Waiting for document.modelContext. Open the page in Sol, Terra, or Chrome with the WebMCP flag."}
             </p>
 

@@ -141,7 +141,7 @@ export function SpectatorArena({
       />
       <p className="shrink-0 border-t border-rule px-4 py-2 text-[13px] text-graphite">
         Spectating {snapshot.companyName || "the floor"}. This tab cannot write.
-        {snapshot.commitRefused ? " confirm_commit was refused." : ""}
+        {snapshot.commitRefused ? " confirm_commit is waiting for the founder." : ""}
       </p>
     </div>
   );

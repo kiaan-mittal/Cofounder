@@ -82,16 +82,16 @@ export function WebMCPView({
       <header className="max-w-[40ch]">
         <p className="type-eyebrow">WebMCP</p>
         <h1 className="type-display mt-4 text-[clamp(2.2rem,5vw,3.4rem)] font-semibold leading-[1.04]">
-          {GUEST_TOOLS.length} tools. One they cannot press.
+          {GUEST_TOOLS.length} tools. ChatGPT sits at the table.
         </h1>
         <p className="mt-6 text-[18px] leading-relaxed text-graphite">
           ChatGPT reads {company?.name ?? JUDGE_COMPANY}, writes on the same
-          table you see, and is refused if it tries to commit. The proof is
-          native{" "}
+          table you see, and proposes a commit. You confirm it. Tools live on{" "}
           <code className="type-figure text-[15px] text-ink">
             document.modelContext
           </code>
-          — Sol or Terra, site tools on — not the in-page fallback.
+          — Sol or Terra, site tools on. The in-page composer uses the same
+          tools.
         </p>
       </header>
 
@@ -150,10 +150,9 @@ export function WebMCPView({
       <section className="mt-12 border border-rule bg-leaf px-6 py-6">
         <p className="type-eyebrow">This is the inspector</p>
         <p className="mt-4 max-w-[58ch] text-[17px] leading-relaxed text-ink">
-          Native WebMCP is proved here: the header must read native, and
-          getTools() must list the same tools ChatGPT discovered. The one
-          ChatGPT prompt lives on the home page — paste it once, then come
-          back to the floor.
+          Native WebMCP shows here: the header reads native, and getTools()
+          lists the same tools ChatGPT discovered. The one ChatGPT prompt
+          lives on the home page — paste it once, then come back to the floor.
         </p>
         <div className="mt-6 flex flex-wrap items-baseline gap-x-6 gap-y-2">
           <Link
@@ -214,7 +213,11 @@ export function WebMCPView({
                       {call.tool}
                     </code>
                     <span className="type-eyebrow text-pencil">
-                      {call.ok ? "ok" : "refused"}
+                      {call.ok
+                        ? "ok"
+                        : call.tool === "confirm_commit"
+                          ? "needs founder"
+                          : "error"}
                     </span>
                   </p>
                   <p className="mt-1 text-graphite">
@@ -325,8 +328,7 @@ export function WebMCPView({
           </p>
           {support === "page" && ready ? (
             <p>
-              This browser is on the fallback. Tools sit on a private page
-              object. That is not proof of native WebMCP. Open this URL in
+              This browser is using the in-page tools. Open this URL in
               ChatGPT desktop Sol or Terra with site tools, or Chrome 149+
               with chrome://flags/#enable-webmcp-testing, and the header
               should read native.

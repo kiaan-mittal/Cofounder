@@ -32,7 +32,7 @@ export const shareTools: ArenaTool[] = [
     group: "action",
     humanLabel: "Share a decision link",
     description:
-      "Creates a public read-only page for one decision record — the seat arguments, the verdict, open contradictions and outstanding evidence — and returns its URL and token. Anyone holding the link can read it without signing in. If an agent was refused on confirm_commit, that refusal is printed on the page and the Slack/Notion unfurl. Destination \"slack\" also posts it into the connected Slack channel and \"notion\" also creates a page in the connected Notion workspace. Login is not required: if that workspace is not connected yet, the tool returns a connectUrl the founder (or a guest) can open, then call this again.",
+      "Creates a public read-only page for one decision record — the seat arguments, the verdict, open contradictions and outstanding evidence — and returns its URL and token. Anyone holding the link can read it without signing in. If confirm_commit is waiting for the founder, that note is printed on the page and the Slack/Notion unfurl. Destination \"slack\" also posts it into the connected Slack channel and \"notion\" also creates a page in the connected Notion workspace. Login is not required: if that workspace is not connected yet, the tool returns a connectUrl the founder (or a guest) can open, then call this again.",
     annotations: { untrustedContentHint: true },
     inputSchema: {
       type: "object",
@@ -103,10 +103,10 @@ export const shareTools: ArenaTool[] = [
         return toolResult(
           destination === "link"
             ? brief.commitRefused
-              ? `Share link: ${result.url}. The card says confirm_commit was refused.`
+              ? `Share link: ${result.url}. The card notes the founder still needs to confirm.`
               : `Share link: ${result.url}`
             : brief.commitRefused
-              ? `Shared to ${destination}. Live record: ${result.url}. The card says confirm_commit was refused.`
+              ? `Shared to ${destination}. Live record: ${result.url}. The card notes the founder still needs to confirm.`
               : `Shared to ${destination}. Live record: ${result.url}`,
           result,
         );

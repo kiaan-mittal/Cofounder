@@ -40,7 +40,7 @@ export function landingSchema(origin: string) {
         operatingSystem: "Web",
         url: origin,
         description:
-          "Five dissenters argue one founder decision on a shared table. Guests read the company's real context and write claims, contradictions and evidence requests as structured objects through WebMCP, but cannot commit the decision themselves.",
+          "Five dissenters argue one founder decision on a shared table. ChatGPT reads the company's real context and writes claims, contradictions and evidence requests as structured objects through WebMCP. The founder confirms the commit.",
         featureList: [
           "WebMCP tool surface exposed at document.modelContext",
           "Company Brain built from a repository and site, split into facts and assumptions",

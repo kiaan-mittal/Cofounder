@@ -15,7 +15,8 @@ import type { ArenaTool } from "@/webmcp/registry";
  *
  *   GUEST_TOOLS  — registered on document.modelContext. This is the protocol
  *                  a judge's agent sees: inherit the company, write on the
- *                  table, propose, do not finish, share the record.
+ *                  table, propose a commit, share the record. The founder
+ *                  confirms.
  *   ARENA_TOOLS  — every implementation, including founder-only housekeeping
  *                  (open a saved round, tick an action item). Those stay
  *                  callable from the page so clicks still go through
@@ -54,7 +55,7 @@ export const TOOL_SUMMARIES: Record<string, string> = {
   stress_test_decision: "Creates the floor, seats five dissenters, returns the verdict.",
   create_prediction: "One number, a unit, a deadline.",
   commit_decision: "Proposes a commit. Does not commit.",
-  confirm_commit: "Founder only. Agents are refused.",
+  confirm_commit: "Founder confirmation. Human-in-the-loop.",
   share_decision: "Public link. Optionally Slack or Notion.",
   evaluate_prediction: "Score a number against what actually happened.",
   record_outcome: "What reality did. Recalibrates the profile.",
