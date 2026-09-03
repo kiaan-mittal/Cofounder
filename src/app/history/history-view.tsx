@@ -55,7 +55,7 @@ function History({
             Nothing on the record yet.
           </h1>
           <p className="mt-6 text-[17px] leading-relaxed text-graphite">
-            Every decision you take through the Arena is kept here with what you
+            Every decision you take through Dissent is kept here with what you
             chose, what you predicted, and what actually happened. That record is
             what makes the next debate specific rather than generic.
           </p>
@@ -188,8 +188,8 @@ function DecisionRecord({
             <Button asChild variant="outline" className="h-10" onClick={onReopen}>
               <Link href="/arena">
                 {decision.status === "committed"
-                  ? "Review in the Arena"
-                  : "Open in the Arena"}
+                  ? "Review on the floor"
+                  : "Open on the floor"}
               </Link>
             </Button>
             <ExportDecision
@@ -204,7 +204,7 @@ function DecisionRecord({
           <p className="type-eyebrow">Predictions</p>
           {predictions.length === 0 ? (
             <p className="mt-3 text-[14px] leading-relaxed text-graphite">
-              No number was attached. Commit from the Arena and say what would
+              No number was attached. Commit from the floor and say what would
               prove you right.
             </p>
           ) : (

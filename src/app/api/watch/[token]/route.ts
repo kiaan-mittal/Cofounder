@@ -39,7 +39,7 @@ export async function PUT(
     }
     const body = await parseBody(request, updateSchema);
     if (!isWatchSnapshot(body.snapshot)) {
-      return fail("That is not a floor the Arena can publish.");
+      return fail("That is not a floor Dissent can publish.");
     }
     const ok = await updateWatch(token, body.writeKey, body.snapshot);
     if (!ok) return fail("This watch has not started, or it ended.", 404);

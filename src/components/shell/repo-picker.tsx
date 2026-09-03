@@ -90,7 +90,7 @@ export function RepoPicker({
         <p className="text-[14px] text-graphite">
           {query.trim()
             ? "No repository matches that search."
-            : "This GitHub account has no repositories the Arena can see."}
+            : "This GitHub account has no repositories Dissent can see."}
         </p>
       ) : (
         <ul className="max-h-[min(28rem,55vh)] space-y-px overflow-y-auto border border-rule bg-rule">

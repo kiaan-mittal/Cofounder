@@ -38,7 +38,7 @@ export default async function SharePage({
         <Link href="/" className="flex items-center gap-2.5">
           <ArenaMark />
           <span className="type-display text-[17px] font-semibold text-ink">
-            Decision Arena
+            Dissent
           </span>
         </Link>
         <p className="type-eyebrow ml-auto text-graphite">Public record</p>
@@ -61,7 +61,7 @@ export default async function SharePage({
         {brief.question}
       </h1>
       <p className="mt-4 text-[15px] leading-relaxed text-graphite">
-        {brief.status} · Arena {brief.arenaConfidence}% · Founder{" "}
+        {brief.status} · Floor {brief.arenaConfidence}% · Founder{" "}
         {brief.founderConfidence}%
       </p>
       {brief.context ? (
@@ -72,7 +72,7 @@ export default async function SharePage({
 
       <section className="mt-10 border border-rule bg-leaf px-5 py-4">
         {brief.deadlock ? (
-          <p className="type-eyebrow text-oxblood">Arena deadlock</p>
+          <p className="type-eyebrow text-oxblood">Deadlock</p>
         ) : (
           <p className="type-eyebrow">On the table</p>
         )}
@@ -116,7 +116,7 @@ export default async function SharePage({
         href="/arena"
         className="type-eyebrow mt-4 inline-block text-ink underline underline-offset-4"
       >
-        Open Decision Arena
+        Open Dissent
       </Link>
     </div>
   );

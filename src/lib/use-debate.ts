@@ -115,7 +115,7 @@ export function useDebate() {
     } else if (caught instanceof Error) {
       setError({ message: caught.message });
     } else {
-      setError({ message: "The Arena hit an unexpected problem." });
+      setError({ message: "Dissent hit an unexpected problem." });
     }
   }
 

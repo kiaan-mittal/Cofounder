@@ -14,7 +14,7 @@ export async function POST(request: Request) {
   try {
     const body = await parseBody(request, bodySchema);
     if (!isWatchSnapshot(body.snapshot)) {
-      return fail("That is not a floor the Arena can publish.");
+      return fail("That is not a floor Dissent can publish.");
     }
     const watch = await createWatch(body.snapshot, request);
     return Response.json(watch);

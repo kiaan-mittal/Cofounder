@@ -127,7 +127,7 @@ export const decisionTools: ArenaTool[] = [
     group: "action",
     humanLabel: "Stress-test a decision",
     description:
-      "Creates the arena if none is open, or fills the live empty question, then seats five perspectives — Technical, Product, GTM, Finance and Contrarian. Each seat writes a structured claim (position, strength, claim, evidence, risk, reversibility). Returns the decision id, every seat's claim, FOR/AGAINST split, dimension scores, flip conditions, next move, open contradictions and outstanding evidence.",
+      "Creates the floor if none is open, or fills the live empty question, then seats five dissenters: Technical, Product, GTM, Finance and Contrarian. Each writes a structured claim (position, strength, claim, evidence, risk, reversibility). Wait until they finish (about 30 seconds). Returns the decision id, every seat's claim, FOR/AGAINST split, dimension scores, flip conditions, next move, open contradictions and outstanding evidence.",
     annotations: { untrustedContentHint: true },
     inputSchema: {
       type: "object",
@@ -178,8 +178,8 @@ export const decisionTools: ArenaTool[] = [
         const againstPct = verdict?.againstPct ?? 50;
         return toolResult(
           verdict?.deadlock
-            ? `Arena opened. Deadlock: ${verdict.deadlockNote}`
-            : `Arena opened on “${question}”. Verdict: ${verdict?.verdictLabel ?? "too early"} (${verdict?.arenaConfidence ?? 0}%). FOR ${forPct} / AGAINST ${againstPct}. ${seats.length} seats have written.`,
+            ? `Floor opened. Deadlock: ${verdict.deadlockNote}`
+            : `Floor opened on “${question}”. Verdict: ${verdict?.verdictLabel ?? "too early"} (${verdict?.arenaConfidence ?? 0}%). FOR ${forPct} / AGAINST ${againstPct}. ${seats.length} dissenters have written.`,
           {
             decisionId: painted.decisionId,
             options: painted.round.options,
@@ -198,7 +198,7 @@ export const decisionTools: ArenaTool[] = [
         return toolError(
           caught instanceof Error
             ? caught.message
-            : "The Arena could not open this round.",
+            : "Dissent could not open this round.",
         );
       }
     },
@@ -238,7 +238,7 @@ export const decisionTools: ArenaTool[] = [
     },
     execute: (args) => {
       const decision = resolveDecision(args.decision_id);
-      if (!decision) return toolError("There is no decision open in the Arena.");
+      if (!decision) return toolError("There is no decision open on the floor.");
 
       const expectedValue = num(args.expected_value, NaN);
       if (!Number.isFinite(expectedValue)) {
@@ -318,7 +318,7 @@ export const decisionTools: ArenaTool[] = [
     },
     execute: (args) => {
       const decision = resolveDecision(args.decision_id);
-      if (!decision) return toolError("There is no decision open in the Arena.");
+      if (!decision) return toolError("There is no decision open on the floor.");
 
       const text = str(args.text);
       if (!text) return toolError("An action item needs text.");
@@ -382,7 +382,7 @@ export const decisionTools: ArenaTool[] = [
     group: "action",
     humanLabel: "Propose a commitment",
     description:
-      "Stages a commitment to one of the decision's options, with a rationale, for the founder to confirm in the Arena itself. It does not commit the decision: confirming is irreversible and stays with the person who lives with it. Returns the staged option and anything still blocking it, such as unresolved contradictions or outstanding evidence requests.",
+      "Stages a commitment to one of the decision's options, with a rationale, for the founder to confirm on the floor itself. It does not commit the decision: confirming is irreversible and stays with the person who lives with it. Returns the staged option and anything still blocking it, such as unresolved contradictions or outstanding evidence requests.",
     annotations: { untrustedContentHint: true },
     inputSchema: {
       type: "object",
@@ -408,7 +408,7 @@ export const decisionTools: ArenaTool[] = [
     execute: (args) => {
       const s = state();
       const decision = resolveDecision(args.decision_id);
-      if (!decision) return toolError("There is no decision open in the Arena.");
+      if (!decision) return toolError("There is no decision open on the floor.");
       if (decision.status === "committed") {
         return toolError("This decision is already committed.");
       }
@@ -482,7 +482,7 @@ export const decisionTools: ArenaTool[] = [
         arena_confidence: {
           type: "number",
           description:
-            "How confident the Arena is, 0-100. Defaults to 50.",
+            "How confident the floor is, 0-100. Defaults to 50.",
         },
         decision_id: {
           type: "string",
@@ -579,7 +579,7 @@ export const decisionTools: ArenaTool[] = [
     },
     execute: (args) => {
       const decision = resolveDecision(args.decision_id);
-      if (!decision) return toolError("There is no decision open in the Arena.");
+      if (!decision) return toolError("There is no decision open on the floor.");
 
       const summary = str(args.summary);
       if (!summary) return toolError("A summary needs text.");
@@ -674,7 +674,7 @@ export const decisionTools: ArenaTool[] = [
     expose: false,
     humanLabel: "Set confidence",
     description:
-      "Sets the founder's confidence, the Arena's, or both, as a number from 0 to 100 on a decision. Returns the values now stored.",
+      "Sets the founder's confidence, the floor's, or both, as a number from 0 to 100 on a decision. Returns the values now stored.",
     inputSchema: {
       type: "object",
       properties: {
@@ -684,7 +684,7 @@ export const decisionTools: ArenaTool[] = [
         },
         arena: {
           type: "number",
-          description: "The Arena's confidence in the decision, 0-100.",
+          description: "The floor's confidence in the decision, 0-100.",
         },
         decision_id: {
           type: "string",
@@ -697,7 +697,7 @@ export const decisionTools: ArenaTool[] = [
     },
     execute: (args) => {
       const decision = resolveDecision(args.decision_id);
-      if (!decision) return toolError("There is no decision open in the Arena.");
+      if (!decision) return toolError("There is no decision open on the floor.");
       const patch: { founderConfidence?: number; agentConfidence?: number } = {};
       if (typeof args.founder === "number" && Number.isFinite(args.founder)) {
         patch.founderConfidence = Math.max(0, Math.min(100, Math.round(args.founder)));
@@ -760,7 +760,7 @@ export const decisionTools: ArenaTool[] = [
       }
       const s = state();
       const decision = resolveDecision(args.decision_id);
-      if (!decision) return toolError("There is no decision open in the Arena.");
+      if (!decision) return toolError("There is no decision open on the floor.");
       if (decision.status === "committed") {
         return toolError("This decision is already committed.");
       }
@@ -819,7 +819,7 @@ export const decisionTools: ArenaTool[] = [
     },
     execute: (args) => {
       const decision = resolveDecision(args.decision_id);
-      if (!decision) return toolError("There is no decision open in the Arena.");
+      if (!decision) return toolError("There is no decision open on the floor.");
       const status = args.status;
       if (
         status !== "open" &&

@@ -64,7 +64,7 @@ export async function POST(request: Request) {
     const exportUser = await resolveExportUser();
     const body = await parseBody(request, bodySchema);
     if (!isDecisionBrief(body.brief)) {
-      return fail("That is not a decision brief the Arena can export.");
+      return fail("That is not a decision brief Dissent can export.");
     }
 
     const share = await createDecisionShare({
@@ -126,7 +126,7 @@ export async function POST(request: Request) {
       const crashed = /maximum call stack/i.test(sent.error ?? "");
       return fail(
         crashed
-          ? "Slack or Notion answered in a shape the Arena could not read."
+          ? "Slack or Notion answered in a shape Dissent could not read."
           : sent.error || "Could not send this decision.",
         400,
         `The share link still works: ${share.url}`,

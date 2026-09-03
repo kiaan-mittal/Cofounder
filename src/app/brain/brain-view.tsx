@@ -81,7 +81,7 @@ function Brain({ company }: { company: Company }) {
           </h1>
         </div>
         <Button asChild size="lg" className="h-11 px-6 text-[15px]">
-          <Link href="/arena">Take a decision into the Arena</Link>
+          <Link href="/arena">Take a decision to the floor</Link>
         </Button>
       </header>
 
@@ -166,7 +166,7 @@ function Brain({ company }: { company: Company }) {
               <span className="type-eyebrow">{dossier.length} quoted</span>
             </div>
             <p className="mt-3 max-w-[52ch] text-sm leading-relaxed text-graphite">
-              Verbatim excerpts the Arena keeps and quotes in every round.
+              Verbatim excerpts Dissent keeps and quotes in every round.
               Rebuild the Brain after changing the site.
             </p>
             <ul className="mt-8 grid gap-4 md:grid-cols-2">
@@ -189,7 +189,7 @@ function Brain({ company }: { company: Company }) {
           </div>
           <p className="mt-3 max-w-[46ch] text-sm leading-relaxed text-graphite">
             Things your sources actually say. Each one is quotable, so you can
-            check the Arena&rsquo;s work.
+            check Dissent&rsquo;s work.
           </p>
           <ul className="mt-8 space-y-6">
             {brain.facts.map((fact) => (
@@ -261,7 +261,7 @@ function Brain({ company }: { company: Company }) {
           <Line label="Who it is for">{brain.market.icp}</Line>
           <Line label="Positioning">{brain.market.positioning}</Line>
           <Line label="Pricing">
-            {brain.market.pricing ?? "Not published anywhere the Arena could read."}
+            {brain.market.pricing ?? "Not published anywhere Dissent could read."}
           </Line>
           <List label="Customer problems" items={brain.market.problems} />
           <List label="Alternatives" items={brain.market.alternatives} />
@@ -280,7 +280,7 @@ function Brain({ company }: { company: Company }) {
           <InkRule className="my-14" />
           <section>
             <h2 className="type-display text-3xl font-semibold">
-              What the Arena would ask you
+              What Dissent would ask you
             </h2>
             <ul className="mt-8 grid gap-x-16 gap-y-5 md:grid-cols-2">
               {brain.openQuestions.map((question) => (

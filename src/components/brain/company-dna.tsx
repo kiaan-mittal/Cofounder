@@ -322,7 +322,7 @@ export function CompanyDna({
               )
             }
           >
-            Take this to the Arena
+            Take this to the floor
           </button>
         ) : null}
       </footer>

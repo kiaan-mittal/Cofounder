@@ -49,7 +49,7 @@ async function write<T>(
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") throw error;
     throw new ApiError(
-      "The Arena could not reach its server. Check your connection and try again.",
+      "Dissent could not reach its server. Check your connection and try again.",
     );
   }
 
@@ -85,7 +85,7 @@ export async function readEventStream<T>(
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") throw error;
     throw new ApiError(
-      "The Arena could not reach its server. Check your connection and try again.",
+      "Dissent could not reach its server. Check your connection and try again.",
     );
   }
 

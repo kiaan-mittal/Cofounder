@@ -599,7 +599,7 @@ const argumentList: Argument[] = [
     stance: "for",
     claim: "A private repo means this floor is arguing from a README.",
     reasoning:
-      "The Brain can name registry.ts. It cannot open it. Judges running WebMCP on Decision Arena can see 17 tools. They cannot see IndieTerminal's. That is a choice, not a law.",
+      "The Brain can name registry.ts. It cannot open it. Judges running WebMCP on Dissent can see 17 tools. They cannot see IndieTerminal's. That is a choice, not a law.",
     basis: [{ type: "fact", ref: "fact_it02", label: "Connected repo is private" }],
     strength: 75,
     createdAt: daysAgo(28),
@@ -647,7 +647,7 @@ const argumentList: Argument[] = [
     stance: "for",
     claim: "You cannot claim agents act on a system they are not allowed to read.",
     reasoning:
-      "Decision Arena ungated itself so a judge could use it. IndieTerminal still asks for Clerk, then GitHub, then hope. The connected repo being private is the same move with a different password.",
+      "Dissent ungated itself so a judge could use it. IndieTerminal still asks for Clerk, then GitHub, then hope. The connected repo being private is the same move with a different password.",
     basis: [
       {
         type: "assumption",

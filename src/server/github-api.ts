@@ -56,7 +56,7 @@ export async function githubFetch(
   const headers: Record<string, string> = {
     accept,
     "x-github-api-version": "2022-11-28",
-    "user-agent": "DecisionArena/1.0",
+    "user-agent": "Dissent/1.0",
   };
   const token = auth?.accessToken || process.env.GITHUB_TOKEN?.trim();
   if (token) headers.authorization = `Bearer ${token}`;

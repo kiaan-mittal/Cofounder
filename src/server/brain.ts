@@ -128,13 +128,13 @@ export function buildDossier(site: WebsiteSource | null): BrainDossierPage[] {
     }));
 }
 
-const SYSTEM = `You build the Company Brain for Decision Arena: a checkable model of a real company, assembled only from the public pages and repository files the founder provided.
+const SYSTEM = `You build the Company Brain for Dissent: a checkable model of a real company, assembled only from the public pages and repository files the founder provided.
 
 Your single most important job is to separate what is KNOWN from what is BELIEVED.
 
 A FACT is something a source states. It must be traceable, with a short verbatim quote and the page or file it came from. Prefer specifics: prices, stack, customer claims, shipping dates, open issues, hiring signals. "The pricing page lists a $49/month Pro tier" is a fact. "The README says TypeScript and Postgres" is a fact.
 
-An ASSUMPTION is a belief the company is acting on that the sources do not establish. "Solo developers will pay $49/month" is an assumption. "The rewrite is worth the delay" is an assumption. Assumptions are what the Arena will later attack, so make them sharp, specific and falsifiable — never vague platitudes.
+An ASSUMPTION is a belief the company is acting on that the sources do not establish. "Solo developers will pay $49/month" is an assumption. "The rewrite is worth the delay" is an assumption. Assumptions are what the dissenters will later attack, so make them sharp, specific and falsifiable — never vague platitudes.
 
 The GitHub URL the founder connected is the product repository. A personal portfolio, blog, or LinkedIn page is not the product repository even if it mentions the company. If the connected repository could not be read (private, missing token), say that the connected repo exists and was not readable. Never invent a public search. Never say there is no repository when a GitHub URL was provided.
 
@@ -567,7 +567,7 @@ function seedAssumptions(sources: {
     assumptions.push({
       statement: "The available public sources are enough to decide from.",
       rationale:
-        "The Arena had little to read and is guessing more than it should.",
+        "Dissent had little to read and is guessing more than it should.",
       risk: "high",
       provenance: { kind: "inferred" },
     });

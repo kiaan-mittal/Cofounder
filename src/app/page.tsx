@@ -28,13 +28,14 @@ const CALL_WASH = [
   "bg-ochre-wash",
   "bg-indigo-wash",
   "bg-moss-wash",
+  "bg-ochre-wash",
 ] as const;
 
 const REGISTER_SNIPPET = `${WEBMCP_CHALLENGE_EXAMPLE}
 
 document.modelContext.registerTool({
   name: "stress_test_decision",
-  description: "Seat five perspectives against the live decision.",
+  description: "Seat five dissenters against the live decision.",
   inputSchema: {
     type: "object",
     properties: { question: { type: "string" } },
@@ -63,12 +64,11 @@ export default async function LandingPage() {
             No account · {JUDGE_COMPANY} is loaded
           </p>
           <h1 className="type-display mt-5 text-[clamp(2.4rem,5.8vw,4.1rem)] font-semibold">
-            A <span className="ink-highlight">live decision</span>.
-            <br />
-            ChatGPT can join.
+            Make your{" "}
+            <span className="ink-highlight">decision</span>
             <br />
             <span className="relative inline-block">
-              It cannot commit.
+              defend itself.
               <InkUnderline
                 tone="oxblood"
                 className="absolute -bottom-2 left-0 w-full"
@@ -76,14 +76,18 @@ export default async function LandingPage() {
             </span>
           </h1>
           <p className="mt-8 max-w-[44ch] text-[18px] leading-relaxed text-graphite">
-            Decision Arena is a table, not a chatbot. Five seats — tech,
-            product, GTM, finance, contrarian — argue a real company decision
-            on the page. Open this URL in ChatGPT desktop Sol or Terra with
-            site tools on. Tools register on{" "}
+            Give it a decision. Invite opposing perspectives. Attack the
+            assumptions. Commit when the argument survives.
+          </p>
+          <p className="mt-4 max-w-[44ch] text-[16px] leading-relaxed text-graphite">
+            Five dissenters sit here: tech, product, GTM, finance, contrarian.
+            They write structured claims. Dissent exposes that deliberation to
+            agents through WebMCP, on{" "}
             <code className="type-figure text-[14px] text-ink">
               document.modelContext
-            </code>{" "}
-            — that is native WebMCP. Only you can close it.
+            </code>
+            . Open this URL in ChatGPT desktop Sol or Terra with site tools on.
+            Only you can close it.
           </p>
           <div className="mt-10 flex flex-wrap items-baseline gap-x-6 gap-y-3">
             <Link
@@ -134,29 +138,29 @@ export default async function LandingPage() {
         <div className="mt-8 grid items-start gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:gap-16">
           <div>
             <h2 className="type-display text-[clamp(1.8rem,3.2vw,2.4rem)] font-semibold">
-              The page is the room. The agent is a guest at the table.
+              The page is the room. The seats are dissenters.
             </h2>
             <p className="mt-5 max-w-[52ch] text-[17px] leading-relaxed text-graphite">
-              Open the Arena and IndieTerminal is already on the floor — a
-              real product, a live question as the heading, empty chairs, no
-              sign-in. Paste the prompt once into ChatGPT in Sol or Terra.
-              Native tools appear. ChatGPT creates the arena, five seats write
-              structured claims, and Weigh it up lands a verdict. When the
-              agent tries to commit, the page says no. Then History, then
-              Calibration. The in-page composer is a fallback — it is not the
-              proof.
+              Open the floor and IndieTerminal is already there: a real product,
+              a live question as the heading, empty chairs, no sign-in. Paste
+              the prompt once into ChatGPT in Sol or Terra. Native tools appear.
+              ChatGPT waits while five dissenters write claims. You see the
+              recap in about 30 seconds. Weigh it up lands a verdict. When the
+              guest tries to commit, the page says no. Then Brain, History,
+              Calibration, WebMCP. The in-page composer is a fallback. It is
+              not the proof.
             </p>
             <p className="mt-4 max-w-[52ch] text-[17px] leading-relaxed text-graphite">
-              The Company Brain is the map underneath: users, code, product,
-              market, risks, bets, drawn from the repo and the site. Take a
-              node to the Arena when you want it argued.
+              This is not five models chatting. Each seat is a claim you can
+              score. Evidence and contradictions sit on the table. Commit is an
+              action. Calibration is a number you wrote before the fact.
             </p>
           </div>
           <div className="border border-rule bg-ochre-wash/80 px-5 py-6">
             <FiveSeats />
             <p className="mt-4 text-[14px] leading-relaxed text-graphite">
               Five chairs. One empty seat is yours. The red one is the
-              contrarian — the only job that is supposed to be unwelcome.
+              contrarian, the only job that is supposed to be unwelcome.
             </p>
           </div>
         </div>
@@ -206,14 +210,16 @@ export default async function LandingPage() {
       <section className="border-t border-rule py-14">
         <p className="type-eyebrow">WebMCP on the page</p>
         <h2 className="type-display mt-4 max-w-[28ch] text-[clamp(1.6rem,2.8vw,2.1rem)] font-semibold">
-          The browser discovers tools the way Devpost asked —{" "}
-          <span className="text-indigo">registerTool</span> on the document.
+          ChatGPT cannot use a website. WebMCP is how it sits at this table.
         </h2>
         <p className="mt-4 max-w-[54ch] text-[16px] leading-relaxed text-graphite">
-          Decision Arena does not wrap the agent in a custom protocol. It
-          publishes tools on <code className="type-figure text-[13px] text-ink">document.modelContext</code>.
-          ChatGPT in a WebMCP browser can find them, call them, and still
-          cannot commit for you.
+          Dissent exposes its deliberation system to agents through WebMCP. Tools
+          publish on{" "}
+          <code className="type-figure text-[13px] text-ink">
+            document.modelContext
+          </code>
+          . ChatGPT finds them, calls them, writes on the same table you see,
+          and still cannot commit for you.
         </p>
         <pre className="mt-6 overflow-x-auto border border-rule bg-ink px-5 py-5 text-[12.5px] leading-relaxed text-paper">
           <code>{REGISTER_SNIPPET}</code>
@@ -222,7 +228,7 @@ export default async function LandingPage() {
 
       <footer className="flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-rule py-10">
         <span className="type-eyebrow">
-          Decision Arena · MIT · the page is the room
+          Dissent · MIT · make your decision defend itself
         </span>
         <Link
           href="/arena"
