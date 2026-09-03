@@ -34,7 +34,7 @@ const jetbrainsMono = localFont({
 export const metadata: Metadata = {
   metadataBase: new URL(appOrigin()),
   title: {
-    default: "Dissent — Make your decision defend itself",
+    default: "Dissent. Make your decision defend itself",
     template: "%s · Dissent",
   },
   description:
@@ -47,13 +47,13 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     siteName: "Dissent",
-    title: "Dissent — Make your decision defend itself",
+    title: "Dissent. Make your decision defend itself",
     description:
       "Five dissenters argue your decision on a table a guest can write on but cannot close. Built on WebMCP.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Dissent — Make your decision defend itself",
+    title: "Dissent. Make your decision defend itself",
     description:
       "Five dissenters argue your decision on a table a guest can write on but cannot close. Built on WebMCP.",
   },
