@@ -244,7 +244,7 @@ export function ArenaCallDock({
               Weigh it up
               {call
                 ? ` · ${call.arenaConfidence}% · for ${call.forPct} / against ${call.againstPct}`
-                : ` · you ${current.founderConfidence} · arena ${current.agentConfidence}`}
+                : ` · you ${current.founderConfidence} · floor ${current.agentConfidence}`}
             </span>
             {call?.verdictLabel ??
               (committed
