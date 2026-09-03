@@ -84,14 +84,7 @@ export function DecisionBoard({
 
   return (
     <section className="min-w-0 overflow-hidden border border-rule bg-leaf">
-      {cardsOnly ? (
-        <div className="flex flex-wrap items-baseline justify-between gap-3 border-b border-rule bg-paper px-4 py-1.5">
-          <p className="type-eyebrow">What the seats wrote</p>
-          <p className="min-w-0 truncate text-[13px] text-graphite">
-            Five seats, one board.
-          </p>
-        </div>
-      ) : (
+      {cardsOnly ? null : (
         <>
           <PresenceStrip
             companyName={companyName}

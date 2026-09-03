@@ -157,7 +157,7 @@ export const debateTools: ArenaTool[] = [
         claim: { type: "string", description: "One sentence. The assertion itself." },
         reasoning: {
           type: "string",
-          description: "One sentence of evidence. Not an essay.",
+          description: "Two to four sentences of company-specific support. This is the seat's argument, not a caption.",
         },
         basis: {
           type: "string",
