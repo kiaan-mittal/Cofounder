@@ -110,13 +110,13 @@ export function FloorTalk({
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-paper">
       <header className="flex shrink-0 items-baseline justify-between gap-3 border-b border-rule px-5 py-1.5">
-        <p className="type-eyebrow text-indigo">Floor</p>
+        <p className="type-eyebrow text-indigo">You</p>
         <p className="min-w-0 truncate text-[13px] text-graphite">
           {readOnly
             ? "Spectating."
             : committed
               ? "Committed."
-              : "Seats write here. You answer."}
+              : "Write here. Seats answer in this thread."}
         </p>
       </header>
       {readOnly ? null : openings.length ? (
@@ -133,7 +133,7 @@ export function FloorTalk({
             <p className="text-[16px] leading-relaxed text-graphite">
               {readOnly
                 ? "Waiting for the seats."
-                : "Empty table. Five chairs. The seats write here."}
+                : "Your side of the table. The seats write on the board. When they have spoken, their argument lands here in full — then you answer."}
             </p>
           )
         ) : (
@@ -203,7 +203,7 @@ export function FloorTalk({
             placeholder="What do you actually believe? The seats will answer on the record."
             submitLabel="Write"
             busyLabel="Hearing them…"
-            hint="One honest paragraph. The seats reassess from this."
+            hint="Your side. One honest paragraph. The seats reassess from this."
             targetLabel={targetLabel}
             onClearTarget={onClearTarget}
             toolName="write_founder_judgment"
@@ -292,11 +292,11 @@ export function FloorBoard({
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-leaf">
       <header className="flex shrink-0 flex-wrap items-baseline justify-between gap-3 border-b border-rule bg-paper px-5 py-1.5">
-        <p className="type-eyebrow">Board</p>
+        <p className="type-eyebrow">The table</p>
         <p className="min-w-0 truncate text-[13px] text-graphite">
           {busy === "opening"
             ? "Seats are writing."
-            : "Five seats. Cards move when they speak."}
+            : "Seats land as claims you can weigh."}
         </p>
         {busy === "opening" ? (
           <ul className="flex w-full flex-wrap gap-x-3 gap-y-1">
