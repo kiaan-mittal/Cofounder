@@ -65,6 +65,10 @@ export type DebateOpenEvent =
         | "risks"
         | "contradictions"
         | "evidenceRequests"
+        | "verdictWhy"
+        | "flipConditions"
+        | "nextMove"
+        | "nextMoveSteps"
       >;
     }
   | {
@@ -93,6 +97,10 @@ export interface DebateOpeningRound {
   contextNote: string;
   options: Array<{ label: string; detail: string }>;
   arenaConfidence: number;
+  verdictWhy: string;
+  flipConditions: string[];
+  nextMove: string;
+  nextMoveSteps: string[];
   arguments: Array<{
     perspective: import("@/lib/types").PerspectiveId;
     stance: import("@/lib/types").ArgumentStance;
@@ -100,6 +108,8 @@ export interface DebateOpeningRound {
     reasoning: string;
     basis: Array<{ type: string; ref?: string; label: string }>;
     strength: number;
+    riskLevel: "low" | "medium" | "high";
+    reversibility: "low" | "medium" | "high";
   }>;
   risks: Array<{
     title: string;

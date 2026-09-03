@@ -19,6 +19,7 @@ import {
 import {
   adoptSnapshotIfRicher,
   pullRemoteWorkspace,
+  readGuestSnapshot,
   scheduleWorkspaceSave,
 } from "@/lib/supabase/sync";
 import type { Company } from "@/lib/types";
@@ -55,8 +56,8 @@ export function RequireCompany({
     const live = useArena.getState();
     if (isStaleShowcase(live)) {
       importWorkspace(showcaseSnapshot());
-      return;
     }
+    adoptSnapshotIfRicher(readGuestSnapshot());
     adoptSnapshotIfRicher(initialSnapshot as WorkspaceSnapshot | null);
   }, [initialSnapshot, importWorkspace]);
 

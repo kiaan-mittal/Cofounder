@@ -1,3 +1,4 @@
+import { SeatClaim } from "@/components/arena/seat-claim";
 import { StreamingCaret } from "@/components/arena/streaming-caret";
 import { PerspectiveEmblem } from "@/components/ink/emblems";
 import { perspectiveName, perspectiveSeat } from "@/lib/perspectives";
@@ -176,13 +177,7 @@ export function SeatReply({
   );
 }
 
-const STANCE_COPY: Record<Argument["stance"], string> = {
-  for: "for",
-  against: "against",
-  conditional: "only if",
-};
-
-/** First placement on the board: the full argument, as readable prose. */
+/** First placement on the board: a structured claim, not an essay. */
 export function SeatOpening({
   argument,
   className,
@@ -190,44 +185,9 @@ export function SeatOpening({
   argument: Argument;
   className?: string;
 }) {
-  const { paragraphs } = formatSeatBody(argument.reasoning);
-  const body = paragraphs.length
-    ? paragraphs
-    : argument.reasoning.trim()
-      ? [argument.reasoning.trim()]
-      : [];
-
   return (
-    <article className={cn("max-w-[54ch] border border-rule bg-leaf", className)}>
-      <header className="flex items-center gap-3 border-b border-rule bg-paper px-3 py-2.5">
-        <PerspectiveEmblem
-          perspective={argument.perspective}
-          className="size-9 shrink-0 text-oxblood"
-        />
-        <div className="min-w-0 flex-1">
-          <p className="type-eyebrow text-oxblood">
-            {perspectiveSeat(argument.perspective)}
-          </p>
-          <p className="mt-0.5 truncate text-[13.5px] text-graphite">
-            {perspectiveName(argument.perspective)} · {STANCE_COPY[argument.stance]}
-          </p>
-        </div>
-      </header>
-      <div className="space-y-3 px-3.5 py-3.5">
-        <p className="text-[17px] font-semibold leading-snug text-ink">
-          {argument.claim}
-        </p>
-        {body.map((paragraph, index) => (
-          <p key={index} className="text-[15.5px] leading-[1.65] text-ink">
-            {paragraph}
-          </p>
-        ))}
-        {argument.basis.length ? (
-          <p className="pt-1 text-[13px] leading-relaxed text-graphite">
-            {argument.basis.map((item) => item.label).join(" · ")}
-          </p>
-        ) : null}
-      </div>
-    </article>
+    <div className={className}>
+      <SeatClaim argument={argument} />
+    </div>
   );
 }

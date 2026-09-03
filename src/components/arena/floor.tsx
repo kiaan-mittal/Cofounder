@@ -133,7 +133,7 @@ export function FloorTalk({
             <p className="text-[16px] leading-relaxed text-graphite">
               {readOnly
                 ? "Waiting for the seats."
-                : "Empty table. When ChatGPT calls stress_test_decision, five seats write here."}
+                : "Empty table. Five chairs. The seats write here."}
             </p>
           )
         ) : (
@@ -392,19 +392,11 @@ function shareUrlFromSummary(summary: string) {
  */
 export function FloorCue({ decision }: { decision: Decision }) {
   const calls = useArena((state) => state.toolCalls);
-  const opening = useArena((state) => state.arenaPhase === "opening");
-  const seatCount = useArena(
-    (state) =>
-      state.argumentList.filter(
-        (item) => item.decisionId === decision.id && !item.challengesId,
-      ).length,
-  );
   const share = calls.find((call) => call.tool === "share_decision" && call.ok);
   const shareUrl = share ? shareUrlFromSummary(share.summary) : null;
   const refused = Boolean(decision.agentCommitRefusedAt);
-  const empty = decision.status === "open" && seatCount === 0 && !opening;
 
-  if (!shareUrl && !refused && !empty) return null;
+  if (!shareUrl && !refused) return null;
 
   return (
     <div className="shrink-0 border-b border-rule">
@@ -426,14 +418,6 @@ export function FloorCue({ decision }: { decision: Decision }) {
           >
             {shareUrl}
           </a>
-        </p>
-      ) : null}
-      {empty && !refused && !shareUrl ? (
-        <p className="bg-indigo-wash px-4 py-2 text-[14px] leading-snug text-ink">
-          <span className="type-eyebrow mr-2 text-indigo">Waiting</span>
-          ChatGPT calls{" "}
-          <code className="type-figure text-[13px]">stress_test_decision</code>
-          . Five seats write on this table.
         </p>
       ) : null}
     </div>
@@ -465,10 +449,11 @@ export function FloorBar({
   }
 
   return (
-    <div
-      className="flex h-10 shrink-0 items-center gap-2 border-b border-rule px-3"
-      title={question}
-    >
+    <div className="shrink-0 border-b border-rule">
+      <div
+        className="flex h-10 items-center gap-2 px-3"
+        title={question}
+      >
       {spectator ? (
         <>
           <p className="min-w-0 flex-1 truncate text-[13px] text-ink">
@@ -513,6 +498,13 @@ export function FloorBar({
           <ShareMenu decisionId={decisionId} />
         </>
       )}
+      </div>
+      <div className="border-t border-rule px-4 py-2">
+        <p className="type-eyebrow text-graphite">This arena</p>
+        <h1 className="type-display mt-0.5 text-[18px] font-semibold leading-snug text-ink sm:text-[20px]">
+          {question}
+        </h1>
+      </div>
     </div>
   );
 }

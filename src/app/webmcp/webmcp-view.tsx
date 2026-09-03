@@ -172,8 +172,8 @@ export function WebMCPView({
       </section>
 
       <section className="mt-12">
-        <p className="type-eyebrow">What the three calls do</p>
-        <ul className="mt-5 grid gap-4 sm:grid-cols-3">
+        <p className="type-eyebrow">What the calls do</p>
+        <ul className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {JUDGE_CALLS.map((item) => (
             <li key={item.tool} className="border border-rule bg-paper p-5">
               <code className="type-figure text-[15px] text-ink">
