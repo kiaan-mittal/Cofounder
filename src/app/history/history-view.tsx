@@ -14,11 +14,19 @@ import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { argumentsFor } from "@/lib/selectors";
+import { argumentsFor, defensesFor, reassessmentsFor } from "@/lib/selectors";
 import { perspectiveName } from "@/lib/perspectives";
 import { useArena } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import type { Argument, Decision, Outcome, Prediction } from "@/lib/types";
+import type {
+  Argument,
+  Decision,
+  Defense,
+  Outcome,
+  Prediction,
+  Reassessment,
+  ToolCall,
+} from "@/lib/types";
 import { founderCall, runTool } from "@/webmcp/run";
 
 export function HistoryView({
@@ -67,6 +75,12 @@ function History({
     );
   }
 
+  const ordered = [...decisions].sort((a, b) => {
+    if (a.status === "open" && b.status !== "open") return -1;
+    if (b.status === "open" && a.status !== "open") return 1;
+    return Date.parse(b.createdAt) - Date.parse(a.createdAt);
+  });
+
   return (
     <div className="mx-auto max-w-[1400px] px-5 py-12 lg:py-16">
       <ArenaPath here="outcome" />
@@ -84,13 +98,24 @@ function History({
       <InkRule className="my-12" />
 
       <ul className="space-y-12">
-        {decisions.map((decision) => (
+        {ordered.map((decision, index) => (
           <li key={decision.id} className="border border-rule bg-paper">
             <DecisionRecord
               decision={decision}
+              showCalls={index === 0}
               fallbackArgs={
                 Array.isArray(initialSnapshot?.argumentList)
                   ? (initialSnapshot.argumentList as Argument[])
+                  : []
+              }
+              fallbackDefenses={
+                Array.isArray(initialSnapshot?.defenses)
+                  ? (initialSnapshot.defenses as Defense[])
+                  : []
+              }
+              fallbackReplies={
+                Array.isArray(initialSnapshot?.reassessments)
+                  ? (initialSnapshot.reassessments as Reassessment[])
                   : []
               }
               fallbackPredictions={
@@ -111,12 +136,18 @@ function History({
 
 function DecisionRecord({
   decision,
+  showCalls,
   fallbackArgs,
+  fallbackDefenses,
+  fallbackReplies,
   fallbackPredictions,
   onReopen,
 }: {
   decision: Decision;
+  showCalls: boolean;
   fallbackArgs: Argument[];
+  fallbackDefenses: Defense[];
+  fallbackReplies: Reassessment[];
   fallbackPredictions: Prediction[];
   onReopen: () => void;
 }) {
@@ -168,6 +199,14 @@ function DecisionRecord({
           </p>
 
           <SeatVoices decisionId={decision.id} fallbackArgs={fallbackArgs} />
+
+          <FloorThread
+            decisionId={decision.id}
+            fallbackDefenses={fallbackDefenses}
+            fallbackReplies={fallbackReplies}
+          />
+
+          {showCalls ? <AgentCalls /> : null}
 
           {outcome ? (
             <div className="mt-6 border border-rule bg-moss-wash px-4 py-4">
@@ -278,6 +317,94 @@ function SeatVoice({ argument }: { argument: Argument }) {
         </div>
       </div>
     </li>
+  );
+}
+
+function FloorThread({
+  decisionId,
+  fallbackDefenses,
+  fallbackReplies,
+}: {
+  decisionId: string;
+  fallbackDefenses: Defense[];
+  fallbackReplies: Reassessment[];
+}) {
+  const storeDefenses = useArena(
+    useShallow((state) => defensesFor(state, decisionId)),
+  );
+  const storeReplies = useArena(
+    useShallow((state) =>
+      reassessmentsFor(state, decisionId).filter(
+        (item) => Boolean(item.reply?.trim()) && !item.streaming,
+      ),
+    ),
+  );
+  const defenses = storeDefenses.length
+    ? storeDefenses
+    : fallbackDefenses.filter((item) => item.decisionId === decisionId);
+  const replies = storeReplies.length
+    ? storeReplies
+    : fallbackReplies.filter(
+        (item) =>
+          item.decisionId === decisionId &&
+          Boolean(item.reply?.trim()) &&
+          !item.streaming,
+      );
+
+  const turns = [
+    ...defenses.map((item) => ({
+      id: item.id,
+      kind: "defense" as const,
+      label: "Founder",
+      text: item.text,
+      at: item.createdAt,
+    })),
+    ...replies.map((item) => ({
+      id: item.id,
+      kind: "reply" as const,
+      label: perspectiveName(item.perspective),
+      text: item.reply!.trim(),
+      at: item.createdAt,
+    })),
+  ].sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
+
+  if (turns.length === 0) return null;
+
+  return (
+    <div className="mt-6">
+      <p className="type-eyebrow">On the floor</p>
+      <ol className="mt-3 space-y-3">
+        {turns.map((turn) => (
+          <li key={turn.id} className="border border-rule bg-leaf px-3.5 py-3">
+            <p className="type-eyebrow">{turn.label}</p>
+            <p className="mt-1.5 text-[14.5px] leading-relaxed text-ink">
+              {turn.text}
+            </p>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+function AgentCalls() {
+  const calls = useArena((state) => state.toolCalls);
+  if (calls.length === 0) return null;
+
+  return (
+    <div className="mt-6">
+      <p className="type-eyebrow">What the agent did</p>
+      <ol className="mt-3 space-y-2">
+        {[...calls].slice(0, 12).reverse().map((call: ToolCall, index) => (
+          <li key={call.id} className="text-[14px] leading-relaxed">
+            <code className="type-figure text-[13px] text-ink">{call.tool}</code>
+            <span className="ml-2 text-graphite">
+              {String(index + 1).padStart(2, "0")} · {call.summary}
+            </span>
+          </li>
+        ))}
+      </ol>
+    </div>
   );
 }
 

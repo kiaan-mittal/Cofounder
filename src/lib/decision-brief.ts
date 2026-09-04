@@ -3,8 +3,10 @@ import { PERSPECTIVE_MAP, perspectiveSeat } from "@/lib/perspectives";
 import {
   argumentsFor,
   contradictionsFor,
+  defensesFor,
   evidenceFor,
   openRisksFor,
+  reassessmentsFor,
 } from "@/lib/selectors";
 import type { ArenaState } from "@/lib/store";
 
@@ -42,6 +44,13 @@ export type DecisionBrief = {
   nextMove: string | null;
   nextMoveSteps: string[];
   createdAt: string;
+  /** Founder defenses and seat replies, oldest first. */
+  thread?: Array<{
+    kind: "defense" | "reply";
+    seat?: string;
+    text: string;
+    at: string;
+  }>;
   /** Present when an agent called confirm_commit and was refused. */
   commitRefused?: boolean;
   commitRefusedAt?: string;
@@ -99,6 +108,21 @@ export function briefFromState(
     nextMove: verdict?.nextMove ?? null,
     nextMoveSteps: verdict?.nextMoveSteps ?? [],
     createdAt: new Date().toISOString(),
+    thread: [
+      ...defensesFor(state, decisionId).map((item) => ({
+        kind: "defense" as const,
+        text: item.text,
+        at: item.createdAt,
+      })),
+      ...reassessmentsFor(state, decisionId)
+        .filter((item) => Boolean(item.reply?.trim()) && !item.streaming)
+        .map((item) => ({
+          kind: "reply" as const,
+          seat: perspectiveSeat(item.perspective),
+          text: item.reply!.trim(),
+          at: item.createdAt,
+        })),
+    ].sort((a, b) => Date.parse(a.at) - Date.parse(b.at)),
     commitRefused: Boolean(decision.agentCommitRefusedAt),
     commitRefusedAt: decision.agentCommitRefusedAt,
     commitRefusedCount: decision.agentCommitRefusedCount,
@@ -138,6 +162,20 @@ export function briefToMarkdown(brief: DecisionBrief, shareUrl?: string): string
     "",
     seats || "_The seats have not written yet._",
     "",
+    brief.thread?.length
+      ? [
+          "## Floor",
+          "",
+          brief.thread
+            .map((item) =>
+              item.kind === "reply"
+                ? `**${item.seat ?? "Seat"}:** ${item.text}`
+                : `**Founder:** ${item.text}`,
+            )
+            .join("\n\n"),
+          "",
+        ].join("\n")
+      : "",
     "## Still open",
     "",
     `What would change the call: ${brief.whatWouldChangeIt}`,

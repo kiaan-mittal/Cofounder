@@ -6,6 +6,7 @@ import { detectPatterns } from "@/lib/calibration";
 import type { DebateOpenEvent, DebateOpeningRound } from "@/lib/reading";
 import { decisionHistory } from "@/lib/selectors";
 import { useArena } from "@/lib/store";
+import { rememberGuestWorkspace } from "@/lib/supabase/sync";
 import { runToolDirect } from "@/webmcp/run";
 
 /**
@@ -265,6 +266,7 @@ export async function paintOpeningRound(input: {
     );
   } finally {
     useArena.getState().endOpening();
+    rememberGuestWorkspace();
   }
 }
 

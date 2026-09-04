@@ -17,7 +17,7 @@ export const JUDGE_ORIGIN = "https://trydissent.vercel.app";
 /**
  * The only line a judge copies into ChatGPT.
  */
-export const JUDGE_PROMPT = `Open Dissent and stress-test whether /research and /scan should run without a Clerk session. Read the resulting verdict, propose the strongest next move, and let me retain final authority over the commitment.`;
+export const JUDGE_PROMPT = `Open Dissent and stress-test whether /research and /scan should run without a Clerk session. Read the resulting verdict, propose the strongest next move, and let me retain final authority over the commitment. Before committing, ask me what to commit — do not call confirm_commit until I say so. Then share the public decision link with me so I can view it and share it.`;
 
 export const JUDGE_STEPS = [
   {
@@ -51,11 +51,11 @@ export const JUDGE_CALLS = [
   },
   {
     tool: "confirm_commit",
-    happens: "Founder confirms. ChatGPT proposes; you close it.",
+    happens: "Ask what to commit. Do not close it until the founder says so.",
   },
   {
     tool: "share_decision",
-    happens: "A public /share URL. The record left the chat.",
+    happens: "A public /share URL you can open and send.",
   },
   {
     tool: "get_company_brain",

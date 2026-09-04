@@ -12,6 +12,7 @@ import {
 import { isStaleShowcase, showcaseSnapshot } from "@/lib/showcase-seed";
 import {
   snapshotIsEmpty,
+  snapshotWeight,
   useArena,
   getWorkspaceSnapshot,
   type WorkspaceSnapshot,
@@ -83,6 +84,16 @@ export function RequireCompany({
     }
 
     if (!current || isStaleShowcase(live)) {
+      const guest = readGuestSnapshot();
+      if (
+        guest &&
+        !snapshotIsEmpty(guest) &&
+        !isStaleShowcase(guest) &&
+        (!current || snapshotWeight(guest) >= snapshotWeight(getWorkspaceSnapshot()))
+      ) {
+        importWorkspace(guest);
+        return;
+      }
       importWorkspace(showcaseSnapshot());
       return;
     }
@@ -173,9 +184,15 @@ export function HydrateWorkspace({
   useLayoutEffect(() => {
     const live = useArena.getState();
     if (isStaleShowcase(live)) {
+      const guest = readGuestSnapshot();
+      if (guest && !snapshotIsEmpty(guest) && !isStaleShowcase(guest)) {
+        importWorkspace(guest);
+        return;
+      }
       importWorkspace(seedFromQuery());
       return;
     }
+    adoptSnapshotIfRicher(readGuestSnapshot());
     if (
       initialSnapshot &&
       !snapshotIsEmpty(initialSnapshot as WorkspaceSnapshot)
@@ -187,6 +204,11 @@ export function HydrateWorkspace({
   useEffect(() => {
     const live = useArena.getState();
     if (isStaleShowcase(live) || !live.company) {
+      const guest = readGuestSnapshot();
+      if (guest && !snapshotIsEmpty(guest) && !isStaleShowcase(guest)) {
+        importWorkspace(guest);
+        return;
+      }
       importWorkspace(seedFromQuery());
     }
   }, [importWorkspace]);

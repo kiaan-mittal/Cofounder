@@ -4,6 +4,7 @@ import { post } from "@/lib/api";
 import { briefFromState } from "@/lib/decision-brief";
 import { activeDecision } from "@/lib/selectors";
 import { useArena } from "@/lib/store";
+import { rememberGuestWorkspace } from "@/lib/supabase/sync";
 import type { ArenaTool } from "@/webmcp/registry";
 import { toolError, toolResult } from "@/webmcp/spec";
 
@@ -77,6 +78,7 @@ export const shareTools: ArenaTool[] = [
       if (!decision) return toolError("There is no decision open to share.");
       const brief = briefFromState(state(), decision.id);
       if (!brief) return toolError("There is no decision open to share.");
+      rememberGuestWorkspace();
 
       try {
         const result = await post<{

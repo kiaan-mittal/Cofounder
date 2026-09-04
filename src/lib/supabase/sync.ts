@@ -64,9 +64,12 @@ export function shouldAdoptRemote(
 ) {
   if (!remote || snapshotIsEmpty(remote)) return false;
   if (isStaleShowcase(remote)) return false;
+  // Empty local must adopt a guest floor. Checking ephemeral first used to
+  // refuse that restore, so /history after a share showed the seed question
+  // with no seats.
+  if (snapshotIsEmpty(local)) return true;
   if (isEphemeralSnapshot(local) && !isEphemeralSnapshot(remote)) return true;
   if (!isEphemeralSnapshot(local) && isEphemeralSnapshot(remote)) return false;
-  if (snapshotIsEmpty(local)) return true;
   return snapshotWeight(remote) > snapshotWeight(local);
 }
 

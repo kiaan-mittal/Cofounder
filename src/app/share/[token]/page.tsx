@@ -88,22 +88,46 @@ export default async function SharePage({
 
       <section className="mt-12">
         <h2 className="type-eyebrow">The seats</h2>
-        <ul className="mt-5 space-y-6">
-          {brief.seats.map((seat) => (
-            <li key={`${seat.seat}-${seat.claim}`} className="border-t border-rule pt-5">
-              <p className="type-eyebrow">
-                {seat.seat} · {seat.stance}
-              </p>
-              <p className="mt-2 text-[17px] font-medium leading-snug text-ink">
-                {seat.claim}
-              </p>
-              <p className="mt-2 text-[15px] leading-relaxed text-graphite">
-                {seat.reasoning}
-              </p>
-            </li>
-          ))}
-        </ul>
+        {brief.seats.length ? (
+          <ul className="mt-5 space-y-6">
+            {brief.seats.map((seat) => (
+              <li key={`${seat.seat}-${seat.claim}`} className="border-t border-rule pt-5">
+                <p className="type-eyebrow">
+                  {seat.seat} · {seat.stance}
+                </p>
+                <p className="mt-2 text-[17px] font-medium leading-snug text-ink">
+                  {seat.claim}
+                </p>
+                <p className="mt-2 text-[15px] leading-relaxed text-graphite">
+                  {seat.reasoning}
+                </p>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-5 text-[15px] leading-relaxed text-graphite">
+            The five seats have not written on this decision yet.
+          </p>
+        )}
       </section>
+
+      {brief.thread?.length ? (
+        <section className="mt-12">
+          <h2 className="type-eyebrow">On the floor</h2>
+          <ol className="mt-5 space-y-5">
+            {brief.thread.map((item, index) => (
+              <li key={`${item.kind}-${item.at}-${index}`} className="border-t border-rule pt-4">
+                <p className="type-eyebrow">
+                  {item.kind === "reply" ? (item.seat ?? "Seat") : "Founder"}
+                </p>
+                <p className="mt-2 text-[15px] leading-relaxed text-ink">
+                  {item.text}
+                </p>
+              </li>
+            ))}
+          </ol>
+        </section>
+      ) : null}
 
       <OpenItems brief={brief} />
 

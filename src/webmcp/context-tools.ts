@@ -6,6 +6,7 @@ import { inheritedRoomPayload } from "@/lib/inherited-room";
 import { openWorkspacePage } from "@/lib/open-page";
 import { calibrationSnapshot, decisionHistory, decisionSnapshot, activeDecision } from "@/lib/selectors";
 import { useArena } from "@/lib/store";
+import { rememberGuestWorkspace } from "@/lib/supabase/sync";
 import { currentChannel, type ArenaTool } from "@/webmcp/registry";
 import { toolError, toolResult } from "@/webmcp/spec";
 
@@ -187,6 +188,7 @@ export const contextTools: ArenaTool[] = [
       additionalProperties: false,
     },
     execute: ({ only_with_outcomes, include_record }) => {
+      rememberGuestWorkspace();
       const history = decisionHistory(state(), include_record === true);
       const filtered = only_with_outcomes
         ? history.filter((h) => h.outcome !== null)
